@@ -34,7 +34,7 @@ ShellRoot {
     FloatingWindow {
         id: window
 
-        title: "Courier"
+        title: "Junco"
         implicitWidth: 1760
         implicitHeight: 1000
         color: Theme.m3surface

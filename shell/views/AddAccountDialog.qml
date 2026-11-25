@@ -121,8 +121,8 @@ Item {
                 text: root.stage === "done"
                     ? `${root.added} is signed in. Its mail is downloading now; a big mailbox takes a few minutes. It shows with your other mail, marked with its own colour.`
                     : root.stage === "waiting"
-                    ? "Finish signing in in your browser. Keep every box ticked: Courier needs mail and read-only calendar access. If Google shows an error page instead, it can't come back here: press Cancel."
-                    : "Courier opens Google in your browser to sign in. Your password never passes through Courier; the sign-in stays in your keyring."
+                    ? "Finish signing in in your browser. Keep every box ticked: Junco needs mail and read-only calendar access. If Google shows an error page instead, it can't come back here: press Cancel."
+                    : "Junco opens Google in your browser to sign in. Your password never passes through Junco; the sign-in stays in your keyring."
                 wrapMode: Text.Wrap
                 color: Theme.m3onSurfaceVariant
                 lineHeight: 1.15

@@ -475,7 +475,7 @@ Item {
 
             Label {
                 Layout.fillWidth: true
-                text: "Saved on this PC. Your Google calendars are read-only in Courier."
+                text: "Saved on this PC. Your Google calendars are read-only in Junco."
                 wrapMode: Text.Wrap
                 color: Theme.m3onSurfaceVariant
                 font.pixelSize: 12

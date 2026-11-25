@@ -55,7 +55,7 @@ def save(name: str, data) -> None:
 
 
 def notify(title: str, body: str, icon: str = "mail-message-new") -> None:
-    sync.desktop_notify(title, body, "-a", "Courier", "-i", icon)
+    sync.desktop_notify(title, body, "-a", "Junco", "-i", icon)
 
 
 def moment(value: str) -> float:

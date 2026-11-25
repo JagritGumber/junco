@@ -1,4 +1,4 @@
-# Courier: the full guide
+# Junco: the full guide
 
 A mail app whose inbox reads like a chat app, and a separate Calendar app with to-dos and
 desktop reminders, for Gmail. Built to sit in a Caelestia desktop: same
@@ -14,7 +14,7 @@ email exactly as sent, on request.
 
 Status: **real Gmail** (one account so far). Read, write, reply, reply all,
 forward, archive, delete, spam, star, search, with new mail pushed the moment
-it lands and sender logos. Open "Courier" or "Calendar" from the app
+it lands and sender logos. Open "Junco" or "Calendar" from the app
 launcher, or:
 
     courier            # bin/courier: the mail app (shell/)
@@ -41,15 +41,15 @@ calendar.
 
 One-time Google Cloud setup, in a project of its own:
 
-1. Create a project named Courier. Enable the Gmail API and the Google
+1. Create a project named Junco. Enable the Gmail API and the Google
    Calendar API.
-2. Google Auth Platform: Branding (app name Courier), Audience External, then
+2. Google Auth Platform: Branding (app name Junco), Audience External, then
    **Publish app** so it is *In production*. Testing would expire the
    sign-in every 7 days.
 3. Clients → Create client → **Desktop app** → download the JSON.
 4. `courier-auth setup ~/Downloads/client_secret_….json`, delete the file,
    then `courier-auth add personal` and `courier-auth add work`. Google warns
-   the app is unverified: Advanced → Go to Courier. Personal use needs no
+   the app is unverified: Advanced → Go to Junco. Personal use needs no
    verification.
 5. If the Workspace account blocks it: Admin console → Security → API
    controls → Manage third-party app access → add the client ID as Trusted.
@@ -118,7 +118,7 @@ BIMI logo (SVG) is drawn by `rsvg-convert` under `prlimit` (512 MB).
 
 Each connected account wears its own picture the same way: the Google
 account's profile photo, else its address's Gravatar, else its initial. The
-photo comes from Google's OpenID userinfo with the sign-in Courier already
+photo comes from Google's OpenID userinfo with the sign-in Junco already
 has (`openid email`; no new permission). It is looked up once, checked to be
 a real image and kept as `~/.local/share/courier/accounts/<id>.default.png`;
 a Gravatar or "none" is checked again weekly, a failed lookup (offline,
@@ -133,7 +133,7 @@ state is in `~/.local/state/courier/account-pictures.json`.
 Google calendar (60 days back, a year ahead) to
 `~/.local/share/courier/calendar/google.json` every 5 minutes;
 `courier-remind.timer` checks each minute and raises a desktop notification
-for every pop-up reminder that comes due, Courier open or not. Events made
+for every pop-up reminder that comes due, Junco open or not. Events made
 only on this PC go in `local.json` beside it.
 
 The Calendar app (`calendar/`, its page is `views/CalendarPage.qml`) has
@@ -160,7 +160,7 @@ Google birthdays show as their own "Birthdays" calendar. Which view and
 calendars you left on is kept in `~/.local/state/courier/calendar-view.json`.
 To-dos live in `~/.local/share/courier/tasks.json`.
 
-Courier has read-only access to Google Calendar (`calendar.readonly`). So
+Junco has read-only access to Google Calendar (`calendar.readonly`). So
 events you create, edit or delete here live in calendars on this PC, and
 "Edit in Google" opens a Google event in the browser. Writing to Google
 would need a new consent with the `calendar.events` scope.
@@ -233,7 +233,7 @@ browser; a Content-Security-Policy at its top blocks every script, form and
 frame.
 
 Sync itself only pulls: new mail, Gmail-side deletions and read/starred
-state come down, and only read/starred state goes up. Everything else Courier
+state come down, and only read/starred state goes up. Everything else Junco
 changes in Gmail (archive, delete, spam, labels) goes through
 `courier_gmail.py`, below, and only when you ask. Only the newest 10,000
 messages per folder download (`HISTORY`).
@@ -247,7 +247,7 @@ Maildir for sync):
 
 Three columns:
 
-- **Sidebar:** the title with Pip, Courier's icon, before it
+- **Sidebar:** the title with Pip, Junco's icon, before it
   (`assets/icons/courier-pip.svg`; Calendar's has Tab); Compose; Inbox, All
   Mail, Starred, Sent, Archive, Trash, with
   what's unread or waiting in each; at the foot, the account bar: the account
@@ -348,16 +348,16 @@ shows how many emails it would touch now.
 ## Teach fields
 
 Automated mail says the same few things every time: a forge's push names
-who pushed, how many commits and which, and links to them. Teach Courier
+who pushed, how many commits and which, and links to them. Teach Junco
 once and it reads those out of every email like it.
 
-Teach fields' screens are for developers for now: run Courier with
+Teach fields' screens are for developers for now: run Junco with
 `COURIER_DEV=1` to see them. Templates already taught keep working either
 way.
 
 1. Open one (a push, a CI failure, a PR comment) and press **Teach fields**
    (the grid button in the reader's toolbar, or ⋯ → Teach fields).
-2. Courier switches the email to its text (the designed version when it has
+2. Junco switches the email to its text (the designed version when it has
    no text) and opens a panel: select text in the email or its subject,
    type a name or pick one (Repo, PR, Title, Author, Action, Link, Status),
    then **Add field**. Tick **Every row** for a list (commits, jobs),

@@ -577,7 +577,7 @@ Rectangle {
                 // Qt's rich text draws HTML 4 and CSS 2; the browser draws the rest.
                 Label {
                     visible: (root.mail?.hasOriginal ?? false) && !Inbox.teaching
-                    text: root.mode === "plain" ? "The email's text version, in Courier's colours. Show original"
+                    text: root.mode === "plain" ? "The email's text version, in Junco's colours. Show original"
                         : root.designed ? "Looks off? Open it in the browser ↗" : root.mail?.html ? "This email has a designed version. Show it" : "This email has a designed version. Open it in the browser ↗"
                     color: Theme.m3onSurfaceVariant
                     font.pixelSize: 13

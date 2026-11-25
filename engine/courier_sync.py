@@ -662,7 +662,7 @@ def notify(fresh: list[tuple[str, str]]) -> None:
         names = list(dict.fromkeys(name for name, _ in fresh))
         notes = [(f"{len(fresh)} new messages", ", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else ""))]
     for title, body in notes:
-        desktop_notify(title, body, "-a", "Courier", "-i", "mail-message-new", "-c", "email.arrived")
+        desktop_notify(title, body, "-a", "Junco", "-i", "mail-message-new", "-c", "email.arrived")
 
 
 def message_paths(message) -> list[str]:
@@ -858,7 +858,7 @@ def write_status(accounts: dict[str, dict]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="courier-sync", description="Sync Courier's mail.")
+    parser = argparse.ArgumentParser(prog="courier-sync", description="Sync Junco's mail.")
     parser.add_argument("--configure", action="store_true", help="rewrite the generated configs and stop")
     parser.add_argument("--relane", action="store_true", help="sort all downloaded mail into lanes again, without syncing")
     args = parser.parse_args(argv)

@@ -1,12 +1,15 @@
-# Courier
+# Junco
 
 **A mail client for Linux that feels like part of your desktop.**
 
-![Courier's inbox: newsletters selected one by one, with the selection bar above them](assets/courier-demo.gif)
+![Junco's inbox: newsletters selected one by one, with the selection bar above them](assets/courier-demo.gif)
 
-Courier is a Gmail client and a calendar for Hyprland, drawn with the same
+Junco is a Gmail client and a calendar for Hyprland, drawn with the same
 fonts, shapes and wallpaper colours as the shell around it. It runs natively:
 no Electron and no embedded browser.
+
+Its commands, files and services still use the code name `courier`
+(`courier-auth`, `~/.config/courier`, `courier-sync.timer`).
 
 ## Features
 
@@ -50,8 +53,8 @@ sudo pacman -S --needed quickshell isync notmuch msmtp libsecret librsvg kdialog
     python-pillow python-markdown-it-py ttf-material-symbols-variable
 paru -S cyrus-sasl-xoauth2-git ttf-rubik-vf
 
-git clone https://github.com/JagritGumber/courier ~/Projects/courier
-cd ~/Projects/courier
+git clone https://github.com/JagritGumber/junco ~/Projects/junco
+cd ~/Projects/junco
 mkdir -p ~/.local/bin
 ln -sf "$PWD/bin/courier" "$PWD/bin/calendar" ~/.local/bin/
 for tool in auth sync push mail calendar avatars notify; do
@@ -63,12 +66,12 @@ done
 
 ### Your own Google sign-in
 
-Courier ships no Google credentials. Each user creates a sign-in client of
+Junco ships no Google credentials. Each user creates a sign-in client of
 their own, once:
 
 1. In the [Google Cloud console](https://console.cloud.google.com), create a
    project and enable the **Gmail API** and the **Google Calendar API**.
-2. Under **Google Auth Platform**, fill in Branding, set Audience to
+2. Under **Google Auth Platform**, fill in Branding (app name Junco), set Audience to
    External, then **Publish app** so it is *In production*. In Testing, the
    sign-in expires every 7 days.
 3. **Clients → Create client → Desktop app**, and download the JSON file.
@@ -82,7 +85,7 @@ courier-sync                                          # the first sync takes a f
 ```
 
 Google warns that the app is unverified, because it is your own client:
-choose Advanced → Go to Courier. Add more accounts with
+choose Advanced → Go to Junco. Add more accounts with
 `courier-auth add work`, and so on.
 
 ### Background sync and launch
@@ -98,7 +101,7 @@ courier     # the mail window
 calendar    # the calendar
 ```
 
-Courier takes its colours from the [Caelestia](https://github.com/caelestia-dots/shell)
+Junco takes its colours from the [Caelestia](https://github.com/caelestia-dots/shell)
 shell's wallpaper scheme when it is installed, and uses its own dark palette
 when it is not. Launcher entries and the rest of the setup are in
 [HOW-IT-WORKS.md](HOW-IT-WORKS.md). Run the tests with
@@ -119,12 +122,12 @@ These show the demo profile, with fictional people and mail.
 
 ## Part of Kibby
 
-Courier is part of [Kibby](https://github.com/JagritGumber/kibby), a
+Junco is part of [Kibby](https://github.com/JagritGumber/kibby), a
 Hyprland and Quickshell desktop.
 
 ## Credits
 
-- [Caelestia](https://github.com/caelestia-dots/shell) (GPL-3.0): Courier
+- [Caelestia](https://github.com/caelestia-dots/shell) (GPL-3.0): Junco
   follows its Material 3 colour roles and look, its transparent layers use
   Caelestia's `alterColour` formula, and the picture framing works like its
   profile picture cropper.

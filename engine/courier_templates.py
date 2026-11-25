@@ -208,7 +208,7 @@ def read_mail(db, message_id: str) -> Mail:
     except LookupError:
         message = None
     if message is None:
-        raise TemplateError("Courier can't find that email any more.")
+        raise TemplateError("Junco can't find that email any more.")
     return Mail(message)
 
 
@@ -399,7 +399,7 @@ def select(db, message_id: str, selection: dict) -> dict:
     page = mail.page_for(surface)
     mapped = cf.map_selection(page, shown, begin, end)
     if mapped is None:
-        raise TemplateError("Courier couldn't place that selection in the email. Try selecting it again.")
+        raise TemplateError("Junco couldn't place that selection in the email. Try selecting it again.")
     begin, end = mapped
     leaf = page.leaf_at(begin)
     if leaf is None:

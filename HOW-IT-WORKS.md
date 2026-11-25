@@ -1,9 +1,9 @@
-# How Courier works
+# How Junco works
 
-Courier is two desktop apps for one Gmail account (or several) and the small
+Junco is two desktop apps for one Gmail account (or several) and the small
 engine behind them:
 
-- **Courier** (`shell/`): a mail app whose inbox reads like a chat app
+- **Junco** (`shell/`): a mail app whose inbox reads like a chat app
   (people as conversations, machine mail in lists of its own), written in
   QML on Quickshell.
 - **Calendar** (`calendar/`): Google calendars, calendars kept on this PC,
@@ -32,7 +32,7 @@ mail is copied to this PC over IMAP and read from there.
                          courier-mail (JSON) ──────────┘   courier-calendar (JSON)
                           ▲          ▲                        ▲
                           │          │ every minute           │
-              Courier window    courier-mail tick     Calendar window
+               Junco window     courier-mail tick     Calendar window
               (shell/, QML)     (snooze, reminders,   (calendar/, QML)
                                  scheduled, rules)
 ```
@@ -98,7 +98,7 @@ All are systemd user units in `engine/systemd/`.
 | --- | --- | --- |
 | `courier-push.service` | Keeps one IMAP IDLE connection per account and starts a sync when mail arrives | Always running |
 | `courier-sync.service` + `.timer` | mbsync, notmuch, tagging, notifications | Every 3 minutes, and on push |
-| `courier-notify.service` | Answers the buttons on Courier's notifications (Open on GitHub, Open in Courier, Mark read) | Always running in the graphical session |
+| `courier-notify.service` | Answers the buttons on Junco's notifications (Open on GitHub, Open in Junco, Mark read) | Always running in the graphical session |
 | `courier-avatars.service` | Finds sender logos (BIMI, site icon, Gravatar) and each account's own picture (Google photo, Gravatar) | After each sync |
 | `courier-tick.service` + `.timer` | Snoozes, reminders, scheduled sends, retention, rules | Every minute |
 | `courier-calendar.service` + `.timer` | Copies Google calendars | Every 5 minutes |
@@ -142,7 +142,7 @@ All are systemd user units in `engine/systemd/`.
 | `courier_calendar.py` → `courier-calendar` | Calendar sync, the agenda, events on this PC, reminders |
 | `tests/` | Unit tests against a fake Google and a hand-built Maildir |
 
-**Courier app** (`shell/`):
+**Junco app** (`shell/`):
 
 - `shell.qml`: the window: sidebar; the inbox's conversations or a folder's
   list; the open conversation or email.
@@ -158,7 +158,7 @@ All are systemd user units in `engine/systemd/`.
 
 **Calendar app** (`calendar/`): `shell.qml`, `services/Calendar.qml` and
 `Tasks.qml`, and the month, week, day and agenda views. It shares the theme
-and basic components with Courier through symlinks into `shell/`, so keep the
+and basic components with Junco through symlinks into `shell/`, so keep the
 two folders side by side.
 
 **Launchers** (`bin/`): `courier` and `calendar` bring up the running window,
@@ -199,12 +199,12 @@ These steps are for Arch Linux; the package names will differ elsewhere.
    Python 3.14 or newer is needed (for IMAP IDLE). `systemd-resolved` is
    used for logo lookups (BIMI over DNS).
 
-2. **Put the folder somewhere permanent**, e.g. `~/Projects/courier`, and
+2. **Put the folder somewhere permanent**, e.g. `~/Projects/junco`, and
    link the commands:
 
    ```
-   git clone https://github.com/JagritGumber/courier ~/Projects/courier
-   cd ~/Projects/courier
+   git clone https://github.com/JagritGumber/junco ~/Projects/junco
+   cd ~/Projects/junco
    mkdir -p ~/.local/bin
    ln -sf "$PWD/bin/courier" "$PWD/bin/calendar" ~/.local/bin/
    for tool in auth sync push mail calendar avatars notify; do
@@ -238,7 +238,7 @@ These steps are for Arch Linux; the package names will differ elsewhere.
    # courier.desktop
    [Desktop Entry]
    Type=Application
-   Name=Courier
+   Name=Junco
    Exec=/home/YOU/.local/bin/courier
    Icon=internet-mail
    StartupWMClass=courier
@@ -260,7 +260,7 @@ These steps are for Arch Linux; the package names will differ elsewhere.
    logo for both apps.
 
 The colours follow the Caelestia shell's wallpaper scheme
-(`~/.local/state/caelestia/scheme.json`). Without Caelestia, Courier uses its
+(`~/.local/state/caelestia/scheme.json`). Without Caelestia, Junco uses its
 built-in dark palette.
 
 ## Running the tests

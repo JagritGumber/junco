@@ -464,10 +464,10 @@ class Safety(unittest.TestCase):
         name, path, interface, method, params = calls[0][:5]
         self.assertEqual((name, method), ("org.freedesktop.Notifications", "Notify"))
         app, replaces, icon, summary, body, actions, hints, timeout = params.unpack()
-        self.assertEqual((app, replaces, icon, timeout), ("Courier", 3, "courier", -1))
+        self.assertEqual((app, replaces, icon, timeout), ("Junco", 3, "courier", -1))
         self.assertNotIn("<", summary)
         self.assertNotIn("](", body)
-        self.assertEqual(actions, [cn.ACTION_LINK, "Open on GitHub", cn.ACTION_OPEN, "Open in Courier", cn.ACTION_READ, "Mark read"])
+        self.assertEqual(actions, [cn.ACTION_LINK, "Open on GitHub", cn.ACTION_OPEN, "Open in Junco", cn.ACTION_READ, "Mark read"])
         self.assertEqual(hints["urgency"], 2)
         self.assertEqual(hints["desktop-entry"], "courier")
 

@@ -341,7 +341,7 @@ def remind(now: datetime | None = None) -> list[str]:
             when = "now" if lead <= 0 else (f"in {lead} min" if lead < 120 else f"at {clock(start)}")
             body = " · ".join(part for part in (when, event.get("where", "")) if part)
             if not os.environ.get("COURIER_NO_NOTIFY"):
-                sync.desktop_notify(event.get("title", "Event"), body, "-a", "Courier", "-i", "appointment-soon", "-u", "critical")
+                sync.desktop_notify(event.get("title", "Event"), body, "-a", "Junco", "-i", "appointment-soon", "-u", "critical")
             shown.append(event.get("title", ""))
     cutoff = now.timestamp() - 3 * 86400
     sync.write_private(fired_path, json.dumps({k: v for k, v in fired.items() if v > cutoff}) + "\n")
@@ -479,7 +479,7 @@ def add_calendar(name: str) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="courier-calendar", description="Courier's calendar.")
+    parser = argparse.ArgumentParser(prog="courier-calendar", description="Junco's calendar.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("sync", help="copy Google calendars to this PC")
     commands.add_parser("agenda", help="today, tomorrow and the next 30 days, for the app")

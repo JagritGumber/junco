@@ -1645,7 +1645,7 @@ def parse_crop(text: str) -> tuple[int, int, int] | None:
 # claiming more than PICTURE_FILE_PIXELS isn't opened at all.
 PICTURE_PIXELS = 64_000_000
 PICTURE_FILE_PIXELS = 16384 * 16384
-PICTURE_TOO_BIG = "That picture is too big for Courier."
+PICTURE_TOO_BIG = "That picture is too big for Junco."
 
 
 def set_account_picture(account_id: str, source: str, crop: tuple[int, int, int] | None = None) -> dict:
@@ -1678,7 +1678,7 @@ def set_account_picture(account_id: str, source: str, crop: tuple[int, int, int]
     except (Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise MailError(PICTURE_TOO_BIG) from None
     except (OSError, UnidentifiedImageError):
-        raise MailError("That file isn't a picture Courier can read.") from None
+        raise MailError("That file isn't a picture Junco can read.") from None
     if crop:
         # In the decoded picture's pixels (a JPEG may have decoded smaller).
         x, y, size = (round(value * scale) for value in crop)
@@ -1769,7 +1769,7 @@ def preview(index: Index, message_id: str, number: int) -> dict:
     data = part.get_payload(decode=True) or b""
     kind = preview_kind(data)
     if kind is None:
-        raise MailError("Courier only previews pictures, PDFs and text. Save it to open it yourself.")
+        raise MailError("Junco only previews pictures, PDFs and text. Save it to open it yourself.")
     target = views.preview_path(preview_name(decode(part.get_filename()) or "attachment", kind))
     # A fresh file, never written through anything left at that name.
     target.unlink(missing_ok=True)
@@ -1790,7 +1790,7 @@ def subject_of(message_id: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="courier-mail", description="Courier's mail, as JSON.")
+    parser = argparse.ArgumentParser(prog="courier-mail", description="Junco's mail, as JSON.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("accounts").add_argument(
         "--fetch", action="store_true", help="first look up any account's own picture (Google photo, Gravatar) not looked up yet")
@@ -1920,9 +1920,9 @@ def teach_command(args) -> dict:
         try:
             payload = json.loads(sys.stdin.read() or "{}")
         except ValueError:
-            raise MailError("The panel sent something Courier can't read.") from None
+            raise MailError("The panel sent something Junco can't read.") from None
         if not isinstance(payload, dict):
-            raise MailError("The panel sent something Courier can't read.")
+            raise MailError("The panel sent something Junco can't read.")
     index = Index()
     try:
         if args.command == "teach-start":

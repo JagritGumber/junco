@@ -190,18 +190,18 @@ def sign_in(client: dict, login_hint: str | None) -> dict:
         def do_GET(self) -> None:
             query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
             if query.get("state", [""])[0] != state:
-                self.reply(400, "This sign-in link is stale. Start again from Courier.")
+                self.reply(400, "This sign-in link is stale. Start again from Junco.")
                 return
             if "code" in query:
                 outcome["code"] = query["code"][0]
-                self.reply(200, "Courier is signed in. You can close this tab.")
+                self.reply(200, "Junco is signed in. You can close this tab.")
             else:
                 outcome["error"] = query.get("error", ["unknown"])[0]
                 self.reply(200, "Sign-in was cancelled. You can close this tab.")
 
         def reply(self, status: int, message: str) -> None:
             body = (
-                "<!doctype html><meta charset=utf-8><title>Courier</title>"
+                "<!doctype html><meta charset=utf-8><title>Junco</title>"
                 f'<p style="font:18px Rubik,sans-serif;margin:4em auto;max-width:28em">{message}</p>'
             ).encode()
             self.send_response(status)
@@ -269,7 +269,7 @@ def id_token_email(id_token: str) -> str:
 
 def cache_access(account: str, tokens: dict) -> None:
     entry = {"token": tokens["access_token"], "expires": int(time.time()) + int(tokens.get("expires_in", 0))}
-    keyring_set("access", account, json.dumps(entry), label=f"Courier: Google access token ({account})")
+    keyring_set("access", account, json.dumps(entry), label=f"Junco: Google access token ({account})")
 
 
 def access_token(account: str) -> str:
@@ -330,7 +330,7 @@ def cmd_setup(path: str) -> None:
     if not info or "client_id" not in info or "client_secret" not in info:
         raise UsageError("That file is not a Desktop app client. In Google Cloud, create an OAuth client of type 'Desktop app'.")
     client = {"client_id": info["client_id"], "client_secret": info["client_secret"]}
-    keyring_set("client", None, json.dumps(client), label="Courier: Google OAuth client")
+    keyring_set("client", None, json.dumps(client), label="Junco: Google OAuth client")
     print(f"Saved the Google client to the keyring. You can delete {path} now.")
 
 
@@ -351,7 +351,7 @@ def cmd_add(account: str, login_hint: str | None) -> None:
         raise UsageError(f"Google left out: {names}. Run add again and keep every box ticked.")
 
     email = id_token_email(tokens["id_token"])
-    keyring_set("refresh", account, refresh, label=f"Courier: Google sign-in for {email}")
+    keyring_set("refresh", account, refresh, label=f"Junco: Google sign-in for {email}")
     cache_access(account, tokens)
     accounts = [entry for entry in load_accounts() if entry["id"] != account]
     accounts.append({"id": account, "email": email})
@@ -382,7 +382,7 @@ def cmd_remove(account: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="courier-auth", description="Google sign-in for Courier.")
+    parser = argparse.ArgumentParser(prog="courier-auth", description="Google sign-in for Junco.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("setup", help="store the Desktop OAuth client").add_argument("client_json")
     add = commands.add_parser("add", help="sign in a Google account")

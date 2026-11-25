@@ -651,7 +651,7 @@ def actions_for(note: Note) -> list[str]:
     actions = []
     if sync.web_link(note.link):
         actions += [ACTION_LINK, note.link_label]
-    return actions + [ACTION_OPEN, "Open in Courier", ACTION_READ, "Mark read"]
+    return actions + [ACTION_OPEN, "Open in Junco", ACTION_READ, "Mark read"]
 
 
 class Desktop:
@@ -690,7 +690,7 @@ class Desktop:
             hints["image-path"] = GLib.Variant("s", Path(note.picture).as_uri())
         reply = self.bus.call_sync(
             "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
-            GLib.Variant("(susssasa{sv}i)", ("Courier", replaces, "courier", inert(title), inert(body), actions_for(note), hints, -1)),
+            GLib.Variant("(susssasa{sv}i)", ("Junco", replaces, "courier", inert(title), inert(body), actions_for(note), hints, -1)),
             GLib.VariantType("(u)"), 0, 5000, None)
         return int(reply.unpack()[0])
 
@@ -719,7 +719,7 @@ def desktop_sender():
                 return nid
             except Exception as problem:  # noqa: BLE001
                 print(f"courier-notify: {problem}", file=sys.stderr)
-        sync.desktop_notify(title, body, "-a", "Courier", "-i", "courier", "-u", urgency, "-c", "email.arrived")
+        sync.desktop_notify(title, body, "-a", "Junco", "-i", "courier", "-u", urgency, "-c", "email.arrived")
         return 0
 
     send.server = server
@@ -947,9 +947,9 @@ def listen() -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="courier-notify", description="Courier's notifications for mail it reads fields from.")
+    parser = argparse.ArgumentParser(prog="courier-notify", description="Junco's notifications for mail it reads fields from.")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("listen", help="answer the buttons on Courier's notifications (courier-notify.service)")
+    commands.add_parser("listen", help="answer the buttons on Junco's notifications (courier-notify.service)")
     commands.add_parser("rules", help="the rules in force, as JSON")
     commands.add_parser("counts", help="the silent notifications counted, per day and kind")
     args = parser.parse_args()

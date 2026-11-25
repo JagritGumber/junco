@@ -76,7 +76,7 @@ Rectangle {
 
             Label {
                 Layout.fillWidth: true
-                text: `Needs re-teaching: Courier can't find ${(root.card?.missing ?? []).join(", ") || "what this template always says"} in this email, so it shows nothing rather than guess.`
+                text: `Needs re-teaching: Junco can't find ${(root.card?.missing ?? []).join(", ") || "what this template always says"} in this email, so it shows nothing rather than guess.`
                 wrapMode: Text.Wrap
                 color: Theme.m3onSurface
                 font.pixelSize: 13

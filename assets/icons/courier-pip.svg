@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
-  <title>Courier: Pip</title>
-  <!-- Pip: a round courier bird that fills the tile, a letter pinched in
+  <title>Junco: Pip</title>
+  <!-- Pip: a round junco (a small sparrow) that fills the tile, a letter pinched in
        its beak and its wings bringing it up to you. Filter-free (gradients
        and stacked translucent shapes only) so librsvg, QtSvg and resvg agree. -->
   <defs>
