@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Courier mail sync every 3 minutes
+
+[Timer]
+OnActiveSec=1min
+OnUnitActiveSec=3min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Opens Courier: shows the running window if there is one, otherwise starts it.
+shell="$(dirname "$(readlink -f "$0")")/../shell"
+qs ipc -p "$shell" call courier show 2>/dev/null || exec qs -n -d -p "$shell"

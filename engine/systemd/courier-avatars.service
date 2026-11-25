@@ -1,0 +1,8 @@
+[Unit]
+Description=Courier: fetch pictures for new senders (brand logos, Gravatars)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/courier-avatars fetch
+Nice=15

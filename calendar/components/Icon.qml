@@ -1,0 +1,1 @@
+../../shell/components/Icon.qml

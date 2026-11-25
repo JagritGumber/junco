@@ -1,0 +1,7 @@
+[Unit]
+Description=Courier: snoozed mail back, reminders, scheduled sends, retention and rules
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/courier-mail tick
+TimeoutStartSec=10min

@@ -1,0 +1,6 @@
+[Unit]
+Description=Courier: desktop reminders for calendar events
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/courier-calendar remind

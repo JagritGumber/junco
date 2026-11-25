@@ -1,0 +1,8 @@
+[Unit]
+Description=Courier: copy Google calendars to this PC
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/courier-calendar sync
+SuccessExitStatus=1

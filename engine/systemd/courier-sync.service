@@ -1,0 +1,10 @@
+[Unit]
+Description=Courier mail sync (Gmail to local Maildir, notmuch index)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/courier-sync
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=15min

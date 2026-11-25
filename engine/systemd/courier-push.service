@@ -1,0 +1,12 @@
+[Unit]
+Description=Courier push: sync the moment Gmail announces new mail (IMAP IDLE)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/courier-push
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

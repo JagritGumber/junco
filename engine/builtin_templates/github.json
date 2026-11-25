@@ -1,0 +1,6243 @@
+{
+ "about": "Courier's built-in GitHub templates, learned from GitHub's notification emails by build_builtin_templates.py and kept to GitHub's own boilerplate: no repo, person, hash, number or subject from any mail. Templates you teach override these.",
+ "templates": [
+  {
+   "id": "github.pr-comment.1",
+   "kind": "comment",
+   "name": "PR comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|a2e7e78264"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "ref",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "—": 1.0,
+     "left a comment": 1.0,
+     "Reply to this email directly,": 1.0,
+     "view it on GitHub": 1.0,
+     "unsubscribe": 1.0,
+     ", or": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "strong",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "ref",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\(",
+      "right": "\\)\\s*$",
+      "shape": "[\\w.-]+/[\\w.-]+#\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "left a comment",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        null
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-comment.2",
+   "kind": "comment",
+   "name": "PR comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|e0b053fdf1"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "ref",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "strong",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "ref",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\(",
+      "right": "\\)\\s*$",
+      "shape": "[\\w.-]+/[\\w.-]+#\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        null
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.issue-comment.1",
+   "kind": "issue-comment",
+   "name": "Issue comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (Issue #0)|a2e7e78264"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "ref",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "left a comment": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     ", or": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "strong",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "ref",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\(",
+      "right": "\\)\\s*$",
+      "shape": "[\\w.-]+/[\\w.-]+#\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "left a comment",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        null
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(Issue\\w*\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(Issue\\w*\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.issue-comment.2",
+   "kind": "issue-comment",
+   "name": "Issue comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (Issue #0)|e0b053fdf1"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "ref",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "strong",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "ref",
+      "path": [
+       [
+        "div",
+        0
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\(",
+      "right": "\\)\\s*$",
+      "shape": "[\\w.-]+/[\\w.-]+#\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        null
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(Issue\\w*\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(Issue\\w*\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.issue-comment.3",
+   "kind": "issue-comment",
+   "name": "Issue comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (Issue #0)|3ab61cd9c0"
+   ],
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        2
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(Issue\\w*\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(Issue\\w*\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-review.1",
+   "kind": "review",
+   "name": "PR review",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|b4dd3afa0e"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "action",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     ", or": 1.0,
+     "commented on this pull request.": 0.925
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "b",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "action",
+      "path": [
+       [
+        "p",
+        1
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "\\s+this\\w*\\s+pull\\w*\\s+request\\w*\\.\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        null
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.review-requested.1",
+   "kind": "review-requested",
+   "name": "Review requested",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|c1ea2cf516"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "ref",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "You are receiving this because your review was requested.": 1.0,
+     ".": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     ", or": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     "requested your review on:": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ],
+       [
+        "a.user-mention",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "ref",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ],
+       [
+        "a.issue-link.js-issue-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[\\w.-]+/[\\w.-]+#\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "requested your review on:",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-state.1",
+   "kind": "state",
+   "name": "PR or issue closed, merged or reopened",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|f141db3c95"
+   ],
+   "fields": [
+    {
+     "name": "action",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     ", or": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "action",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ],
+       [
+        "a.issue-link.js-issue-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\#",
+      "right": "$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-state.2",
+   "kind": "state",
+   "name": "PR or issue closed, merged or reopened",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|cb09543074"
+   ],
+   "fields": [
+    {
+     "name": "action",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     ", or": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "action",
+      "path": [
+       [
+        "p",
+        1
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a.issue-link.js-issue-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\#",
+      "right": "$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        2
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-state.3",
+   "kind": "state",
+   "name": "PR or issue closed, merged or reopened",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|63b2ab090b"
+   ],
+   "fields": [
+    {
+     "name": "action",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "action",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [
+       [
+        "div.email-fragment",
+        0
+       ],
+       [
+        "a.issue-link.js-issue-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\#",
+      "right": "$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-state.4",
+   "kind": "state",
+   "name": "PR or issue closed, merged or reopened",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (Issue #0)|cb09543074"
+   ],
+   "fields": [
+    {
+     "name": "action",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     ".": 1.0,
+     "—": 1.0,
+     "view it on GitHub": 1.0,
+     "Closed": 1.0,
+     "unsubscribe": 1.0,
+     "Reply to this email directly,": 1.0,
+     "as completed.": 1.0,
+     ", or": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "action",
+      "path": [
+       [
+        "p",
+        1
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a.issue-link.js-issue-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\#",
+      "right": "$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "Closed",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        2
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "view it on GitHub",
+      "landmark": "Reply to this email directly,",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(Issue\\w*\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-push.1",
+   "kind": "push",
+   "name": "PR push",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|e69032b5c4"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "count",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "hashes",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "messages",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "pushed 0 commit.": 1.0,
+     ".": 1.0,
+     "—": 1.0,
+     "or": 1.0,
+     "You are receiving this because you are subscribed to this thread.": 1.0,
+     "unsubscribe": 1.0,
+     "View it on GitHub": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "p",
+        0
+       ],
+       [
+        "a.user-mention",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "count",
+      "path": [
+       [
+        "p",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*pushed\\w*\\s+",
+      "right": "\\s+commit\\w*\\.\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "hashes",
+      "path": [
+       [
+        "ul",
+        0
+       ],
+       [
+        "li",
+        null
+       ],
+       [
+        "a.commit-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "pushed 0 commit.",
+      "required": true
+     },
+     {
+      "name": "messages",
+      "path": [
+       [
+        "ul",
+        0
+       ],
+       [
+        "li",
+        null
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "View it on GitHub",
+      "landmark": "—",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.pr-push.2",
+   "kind": "push",
+   "name": "PR push",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (PR #0)|60672de181"
+   ],
+   "fields": [
+    {
+     "name": "author",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "count",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "hashes",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "messages",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "number",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "author",
+      "path": [
+       [
+        "p",
+        0
+       ],
+       [
+        "a.user-mention",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "count",
+      "path": [
+       [
+        "p",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*pushed\\w*\\s+",
+      "right": "\\s+commit\\w*\\.\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "hashes",
+      "path": [
+       [
+        "ul",
+        0
+       ],
+       [
+        "li",
+        0
+       ],
+       [
+        "a.commit-link",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "messages",
+      "path": [
+       [
+        "ul",
+        0
+       ],
+       [
+        "li",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        1
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "number",
+      "path": [],
+      "slot": null,
+      "left": "\\(PR\\s+\\#",
+      "right": "\\)\\s*$",
+      "shape": "\\d+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(PR\\s+\\#",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.1",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|1e181df687"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "Annotations": 1.0,
+     "View workflow run": 1.0,
+     "—": 1.0,
+     "You are receiving this because you are subscribed to this thread.": 1.0,
+     "Manage your GitHub Actions notifications": 1.0,
+     "Status": 1.0,
+     "GitHub, Inc. ・0 Colin P Kelly Jr Street ・San Francisco, CA 0": 1.0,
+     "Job": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "Annotations",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "Annotations",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "View workflow run",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\S+\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.2",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|9034422016"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\S+\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.3",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|451b17d401"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*\\s*$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\S+\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.4",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|5c18522cee"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*\\s*$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\(",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.5",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|1179bc8817"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "View workflow run": 1.0,
+     "—": 1.0,
+     "You are receiving this because you are subscribed to this thread.": 1.0,
+     "Manage your GitHub Actions notifications": 1.0,
+     "GitHub, Inc. ・0 Colin P Kelly Jr Street ・San Francisco, CA 0": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.text-left",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "View workflow run",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.text-left",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "View workflow run",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.p-sm-4.pt-3.px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "View workflow run",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\(",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.ci-failed.6",
+   "kind": "ci-failed",
+   "name": "Actions run failed",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|ad381fbd17"
+   ],
+   "fields": [
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "workflow",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "jobs",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "results",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "status",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "branch",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "repo",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "workflow",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.container-md.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.text-left",
+        0
+       ],
+       [
+        "h2.lh-condensed.mt-2.text-normal",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "\\]\\s+",
+      "right": "\\s+workflow\\w*\\s+run\\w*",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "jobs",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^\\s*/\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "results",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.tmp-p-3",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ]
+      ],
+      "slot": 1,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "status",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": ":",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "branch",
+      "path": [],
+      "slot": null,
+      "left": "\\-\\s+",
+      "right": "\\s+\\(",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.security-advisory.1",
+   "kind": "security-advisory",
+   "name": "Security advisory",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] …|02c4d9844f"
+   ],
+   "fields": [
+    {
+     "name": "package",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "severity",
+     "list": false,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "repos",
+     "list": true,
+     "link": false,
+     "subject": false
+    },
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "Privacy": 1.0,
+     "Unsubscribe": 1.0,
+     "Sign in to GitHub": 1.0,
+     "High severity": 0.967,
+     "Notification settings": 1.0,
+     "・": 1.0,
+     "Terms": 1.0,
+     "View all alerts": 1.0,
+     "Affected Repositories": 1.0,
+     "GitHub, Inc. ・0 Colin P Kelly Jr Street ・San Francisco, CA 0": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "package",
+      "path": [],
+      "slot": null,
+      "left": "A\\s+security\\w*\\s+advisory\\w*\\s+on\\s+",
+      "right": "\\s+affects\\w*\\s+at\\s+least\\w*\\s+one\\w*",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.tmp-p-3.tmp-p-sm-4",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "div.d-inline.p-1",
+        0
+       ],
+       [
+        "h3.lh-condensed",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "severity",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.tmp-p-3.tmp-p-sm-4",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "div.d-inline.p-1",
+        0
+       ],
+       [
+        "span.Label",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "\\s+severity\\w*\\s*$",
+      "shape": "@?[\\w.-]+(?:\\[bot\\])?",
+      "link": false,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repos",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.tmp-p-3.tmp-p-sm-4",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tbody",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.p-2",
+        0
+       ],
+       [
+        "p.mb-0",
+        0
+       ],
+       [
+        "span.text-bold.v-align-middle",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "^",
+      "right": "$",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": true,
+      "subject": false,
+      "label": "",
+      "landmark": "Affected Repositories",
+      "required": true
+     },
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.container-sm.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center.tmp-p-3",
+        0
+       ],
+       [
+        "center",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.border.d-block.rounded-2",
+        0
+       ],
+       [
+        "table.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.tmp-p-3.tmp-p-sm-4",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.border-bottom.text-center.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.d-block.tmp-p-sm-4.tmp-pt-3.tmp-px-3",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-full",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.btn.btn-large.btn-primary",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "View all alerts",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.commit-comment.1",
+   "kind": "commit-comment",
+   "name": "Commit comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|3ab61cd9c0"
+   ],
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        2
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(\\d+b\\)\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.commit-comment.2",
+   "kind": "commit-comment",
+   "name": "Commit comment",
+   "surface": "html",
+   "fingerprints": [
+    "notifications@github.com|[*] … (h)|e09893d779"
+   ],
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    },
+    {
+     "name": "repo",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "commit",
+     "list": false,
+     "link": false,
+     "subject": true
+    },
+    {
+     "name": "title",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "p",
+        2
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "repo",
+      "path": [],
+      "slot": null,
+      "left": "^\\s*\\[",
+      "right": "\\]",
+      "shape": "[\\w.-]+/[\\w.-]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "commit",
+      "path": [],
+      "slot": null,
+      "left": "\\(",
+      "right": "\\)\\s*$",
+      "shape": "[0-9a-f]{7,40}",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     },
+     {
+      "name": "title",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "\\s+\\(\\d+b\\)\\s*$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.dependabot-digest.1",
+   "kind": "dependabot-digest",
+   "name": "Dependabot weekly digest",
+   "surface": "html",
+   "fingerprints": [
+    "noreply@github.com|[*] …|cc4252a013"
+   ],
+   "fields": [
+    {
+     "name": "week",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "Email preferences": 1.0,
+     "Version": 1.0,
+     "notification preferences": 1.0,
+     "Known security vulnerabilities detected": 1.0,
+     ".": 1.0,
+     "Dependency": 1.0,
+     "security alert digest": 1.0,
+     "San Francisco, CA 0": 1.0,
+     "Defined in": 1.0,
+     "the week of": 1.0,
+     "0 Colin P Kelly Jr St.": 1.0,
+     "·": 1.0,
+     "repository security updates from": 1.0,
+     "Sign into GitHub": 1.0,
+     "Change how you receive security alert emails in your": 1.0,
+     "Moderate severity": 1.0,
+     "Upgrade to": 1.0,
+     "Unsubscribe": 1.0,
+     "Vulnerabilities": 1.0,
+     "Privacy": 1.0,
+     "Review all vulnerable dependencies": 1.0,
+     "GitHub, Inc.": 1.0,
+     "Terms": 1.0,
+     "CVE-0-0": 0.963
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "week",
+      "path": [],
+      "slot": null,
+      "left": "for\\w*\\s+the\\w*\\s+week\\w*\\s+of\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.account-notice.1",
+   "kind": "account-notice",
+   "name": "Account and security notice",
+   "surface": "html",
+   "fingerprints": [
+    "noreply@github.com|[*] …|372ea08cab"
+   ],
+   "fields": [
+    {
+     "name": "notice",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "notice",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.account-notice.2",
+   "kind": "account-notice",
+   "name": "Account and security notice",
+   "surface": "html",
+   "fingerprints": [
+    "noreply@github.com|[*] …|0bc033df4c"
+   ],
+   "fields": [
+    {
+     "name": "notice",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "Link not working? Paste the following link into your browser:": 1.0,
+     "Updated Permissions Request": 1.0,
+     "contact support.": 1.0,
+     "Thanks!": 1.0,
+     "Hello there!": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "notice",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.account-notice.3",
+   "kind": "account-notice",
+   "name": "Account and security notice",
+   "surface": "html",
+   "fingerprints": [
+    "noreply@github.com|…|78c50355eb"
+   ],
+   "fields": [
+    {
+     "name": "notice",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "to learn a bit more about them.": 1.0,
+     "This invitation was intended for": 1.0,
+     "accept or decline": 1.0,
+     "You can": 1.0,
+     "this invitation. You can also visit": 1.0,
+     "Make sure you’re signed in as": 1.0,
+     "Button not working?": 1.0,
+     "View invitation": 1.0,
+     "or": 1.0,
+     ".": 1.0,
+     "Manage your GitHub email preferences": 1.0,
+     "San Francisco, CA 0": 1.0,
+     "Note:": 1.0,
+     "Copy and paste this link into your browser:": 1.0,
+     "report abuse": 1.0,
+     "repository": 1.0,
+     "Sign in to GitHub": 1.0,
+     "This invitation will expire in 0 day.": 1.0,
+     "block them": 1.0,
+     "•": 1.0,
+     "Privacy": 1.0,
+     "Getting a 0 error?": 1.0,
+     "GitHub, Inc.": 1.0,
+     "Terms": 1.0,
+     "0 Colin P Kelly Jr Street": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "notice",
+      "path": [],
+      "slot": null,
+      "left": "^",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "github.account-notice.4",
+   "kind": "account-notice",
+   "name": "Account and security notice",
+   "surface": "html",
+   "fingerprints": [
+    "support@github.com|[*] …|2519792000"
+   ],
+   "fields": [
+    {
+     "name": "notice",
+     "list": false,
+     "link": false,
+     "subject": true
+    }
+   ],
+   "learned": {
+    "fixed": {
+     "View billing settings": 1.0,
+     "GitHub Actions Usage": 1.0,
+     "・": 1.0,
+     "Manage budgets": 1.0,
+     "Contact us": 1.0,
+     "GitHub, Inc. ・0 Colin P Kelly Jr Street ・San Francisco, CA 0": 1.0,
+     "Learn more about this alert": 1.0
+    },
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "notice",
+      "path": [],
+      "slot": null,
+      "left": "\\]\\s+",
+      "right": "$",
+      "shape": "[^\\n]+",
+      "link": false,
+      "many": false,
+      "subject": true,
+      "label": "",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   }
+  }
+ ]
+}

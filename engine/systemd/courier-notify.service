@@ -1,0 +1,13 @@
+[Unit]
+Description=Courier notifications: answers their buttons (Open on GitHub, Open in Courier, Mark read)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/courier-notify listen
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

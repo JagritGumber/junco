@@ -1,0 +1,14 @@
+#!/bin/sh
+# Opens Calendar: shows the running window if there is one, otherwise starts
+# it. `calendar 2026-12-11` opens that day.
+app="$(dirname "$(readlink -f "$0")")/../calendar"
+if ! qs ipc -p "$app" call calendar show 2>/dev/null; then
+    qs -n -d -p "$app" || exit 1
+    # Wait for the new window to answer before asking it for a day.
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+        qs ipc -p "$app" call calendar show 2>/dev/null && break
+        sleep 0.25
+    done
+fi
+[ -n "$1" ] && qs ipc -p "$app" call calendar day "$1"
+exit 0

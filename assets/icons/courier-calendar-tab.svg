@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <title>Courier Calendar: Tab</title>
+  <!-- Tab: a page torn off a desk calendar. The torn red header is its
+       hair, a dog-eared corner, two little feet. Sunflower yellow, so it
+       never looks like the teal Pip mail icon. Filter-free (gradients and
+       stacked translucent shapes only). -->
+  <defs>
+    <path id="tile" d="M182,24 H330 C446,24 480,58 480,174 V322 C480,438 446,472 330,472 H182 C66,472 32,438 32,322 V174 C32,58 66,24 182,24 Z"/>
+    <path id="rim" d="M182,27 H330 C443.5,27 477,60.5 477,174 V322 C477,435.5 443.5,469 330,469 H182 C68.5,469 35,435.5 35,322 V174 C35,60.5 68.5,27 182,27 Z"/>
+    <path id="page" d="M126,134 L142.25,118 L158.5,134 L174.75,118 L191,134 L207.25,118 L223.5,134 L239.75,118 L256,134 L272.25,118 L288.5,134 L304.75,118 L321,134 L337.25,118 L353.5,134 L369.75,118 L386,134 V388 L346,428 H152 Q126,428 126,402 Z"/>
+    <path id="hair" d="M126,134 L142.25,118 L158.5,134 L174.75,118 L191,134 L207.25,118 L223.5,134 L239.75,118 L256,134 L272.25,118 L288.5,134 L304.75,118 L321,134 L337.25,118 L353.5,134 L369.75,118 L386,134 V198 H126 Z"/>
+    <path id="dogEar" d="M386,388 L346,428 L346,388 Z"/>
+
+    <linearGradient id="sun" x1="0" y1="24" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD84A"/>
+      <stop offset="1" stop-color="#FFA21C"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="196" x2="0" y2="428" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFF3E2"/>
+    </linearGradient>
+    <linearGradient id="hairFill" x1="0" y1="118" x2="0" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF5A45"/>
+      <stop offset="1" stop-color="#E2302A"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="24" x2="0" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="300" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7A3A00" stop-opacity="0"/>
+      <stop offset="1" stop-color="#7A3A00" stop-opacity="0.24"/>
+    </linearGradient>
+    <linearGradient id="rimLight" x1="0" y1="24" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.65"/>
+      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#5A2A00" stop-opacity="0"/>
+      <stop offset="1" stop-color="#5A2A00" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- soft drop shadow -->
+  <g transform="translate(256,264) scale(0.95,0.97) translate(-256,-248)" fill="#241200" stroke="#241200" stroke-linejoin="round">
+    <use xlink:href="#tile" opacity="0.05" stroke-width="20"/>
+    <use xlink:href="#tile" opacity="0.07" stroke-width="8"/>
+    <use xlink:href="#tile" opacity="0.08" stroke-width="0"/>
+  </g>
+
+  <!-- background -->
+  <use xlink:href="#tile" fill="url(#sun)"/>
+  <use xlink:href="#tile" fill="url(#floor)"/>
+
+  <g transform="rotate(-4 256 280)">
+    <!-- feet peek out under the page -->
+    <ellipse cx="206" cy="440" rx="32" ry="16" fill="#C8341F"/>
+    <ellipse cx="306" cy="440" rx="32" ry="16" fill="#C8341F"/>
+    <ellipse cx="200" cy="434" rx="12" ry="5" fill="#FFFFFF" opacity="0.35"/>
+    <ellipse cx="300" cy="434" rx="12" ry="5" fill="#FFFFFF" opacity="0.35"/>
+
+    <!-- the page: shadow, paper, torn red header for hair, dog-ear -->
+    <use xlink:href="#page" transform="translate(6,12)" fill="#8A4500" opacity="0.25" stroke="#8A4500" stroke-width="8" stroke-linejoin="round"/>
+    <use xlink:href="#page" fill="url(#paper)" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round"/>
+    <use xlink:href="#hair" fill="url(#hairFill)" stroke="#FF5A45" stroke-width="8" stroke-linejoin="round"/>
+    <rect x="122" y="194" width="268" height="6" fill="#B8241F" opacity="0.25"/>
+    <use xlink:href="#dogEar" transform="translate(-3,4)" fill="#8A4500" opacity="0.18"/>
+    <use xlink:href="#dogEar" fill="#F6E4C8" stroke="#F6E4C8" stroke-width="6" stroke-linejoin="round"/>
+
+    <!-- face -->
+    <ellipse cx="166" cy="320" rx="22" ry="13" fill="#FF9DB0" opacity="0.85"/>
+    <ellipse cx="346" cy="320" rx="22" ry="13" fill="#FF9DB0" opacity="0.85"/>
+    <ellipse cx="206" cy="272" rx="26" ry="31" fill="#2A1712"/>
+    <ellipse cx="306" cy="272" rx="26" ry="31" fill="#2A1712"/>
+    <circle cx="215" cy="259" r="10" fill="#FFFFFF"/>
+    <circle cx="315" cy="259" r="10" fill="#FFFFFF"/>
+    <circle cx="198" cy="286" r="4.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="298" cy="286" r="4.5" fill="#FFFFFF" opacity="0.8"/>
+    <path d="M232,318 Q256,342 280,318" fill="none" stroke="#2A1712" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- gloss and rim light -->
+  <use xlink:href="#tile" fill="url(#gloss)"/>
+  <use xlink:href="#rim" fill="none" stroke="url(#rimLight)" stroke-width="5"/>
+</svg>

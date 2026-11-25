@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <title>Courier: Pip</title>
+  <!-- Pip: a round courier bird that fills the tile, a letter pinched in
+       its beak and its wings bringing it up to you. Filter-free (gradients
+       and stacked translucent shapes only) so librsvg, QtSvg and resvg agree. -->
+  <defs>
+    <path id="tile" d="M182,24 H330 C446,24 480,58 480,174 V322 C480,438 446,472 330,472 H182 C66,472 32,438 32,322 V174 C32,58 66,24 182,24 Z"/>
+    <path id="rim" d="M182,27 H330 C443.5,27 477,60.5 477,174 V322 C477,435.5 443.5,469 330,469 H182 C68.5,469 35,435.5 35,322 V174 C35,60.5 68.5,27 182,27 Z"/>
+    <path id="wingL" d="M36,330 C72,318 132,334 168,386 C150,428 104,452 70,454 C50,440 38,412 36,380 Z"/>
+    <path id="wingR" d="M476,330 C440,318 380,334 344,386 C362,428 408,452 442,454 C462,440 474,412 476,380 Z"/>
+    <path id="letter" d="M182,300 H330 Q344,300 344,314 V402 Q344,416 330,416 H182 Q168,416 168,402 V314 Q168,300 182,300 Z"/>
+
+    <linearGradient id="feathers" x1="0" y1="24" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2FE0CC"/>
+      <stop offset="1" stop-color="#0596A4"/>
+    </linearGradient>
+    <linearGradient id="wingFill" x1="0" y1="320" x2="0" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0FA8AC"/>
+      <stop offset="1" stop-color="#046E80"/>
+    </linearGradient>
+    <linearGradient id="tuftFill" x1="0" y1="44" x2="0" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0E9EA5"/>
+      <stop offset="1" stop-color="#16B9B6"/>
+    </linearGradient>
+    <linearGradient id="beakFill" x1="0" y1="236" x2="0" y2="304" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB23C"/>
+      <stop offset="1" stop-color="#FF7417"/>
+    </linearGradient>
+    <linearGradient id="letterFill" x1="0" y1="300" x2="0" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E6F4F3"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="24" x2="0" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="300" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#003F4C" stop-opacity="0"/>
+      <stop offset="1" stop-color="#003F4C" stop-opacity="0.24"/>
+    </linearGradient>
+    <linearGradient id="rimLight" x1="0" y1="24" x2="0" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#00303A" stop-opacity="0"/>
+      <stop offset="1" stop-color="#00303A" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- soft drop shadow -->
+  <g transform="translate(256,264) scale(0.95,0.97) translate(-256,-248)" fill="#04161A" stroke="#04161A" stroke-linejoin="round">
+    <use xlink:href="#tile" opacity="0.05" stroke-width="20"/>
+    <use xlink:href="#tile" opacity="0.07" stroke-width="8"/>
+    <use xlink:href="#tile" opacity="0.08" stroke-width="0"/>
+  </g>
+
+  <!-- body -->
+  <use xlink:href="#tile" fill="url(#feathers)"/>
+  <use xlink:href="#tile" fill="url(#floor)"/>
+
+  <!-- head tuft: two feathers -->
+  <path d="M252,128 C226,112 214,80 226,50 C246,62 258,92 252,128 Z" fill="url(#tuftFill)"/>
+  <path d="M258,128 C270,98 292,78 320,74 C318,102 292,124 258,128 Z" fill="url(#tuftFill)"/>
+
+  <!-- cheeks -->
+  <ellipse cx="112" cy="266" rx="28" ry="16" fill="#FF9DBA" opacity="0.9"/>
+  <ellipse cx="400" cy="266" rx="28" ry="16" fill="#FF9DBA" opacity="0.9"/>
+
+  <!-- eyes: glossy beads -->
+  <ellipse cx="172" cy="214" rx="36" ry="42" fill="#06505A" opacity="0.25" transform="translate(0,6)"/>
+  <ellipse cx="340" cy="214" rx="36" ry="42" fill="#06505A" opacity="0.25" transform="translate(0,6)"/>
+  <ellipse cx="172" cy="214" rx="36" ry="42" fill="#152129"/>
+  <ellipse cx="340" cy="214" rx="36" ry="42" fill="#152129"/>
+  <circle cx="184" cy="198" r="13" fill="#FFFFFF"/>
+  <circle cx="352" cy="198" r="13" fill="#FFFFFF"/>
+  <circle cx="162" cy="232" r="6" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="330" cy="232" r="6" fill="#FFFFFF" opacity="0.8"/>
+
+  <!-- the letter, tilted a touch, with its shadow -->
+  <g transform="rotate(-5 256 358)">
+    <use xlink:href="#letter" transform="translate(0,10)" fill="#023E48" opacity="0.22"/>
+    <use xlink:href="#letter" fill="url(#letterFill)"/>
+    <path d="M176,310 L256,362 L336,310" fill="none" stroke="#A9D6D6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M256,388 C244,378 236,370 240,362 C244,355 252,356 256,362 C260,356 268,355 272,362 C276,370 268,378 256,388 Z" fill="#FF5A6E"/>
+  </g>
+
+  <!-- wings hold the letter -->
+  <use xlink:href="#wingL" fill="url(#wingFill)"/>
+  <use xlink:href="#wingR" fill="url(#wingFill)"/>
+  <path d="M36,330 C72,318 132,334 168,386" fill="none" stroke="#7AF2E2" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+  <path d="M476,330 C440,318 380,334 344,386" fill="none" stroke="#7AF2E2" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- beak pinches the top of the letter -->
+  <path d="M222,254 C236,238 276,238 290,254 C284,276 268,296 256,304 C244,296 228,276 222,254 Z" fill="#B44A06" opacity="0.25" transform="translate(0,6)"/>
+  <path d="M222,254 C236,238 276,238 290,254 C284,276 268,296 256,304 C244,296 228,276 222,254 Z" fill="url(#beakFill)"/>
+  <ellipse cx="246" cy="252" rx="13" ry="5" fill="#FFFFFF" opacity="0.55"/>
+
+  <!-- gloss and rim light -->
+  <use xlink:href="#tile" fill="url(#gloss)"/>
+  <use xlink:href="#rim" fill="none" stroke="url(#rimLight)" stroke-width="5"/>
+</svg>
