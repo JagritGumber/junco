@@ -190,7 +190,7 @@ class LearnTest(unittest.TestCase):
             return cf.TextPage(f"A third-party OAuth application ({app}) with access to public information (read-only) was authorized.")
 
         corpus = [(sentence(name), "") for name in ("Big Tool", "X", "Some Other App", "Q Q")]
-        template = cf.Template.learn([(sentence("Git Beacon"), "", [cf.Taught("app", "Git Beacon")])], corpus)
+        template = cf.Template.learn([(sentence("Brand Lens"), "", [cf.Taught("app", "Brand Lens")])], corpus)
         self.assertEqual(template.unlearned, [])
         self.assertEqual(template.extract(sentence("My Cool App")).values["app"], "My Cool App")
 

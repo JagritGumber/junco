@@ -25,7 +25,9 @@ no Electron and no embedded browser.
 - **Selection bar.** Archive, delete, mark read or star many emails at once.
 - **Structured notifications.** A GitHub email becomes "CI failed · app ·
   main" or "Review requested · PR #274" with buttons, not "New mail from
-  GitHub". Quiet by default: only what needs you pops up.
+  GitHub". Other services work the same way: security and login alerts,
+  expiring domains and failed payments pop up, while digests stay silent.
+  Quiet by default: only what needs you pops up.
 - **Calendar.** A separate app with your Google Calendar, local events,
   to-dos and desktop reminders.
 - **Empty-send guard.** An email with nothing of yours in it asks before it

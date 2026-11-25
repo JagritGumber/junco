@@ -6,8 +6,8 @@ courier_templates) gets a notification written from its fields instead of
 "New mail from X":
 
     CI failed · lumen-app · main               (critical)
-    Review requested · PR #274 · by Tomas
-    @tomas commented on PR #274 · lumen-app  first line of the comment
+    Review requested · PR #274 · by Priya
+    @priya commented on PR #274 · lumen-app  first line of the comment
 
 with Courier's icon and the sender's picture, an urgency per kind, and
 buttons: Open on GitHub (the email's link field), Open in Courier, Mark
@@ -82,7 +82,9 @@ PROFILES: dict[str, dict] = {
     "quiet": {
         "window": 300,
         "kinds": {
-            "ci-failed": {"urgency": "critical"},
+            # A red branch alerts once; more failures on it within the hour
+            # update that notification ("3 CI failures · lumen-app · main").
+            "ci-failed": {"urgency": "critical", "group": True, "window": 3600},
             "security-advisory": {"urgency": "critical"},
             "review-requested": {"urgency": "normal"},
             "comment": dict(PEOPLE_ON_YOURS),
@@ -90,6 +92,11 @@ PROFILES: dict[str, dict] = {
             "review": dict(PEOPLE_ON_YOURS),
             # A template you taught: you asked for it.
             "taught": {"urgency": "normal"},
+            # Other services' mail (courier_templates.services), by what it says.
+            "security-alert": {"urgency": "critical", "group": True},
+            "payment-failed": {"urgency": "critical", "group": True},
+            "domain-expiring": {"urgency": "normal", "group": True},
+            "incident": {"urgency": "critical", "group": True},
             "*": {"urgency": "silent"},
         },
     },
@@ -99,7 +106,9 @@ PROFILES: dict[str, dict] = {
         # notification instead of raising another.
         "window": 300,
         "kinds": {
-            "ci-failed": {"urgency": "critical"},
+            # A red branch alerts once; more failures on it within the hour
+            # update that notification ("3 CI failures · lumen-app · main").
+            "ci-failed": {"urgency": "critical", "group": True, "window": 3600},
             "security-advisory": {"urgency": "critical"},
             "review-requested": {"urgency": "normal"},
             "review": {"urgency": "normal"},
@@ -108,11 +117,59 @@ PROFILES: dict[str, dict] = {
             "commit-comment": {"urgency": "normal", "group": True},
             "push": {"urgency": "silent", "group": True},
             "ci-passed": {"urgency": "silent"},
+            # Other services' mail (courier_templates.services), by what it says.
+            "security-alert": {"urgency": "critical", "group": True},
+            "payment-failed": {"urgency": "critical", "group": True},
+            "domain-expiring": {"urgency": "normal", "group": True},
+            "incident": {"urgency": "critical", "group": True},
             "*": {"urgency": "normal"},
         },
     },
 }
 DEFAULT_PROFILE = "quiet"
+
+# What another service's email is, from what it says (its subject): the
+# first that fits, in this order. Words, not anyone's mail: the same for
+# every service. Marketing ("your offer", "50% off") is checked right after
+# the alerts, so "your deal expires soon" is never an expiring domain.
+SERVICE_KINDS: list[tuple[str, str, str, str]] = [
+    ("security-alert", "Security alert", "security alerts",
+     r"security alert|new (?:sign[- ]?in|log[- ]?in|login|device)|(?:sign[- ]?in|log[- ]?in|login) (?:from|attempt|alert)"
+     r"|password (?:changed|reset|was)|two[- ]?factor|2-?step verification|suspicious|unusual (?:activity|sign)"
+     r"|recovery (?:email|phone)|account (?:locked|compromised)"),
+    ("payment-failed", "Payment failed", "failed payments",
+     r"payment (?:was |is )?(?:unsuccessful|failed|declined)|(?:card|charge|transaction|debit) (?:was |is )?(?:declined|failed|unsuccessful)"
+     r"|auto-?renewals? (?:have |has )?failed|could(?:n't| not) (?:charge|process|renew)"
+     r"|(?:payment|invoice|bill)s? (?:is |are )?(?:past due|overdue)|payment (?:issue|problem)"),
+    ("marketing", "Offer", "offers",
+     r"\boffers?\b|\bdeals?\b|\bsale\b|discount|% off|\bsave\b|limited time|upgrade to|\bfree\b|premium|exclusive|invite"),
+    ("domain-expiring", "Expiring soon", "expiry notices",
+     r"expiring soon|(?:domain|service|plan|subscription|certificate)s?(?:\(s\))? (?:is |are |will )?(?:expir|about to expire)"
+     r"|pending delete|suspended|time to renew|ssl certificates?"),
+    ("incident", "Incident", "incidents",
+     r"incident|outage|downtime|degraded (?:performance|service)|(?:service|site|website|server|api) (?:is )?down"
+     r"|deploy(?:ment)? (?:has )?failed|build failed|failed to deploy"
+     r"|limit exceeded|quota exceeded"),
+    ("statement", "Statement", "statements", r"statement|contract note"),
+    ("invoice", "Invoice", "invoices",
+     r"invoice|receipt|payment (?:received|successful|confirmed)|renewal is confirmed|auto-?renew|order (?:confirmed|placed|shipped|delivered)"),
+    ("digest", "Digest", "digests",
+     r"digest|weekly|monthly|newsletter|job alert|jobs? (?:for you|matching|you might)|is hiring|recommend"),
+]
+
+
+# The kinds that pop up, and so may come only from a service's alert senders.
+ALERT_KINDS = {"security-alert", "payment-failed", "domain-expiring", "incident"}
+
+
+def service_kind(text: str) -> tuple[str, str, str]:
+    """A service email's kind, label and plural from its subject:
+    ("security-alert", "Security alert", "security alerts"), else a
+    plain notice."""
+    for kind, label, many, pattern in SERVICE_KINDS:
+        if re.search(pattern, text or "", re.I):
+            return kind, label, many
+    return "notice", "Update", "updates"
 # Apps that comment and review under a login without "[bot]".
 BOT_LOGINS = {"copilot", "codex", "chatgpt-codex-connector", "github-actions", "dependabot", "renovate"}
 URGENCY = {"low": 0, "normal": 1, "critical": 2}
@@ -180,6 +237,8 @@ def load_rules(path: Path | None = None) -> dict:
                 print(f"courier-notify: {kind}: {key} {rule[key]!r} isn't silent, low, normal or critical", file=sys.stderr)
         if isinstance(rule.get("group"), bool):
             kept["group"] = rule["group"]
+        if isinstance(rule.get("window"), (int, float)) and not isinstance(rule.get("window"), bool) and 0 <= rule["window"] <= 86400:
+            kept["window"] = rule["window"]
         if isinstance(rule.get("reasons"), list) and all(isinstance(reason, str) for reason in rule["reasons"]):
             kept["reasons"] = [reason.strip().lower() for reason in rule["reasons"]]
         elif rule.get("reasons") is None and "reasons" in rule:
@@ -231,12 +290,17 @@ class Note:
     group: str = ""
     ref: str = ""  # "PR #274"
     repo: str = ""  # "lumen-app"
-    who: str = ""  # "@tomas"
+    who: str = ""  # "@priya"
     excerpt: str = ""
     commits: int = 0
     picture: str = ""
     at: float = 0.0
     builtin: bool = True
+    # A built-in's link opens only to this domain (or under it).
+    domain: str = ""
+    # A service's group notification: "3 security alerts from Google".
+    brand: str = ""
+    many: str = ""
     # From GitHub's own headers: why you got it ("author": your PR or
     # issue), who did it, a bot or you.
     reason: str = ""
@@ -327,6 +391,19 @@ def note_for(mail, template: dict, fields: dict) -> Note | None:
             "builtin": bool(template.get("builtin", True)), "reason": header("X-GitHub-Reason").lower(), "login": login,
             "mine": bool(login) and login.lower() == recipient.lower(),
             "bot": is_bot(login) or is_bot(shown_name)}
+    base["domain"] = template.get("domain") or (mail.address.rpartition("@")[2] if base["builtin"] else "")
+    if kind == "service":
+        brand = template.get("brand") or who_name or mail.address
+        notice = shorten(re.sub(r"^(?:(?:re|fwd?|aw)\s*:\s*)+", "", re.sub(r"\s+", " ", mail.subject or "").strip(), flags=re.I))
+        kind, label, many = service_kind(notice)
+        if kind in ALERT_KINDS and mail.address.lower() not in {a.lower() for a in template.get("alerts", [])}:
+            # Alert words from an address that doesn't send this service's
+            # alerts (a relayed message, a newsletter): someone's words,
+            # never a critical popup.
+            kind, label, many = "notice", "Update", "updates"
+        link = values.get("link") if isinstance(values.get("link"), str) else ""
+        return Note(kind=kind, title=f"{brand} · {label}", body=notice, link=link, link_label=f"Open on {brand}",
+                    group=f"service:{template.get('service', brand)}:{kind}", excerpt=notice, brand=brand, many=many, **base)
     if not values:
         # Its template's fields couldn't be read (GitHub changed the
         # email): the sender and subject, as any notification would say.
@@ -389,7 +466,9 @@ def note_for(mail, template: dict, fields: dict) -> Note | None:
         body = (", ".join(failed[:3]) + (f" and {len(failed) - 3} more" if len(failed) > 3 else "") + f" {verb}") if failed else ""
         commit = value("commit")[:7]
         body = " · ".join(part for part in (body, commit) if part)
-        return Note(kind=kind, title=title, body=body or mail.subject, **(common | {"who": ""}))
+        return Note(kind=kind, title=title, body=body or mail.subject, group=f"ci:{full}:{value('branch')}" if full else "",
+                    excerpt=" · ".join(part for part in (f"{workflow} {verb}", body) if part),
+                    **(common | {"who": "", "ref": target}))
     if kind == "security-advisory":
         severity = value("severity")
         repos = values.get("repos") or []
@@ -411,7 +490,13 @@ def note_for(mail, template: dict, fields: dict) -> Note | None:
 
 
 def grouped(group: dict) -> tuple[str, str]:
-    """A group's notification: "3 new comments on PR #274"."""
+    """A group's notification: "3 new comments on PR #274", "3 security
+    alerts from Google"."""
+    if group.get("brand"):
+        return f"{group['count']} {group['many']} from {group['brand']}", group.get("excerpt", "")
+    if group["kind"] in ("ci-failed", "ci-passed"):
+        where = " · ".join(part for part in (group.get("repo"), group.get("ref")) if part)
+        return f"{group['count']} CI failures · {where}", group.get("excerpt", "")
     where = group["ref"] + (f" · {group['repo']}" if group.get("repo") else "")
     people = ", ".join(group["who"][:3]) + (f" and {len(group['who']) - 3} more" if len(group["who"]) > 3 else "")
     if group["kind"] == "push":
@@ -466,7 +551,7 @@ class Dispatcher:
     def _record(self, nid: int, note: Note, ids: list[str]) -> None:
         if nid:
             self.state["sent"][str(nid)] = {"link": note.link, "ids": ids, "account": note.account, "at": note.at or self.now,
-                                            "builtin": note.builtin, "label": note.link_label}
+                                            "builtin": note.builtin, "label": note.link_label, "domain": note.domain}
 
     def dispatch(self, note: Note) -> Event:
         urgency, groups = decide(self.rules, note)
@@ -479,7 +564,8 @@ class Dispatcher:
         if groups and note.group:
             key = f"{note.account}:{note.group}"
             group = self.state["groups"].get(key)
-            if group and at - group["last"] <= self.rules["window"] and group.get("id"):
+            window = rule_for(self.rules, note.kind).get("window", self.rules["window"])
+            if group and at - group["last"] <= window and group.get("id"):
                 group["count"] += 1
                 group["last"] = at
                 group["commits"] += note.commits
@@ -501,7 +587,7 @@ class Dispatcher:
             self.state["groups"][f"{note.account}:{note.group}"] = {
                 "id": nid, "kind": note.kind, "kinds": [note.kind], "count": 1, "first": at, "last": at, "ref": note.ref, "repo": note.repo,
                 "who": [note.who] if note.who else [], "commits": note.commits, "excerpt": note.excerpt,
-                "ids": [note.message_id]}
+                "ids": [note.message_id], "brand": note.brand, "many": note.many}
         return self._event(Event("popup", note, urgency, note.title, note.body, nid))
 
     def _event(self, event: Event) -> Event:
@@ -525,7 +611,8 @@ class Dispatcher:
             kinds[event.note.title.split(" · ")[0]] = kinds.get(event.note.title.split(" · ")[0], 0) + 1
         body = ", ".join(f"{title} ×{n}" if n > 1 else title for title, n in list(kinds.items())[:4])
         note = dataclasses.replace(held[-1].note, link="", group="")
-        title = f"{len(held)} more from GitHub" if all(e.note.builtin for e in held) else f"{len(held)} more notifications"
+        github = all(e.note.builtin and e.note.domain in ("github.com", "") and not e.note.brand for e in held)
+        title = f"{len(held)} more from GitHub" if github else f"{len(held)} more notifications"
         nid = self.send(note, title, body, urgency, 0)
         self._record(nid, note, [event.note.message_id for event in held])
         return self._event(Event("summary", note, urgency, title, body, nid))
@@ -773,7 +860,8 @@ def open_link(entry: dict) -> None:
     if not url:
         return
     host = (urllib.parse.urlsplit(url).hostname or "").lower()
-    if entry.get("builtin", True) and host != "github.com":
+    allowed = entry.get("domain") or "github.com"
+    if entry.get("builtin", True) and not (host == allowed or host.endswith("." + allowed)):
         return
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 

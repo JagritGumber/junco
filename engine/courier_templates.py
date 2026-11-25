@@ -32,6 +32,7 @@ import email
 import email.policy
 import hashlib
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -633,15 +634,29 @@ def after_sync(db, message_ids: list[str]) -> int:
 
 BUILTIN = Path(__file__).resolve().parent / "builtin_templates"
 _builtins: dict[str, dict] | None = None
+_services: dict[str, dict] | None = None
+
+
+def private_builtin_dir() -> Path:
+    """Built-ins made from your own mail that the repo mustn't carry (which
+    bank or broker you use): ~/.local/share/courier/builtin_templates, or
+    COURIER_PRIVATE_BUILTINS (the replay, before they're installed)."""
+    if os.environ.get("COURIER_PRIVATE_BUILTINS"):
+        return Path(os.environ["COURIER_PRIVATE_BUILTINS"])
+    return sync.xdg("XDG_DATA_HOME", ".local/share") / "courier" / "builtin_templates"
+
+
+def _builtin_files() -> list[Path]:
+    return sorted(BUILTIN.glob("*.json")) + sorted(private_builtin_dir().glob("*.json"))
 
 
 def builtins() -> dict[str, dict]:
     """Fingerprint -> built-in template ({id, kind, name, surface, fields,
-    learned}). Read once per process."""
+    learned}; a service's also "service"). Read once per process."""
     global _builtins
     if _builtins is None:
         found: dict[str, dict] = {}
-        for path in sorted(BUILTIN.glob("*.json")):
+        for path in _builtin_files():
             data = _read(path, {})
             for template in data.get("templates", []) if isinstance(data, dict) else []:
                 for fingerprint in template.get("fingerprints", []):
@@ -650,8 +665,33 @@ def builtins() -> dict[str, dict]:
     return _builtins
 
 
+def services() -> dict[str, dict]:
+    """Sender address -> service ({id, brand, domain}): the automated senders
+    (Google's account alerts, Cloudflare, your bank…) whose mail is notified
+    by kind (a security alert, a failed payment) even with no template for
+    its layout. Read once per process."""
+    global _services
+    if _services is None:
+        found: dict[str, dict] = {}
+        for path in _builtin_files():
+            data = _read(path, {})
+            for service in data.get("services", []) if isinstance(data, dict) else []:
+                if not re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", str(service.get("domain", ""))):
+                    continue
+                for sender in service.get("senders", []):
+                    found.setdefault(str(sender).lower(), service)
+        _services = found
+    return _services
+
+
 def builtin_senders() -> set[str]:
-    return {fingerprint.split("|", 1)[0] for fingerprint in builtins()}
+    return {fingerprint.split("|", 1)[0] for fingerprint in builtins()} | set(services())
+
+
+def vouched(mail, domain: str) -> bool:
+    """Gmail verified the email as `domain`'s (or a subdomain's)."""
+    verified = verified_domain(mail)
+    return bool(verified) and bool(domain) and (verified == domain or verified.endswith("." + domain))
 
 
 def auth_results(value: str) -> tuple[str, list[list[str]]]:
@@ -692,8 +732,10 @@ def verified_domain(mail) -> str:
     Only what Gmail itself wrote counts: the headers above its own
     "Received: … by mx.google.com" (an email can't put anything above the
     point it entered Gmail). There, Gmail's ARC-Authentication-Results must
-    say DMARC passed for the From address's own domain. With no such
-    Received, nothing is vouched for."""
+    say DMARC passed for the From address's domain, or the organisational
+    domain it belongs to (Gmail reports team@info.hostinger.com's pass as
+    header.from=hostinger.com). With no such Received, nothing is vouched
+    for. Returns the From address's domain."""
     parsed = getattr(mail, "parsed", None)
     if parsed is None:
         return ""
@@ -705,9 +747,13 @@ def verified_domain(mail) -> str:
             return domain if vouched else ""
         if name == "arc-authentication-results":
             server, results = auth_results(re.sub(r"^\s*i=\d+\s*;", "", value))
-            if server == "mx.google.com" and any(tokens[0] == "dmarc=pass" and f"header.from={domain}" in tokens[1:]
-                                                for tokens in results):
-                vouched = True
+            for tokens in results:
+                if server != "mx.google.com" or tokens[0] != "dmarc=pass":
+                    continue
+                passed = [token.split("=", 1)[1] for token in tokens[1:] if token.startswith("header.from=")]
+                if any(re.fullmatch(r"[a-z0-9-]+(?:\.[a-z0-9-]+)+", d) and (domain == d or domain.endswith("." + d))
+                       for d in passed):
+                    vouched = True
     return ""
 
 
@@ -721,12 +767,25 @@ def match(mail: Mail, taught: list[dict] | None = None) -> dict | None:
     urgent), so it's only taken for mail Gmail verified as GitHub's
     (verified_domain): copying GitHub's markup and From line isn't enough."""
     builtin = builtins().get(mail.fingerprint)
-    if builtin is not None and verified_domain(mail) != mail.fingerprint.split("|", 1)[0].rpartition("@")[2]:
+    service = services().get(mail.address)
+    if builtin is not None and builtin.get("service"):
+        # A service's layout: only for that service's own verified senders.
+        builtin = builtin | {"brand": service["brand"], "domain": service["domain"], "alerts": service.get("alerts", [])} \
+            if service and service.get("id") == builtin["service"] else None
+    domain = (builtin or {}).get("domain") or mail.fingerprint.split("|", 1)[0].rpartition("@")[2]
+    if builtin is not None and not vouched(mail, domain):
         builtin = None
+    if builtin is None and service is not None and vouched(mail, service["domain"]):
+        # A service's mail in a layout no template was made for (its rare
+        # alerts): its kind comes from what it says, its fields are none.
+        builtin = {"id": f"{service['id']}.mail", "kind": "service", "service": service["id"], "brand": service.get("brand", ""),
+                   "domain": service["domain"], "alerts": service.get("alerts", []), "surface": "html", "fields": [],
+                   "learned": {}}
     candidates = taught if taught is not None else templates_for(mail.account, mail.address)
     mine = next((t for t in candidates if t.get("account") == mail.account and t.get("fingerprint") == mail.fingerprint), None)
     if mine is not None:
-        return mine | {"kind": (builtin or {}).get("kind", "taught"), "builtin": False}
+        return mine | {k: v for k, v in (builtin or {}).items() if k in ("service", "brand", "domain", "alerts")} \
+            | {"kind": (builtin or {}).get("kind", "taught"), "builtin": False}
     if builtin is not None:
         return builtin | {"builtin": True}
     return None

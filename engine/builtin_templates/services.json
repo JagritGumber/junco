@@ -1,0 +1,744 @@
+{
+ "about": "Courier's built-in services: automated senders whose mail is notified by what it says (a security alert, a failed payment, an expiring domain, an incident), made by build_service_templates.py. Each has its role addresses and, for layouts with a call to action, a template whose only field is that link. Nothing from any email is kept.",
+ "services": [
+  {
+   "id": "linkedin-com",
+   "brand": "LinkedIn",
+   "domain": "linkedin.com",
+   "senders": [
+    "jobalerts-noreply@linkedin.com",
+    "jobs-noreply@linkedin.com",
+    "messages-noreply@linkedin.com",
+    "messaging-digest-noreply@linkedin.com",
+    "newsletters-noreply@linkedin.com",
+    "notifications-noreply@linkedin.com",
+    "security-noreply@linkedin.com",
+    "updates-noreply@linkedin.com"
+   ],
+   "alerts": [
+    "security-noreply@linkedin.com"
+   ]
+  },
+  {
+   "id": "google-com",
+   "brand": "Google",
+   "domain": "google.com",
+   "senders": [
+    "analytics-noreply@google.com",
+    "cloudplatform-noreply@google.com",
+    "google-gemini-noreply@google.com",
+    "google-noreply@google.com",
+    "googleaistudio-noreply@google.com",
+    "googledev-noreply@google.com",
+    "googleplay-noreply@google.com",
+    "kaggle-noreply@google.com",
+    "meetings-noreply@google.com",
+    "no-reply@accounts.google.com",
+    "noreply-accounts@google.com",
+    "payments-noreply@google.com",
+    "playpartners-noreply@google.com",
+    "sc-noreply@google.com",
+    "stitch-noreply@google.com"
+   ],
+   "alerts": [
+    "no-reply@accounts.google.com"
+   ]
+  },
+  {
+   "id": "indeed-com",
+   "brand": "Indeed",
+   "domain": "indeed.com",
+   "senders": [
+    "donotreply@match.indeed.com"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "pinterest-com",
+   "brand": "Pinterest",
+   "domain": "pinterest.com",
+   "senders": [
+    "pinterest-recommendations@ideas.pinterest.com",
+    "recommendations@discover.pinterest.com",
+    "recommendations@explore.pinterest.com",
+    "recommendations@inspire.pinterest.com"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "medium-com",
+   "brand": "Medium",
+   "domain": "medium.com",
+   "senders": [
+    "noreply@medium.com"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "hostinger-com",
+   "brand": "Hostinger",
+   "domain": "hostinger.com",
+   "senders": [
+    "team@emails.hostinger.com",
+    "team@info.hostinger.com",
+    "team@updates.hostinger.com",
+    "team@user.hostinger.com"
+   ],
+   "alerts": [
+    "team@info.hostinger.com",
+    "team@updates.hostinger.com"
+   ]
+  },
+  {
+   "id": "amazon-in",
+   "brand": "Amazon",
+   "domain": "amazon.in",
+   "senders": [
+    "marketplace-messages@amazon.in",
+    "order-update@amazon.in",
+    "payments-update@amazon.in",
+    "store-news@amazon.in"
+   ],
+   "alerts": [
+    "payments-update@amazon.in"
+   ]
+  },
+  {
+   "id": "cloudflare-com",
+   "brand": "Cloudflare",
+   "domain": "cloudflare.com",
+   "senders": [
+    "em@em1.cloudflare.com",
+    "noreply@notify.cloudflare.com"
+   ],
+   "alerts": [
+    "noreply@notify.cloudflare.com"
+   ]
+  },
+  {
+   "id": "dropbox-com",
+   "brand": "Dropbox",
+   "domain": "dropbox.com",
+   "senders": [
+    "no-reply@dropbox.com",
+    "no-reply@em-s.dropbox.com",
+    "no-reply@notices.dropbox.com"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "instagram-com",
+   "brand": "Instagram",
+   "domain": "instagram.com",
+   "senders": [
+    "no-reply@mail.instagram.com",
+    "notification@priority.instagram.com",
+    "security@mail.instagram.com"
+   ],
+   "alerts": [
+    "security@mail.instagram.com"
+   ]
+  },
+  {
+   "id": "notion-so",
+   "brand": "Notion",
+   "domain": "notion.so",
+   "senders": [
+    "notify@mail.notion.so",
+    "notify@updates.notion.so",
+    "team@mail.notion.so"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "spotify-com",
+   "brand": "Spotify",
+   "domain": "spotify.com",
+   "senders": [
+    "no-reply@spotify.com"
+   ],
+   "alerts": [
+    "no-reply@spotify.com"
+   ]
+  },
+  {
+   "id": "vercel-com",
+   "brand": "Vercel",
+   "domain": "vercel.com",
+   "senders": [
+    "notifications@vercel.com"
+   ],
+   "alerts": []
+  },
+  {
+   "id": "x-ai",
+   "brand": "xAI",
+   "domain": "x.ai",
+   "senders": [
+    "noreply@x.ai"
+   ],
+   "alerts": []
+  }
+ ],
+ "templates": [
+  {
+   "id": "linkedin-com.1",
+   "kind": "service",
+   "service": "linkedin-com",
+   "surface": "html",
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.max-w-[512px].mercado-container.mx-auto.my-0.p-0.w-[512px]",
+        null
+       ],
+       [
+        "tbody",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td",
+        null
+       ],
+       [
+        "table.bg-color-background-container",
+        null
+       ],
+       [
+        "tbody",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.!pb-0.p-0.pb-3",
+        null
+       ],
+       [
+        "div",
+        null
+       ],
+       [
+        "table",
+        null
+       ],
+       [
+        "tbody",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.bg-color-background-canvas.pb-2.pt-4.px-3",
+        null
+       ],
+       [
+        "table",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td",
+        null
+       ],
+       [
+        "table.email-button",
+        null
+       ],
+       [
+        "tbody",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td",
+        null
+       ],
+       [
+        "a.align-top.no-underline",
+        null
+       ],
+       [
+        "table.border-separate",
+        null
+       ],
+       [
+        "tbody",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td.!min-h-[auto].!shadow-none.border-1.border-color-brand.border-solid.btn-md.btn-primary.button-link.leading-regular",
+        null
+       ],
+       [
+        "table",
+        null
+       ],
+       [
+        "tr",
+        null
+       ],
+       [
+        "td",
+        null
+       ],
+       [
+        "a.no-underline",
+        null
+       ],
+       [
+        "span.no-underline.text-white",
+        null
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "See more on LinkedIn",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   },
+   "fingerprints": [
+    "updates-noreply@linkedin.com|…|b46375f80f"
+   ]
+  },
+  {
+   "id": "google-com.1",
+   "kind": "service",
+   "service": "google-com",
+   "surface": "html",
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        1
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        1
+       ],
+       [
+        "div.mdv2rw",
+        0
+       ],
+       [
+        "div",
+        1
+       ],
+       [
+        "div",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "Check activity",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   },
+   "fingerprints": [
+    "no-reply@accounts.google.com|…|7283dbdf0b"
+   ]
+  },
+  {
+   "id": "indeed-com.1",
+   "kind": "service",
+   "service": "indeed-com",
+   "surface": "html",
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        1
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.ph-24",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        1
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.primary-cta-button-group",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.center-align-text.cta.stack",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table.width-100",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td.shrinkMobile",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.primary-button",
+        0
+       ],
+       [
+        "span",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "View job",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   },
+   "fingerprints": [
+    "donotreply@match.indeed.com|…|9b4bf33824"
+   ]
+  },
+  {
+   "id": "pinterest-com.1",
+   "kind": "service",
+   "service": "pinterest-com",
+   "surface": "html",
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.dm_dbg",
+        3
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "div.d_max_w488.d_w488.m_l_w359.m_m_w344.m_s_w305",
+        0
+       ],
+       [
+        "table.dm_dbg",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.d_pb14_5.d_pl16.d_pr16.d_pt14_5.dm_df.pf",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "See more",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   },
+   "fingerprints": [
+    "recommendations@discover.pinterest.com|…|a8c35cf4a3"
+   ]
+  },
+  {
+   "id": "pinterest-com.2",
+   "kind": "service",
+   "service": "pinterest-com",
+   "surface": "html",
+   "fields": [
+    {
+     "name": "link",
+     "list": false,
+     "link": true,
+     "subject": false
+    }
+   ],
+   "learned": {
+    "fixed": {},
+    "coverage": 0.6,
+    "unlearned": [],
+    "fields": [
+     {
+      "name": "link",
+      "path": [
+       [
+        "table.dm_dbg",
+        3
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "div.d_max_w488.d_w488.m_l_w359.m_m_w344.m_s_w305",
+        0
+       ],
+       [
+        "table.dm_dbg",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "table",
+        0
+       ],
+       [
+        "tr",
+        0
+       ],
+       [
+        "td",
+        0
+       ],
+       [
+        "a.d_pb14_5.d_pl16.d_pr16.d_pt14_5.dm_df.pf",
+        0
+       ]
+      ],
+      "slot": 0,
+      "left": "",
+      "right": "",
+      "shape": "https?://\\S+|mailto:\\S+",
+      "link": true,
+      "many": false,
+      "subject": false,
+      "label": "See more",
+      "landmark": "",
+      "required": true
+     }
+    ]
+   },
+   "fingerprints": [
+    "recommendations@explore.pinterest.com|…|a8c35cf4a3"
+   ]
+  }
+ ]
+}

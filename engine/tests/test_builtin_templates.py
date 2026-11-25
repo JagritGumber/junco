@@ -24,7 +24,9 @@ sys.path.insert(0, str(ENGINE))
 
 import courier_fields as fields  # noqa: E402 - as test_courier_fields (its dataclasses need it registered)
 
-FILES = sorted((ENGINE / "builtin_templates").glob("*.json"))
+# GitHub's templates (the other file, services.json, is checked below).
+FILES = [ENGINE / "builtin_templates" / "github.json"]
+SERVICES = ENGINE / "builtin_templates" / "services.json"
 
 KINDS = {"comment", "issue-comment", "commit-comment", "review", "review-requested", "state", "push", "ci-failed",
          "security-advisory", "dependabot-digest", "account-notice"}
@@ -125,6 +127,82 @@ class BuiltinTemplates(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("COURIER_SCAN_REAL_MAIL") == "1", "set COURIER_SCAN_REAL_MAIL=1 to scan against your own mail")
     def test_nothing_from_the_real_mail(self) -> None:
         tool = ENGINE.parent / "tools" / "build_builtin_templates.py"
+        result = subprocess.run([sys.executable, "-I", str(tool), "--check"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+# A service's role addresses: never a person's.
+ROLE = re.compile(r"(?:^|[._+-])(?:no-?reply|do-?not-?reply|notifications?|notify|alerts?|security|accounts?|team|em|"
+                  r"updates?|news(?:letters)?|messages|messaging|digest|jobs?|jobalerts|recommendations|store|order|payments?|"
+                  r"marketplace|analytics|cloudplatform|google|gemini|googleaistudio|googledev|googleplay|kaggle|meetings|"
+                  r"playpartners|sc|stitch|pinterest)(?:$|[._+-])", re.I)
+MONEY = re.compile(r"bank|broker|trad(?:e|ing)|invest|financ|fund|mutual|\bmf\b|insur|crypto|coin|exchange|wallet|pay|tax|loan|"
+                   r"credit|stock|demat|capital|wealth|stripe", re.I)
+DEDICATED = re.compile(r"(?:^|[._+-])(?:security|alerts?|auth|accounts?|payments?|billing|verify|verification|login|signin)"
+                       r"(?:$|[._+-])", re.I)
+# Generic senders reviewed by hand: only the service's own words.
+REVIEWED_ALERTS = {"team@info.hostinger.com", "team@updates.hostinger.com", "noreply@notify.cloudflare.com", "no-reply@spotify.com"}
+# The buttons a service template may read, reviewed by hand.
+SERVICE_LABELS = {"Check activity", "View job", "See more", "see more", "See more on LinkedIn"}
+
+
+class Services(unittest.TestCase):
+    """services.json: mainstream services only, their role addresses, and
+    templates whose only field is a call to action's link."""
+
+    def setUp(self) -> None:
+        self.data = json.loads(SERVICES.read_text())
+
+    def test_services(self) -> None:
+        ids = set()
+        for service in self.data["services"]:
+            self.assertRegex(service["id"], r"^[a-z0-9-]+$")
+            self.assertNotIn(service["id"], ids)
+            ids.add(service["id"])
+            self.assertRegex(service["domain"], r"^[a-z0-9-]+(?:\.[a-z0-9-]+)+$")
+            self.assertIsNone(MONEY.search(service["domain"]), f"{service['domain']}: money stays out of the repo")
+            self.assertTrue(service["brand"].strip())
+            self.assertLessEqual(set(service.get("alerts", [])), set(service["senders"]), service["id"])
+            for sender in service.get("alerts", []):
+                # Dedicated to alerts by name, or reviewed by hand: a generic
+                # notify@ may carry someone else's words.
+                local, _, host = sender.partition("@")
+                self.assertNotRegex(local, r"(?i)messag|comment|mention|discussion|community|invit")
+                self.assertTrue(DEDICATED.search(local) or DEDICATED.search(host.split(".")[0]) or sender in REVIEWED_ALERTS,
+                                f"{sender}: an alert sender that is neither dedicated nor reviewed")
+            for sender in service["senders"]:
+                local, _, domain = sender.partition("@")
+                self.assertTrue(domain == service["domain"] or domain.endswith("." + service["domain"]), sender)
+                self.assertRegex(local, ROLE, f"{sender}: not a role address")
+
+    def test_templates_are_a_link_and_nothing_else(self) -> None:
+        senders = {service["id"]: set(service["senders"]) for service in self.data["services"]}
+        for template in self.data["templates"]:
+            self.assertEqual(template["kind"], "service")
+            self.assertIn(template["service"], senders)
+            for fingerprint in template["fingerprints"]:
+                self.assertIn(fingerprint.split("|", 1)[0], senders[template["service"]])
+                self.assertRegex(fingerprint, r"^[^|]+\|[^|]*\|[0-9a-f]{10}$")
+            learned = template["learned"]
+            self.assertEqual(learned["fixed"], {}, template["id"])
+            [field] = learned["fields"]
+            self.assertTrue(field["link"])
+            self.assertIn(field["label"], SERVICE_LABELS, f"{template['id']}: button words not reviewed")
+            self.assertEqual((field["left"], field["right"], field["landmark"]), ("", "", ""))
+            self.assertIn(field["shape"], SHAPES)
+            fields.Template.from_json(learned)
+
+    def test_no_values(self) -> None:
+        text = "\n".join(strings(self.data))
+        self.assertIsNone(re.search(r"(?<![\w-])(?=[0-9a-f]*\d)[0-9a-f]{7,40}(?![\w-])", text))
+        self.assertIsNone(re.search(r"https?://|www\.", text))
+        addresses = {sender for service in self.data["services"] for sender in service["senders"]}
+        for found in re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", text):
+            self.assertIn(found, addresses)
+
+    @unittest.skipUnless(os.environ.get("COURIER_SCAN_REAL_MAIL") == "1", "set COURIER_SCAN_REAL_MAIL=1 to scan against your own mail")
+    def test_nothing_from_the_real_mail(self) -> None:
+        tool = ENGINE.parent / "tools" / "build_service_templates.py"
         result = subprocess.run([sys.executable, "-I", str(tool), "--check"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

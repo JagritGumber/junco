@@ -35,7 +35,7 @@ cn = load("courier_notify")
 T0 = 1_790_000_000.0
 
 
-def mail(subject: str, text: str = "", sender: str = "Tomas Rao <notifications@github.com>", at: float = T0, n: int = 1,
+def mail(subject: str, text: str = "", sender: str = "Priya Natarajan <notifications@github.com>", at: float = T0, n: int = 1,
          github: dict | None = None):
     """A made-up email; `github` is its X-GitHub-* headers (Reason, Sender,
     Recipient), as GitHub sets them."""
@@ -49,12 +49,12 @@ def mail(subject: str, text: str = "", sender: str = "Tomas Rao <notifications@g
 
 
 def note(kind: str, values: dict, subject: str, text: str = "", at: float = T0, n: int = 1, github: dict | None = None,
-         sender: str = "Tomas Rao <notifications@github.com>", **extra):
+         sender: str = "Priya Natarajan <notifications@github.com>", **extra):
     template = {"kind": kind, "name": "A template", "builtin": True} | extra
     return cn.note_for(mail(subject, text, sender, at=at, n=n, github=github), template, {"status": "ok", "values": values})
 
 
-def comment(n: int, at: float, who: str = "tomas", number: int = 274, reason: str = "author", kind: str = "comment"):
+def comment(n: int, at: float, who: str = "priya", number: int = 274, reason: str = "author", kind: str = "comment"):
     """A comment by `who` on PR #number; reason "author": the PR is yours."""
     return note(kind, {"author": who, "repo": "lumenlabs/lumen-app", "number": str(number), "title": "Team invites",
                        "link": f"https://github.com/lumenlabs/lumen-app/pull/{number}#issuecomment-{n}"},
@@ -98,15 +98,15 @@ class Text(unittest.TestCase):
         self.assertEqual(passed.kind, "ci-passed")
 
     def test_review_requested(self) -> None:
-        got = note("review-requested", {"author": "@tomas", "ref": "lumenlabs/lumen-app#274", "repo": "lumenlabs/lumen-app",
+        got = note("review-requested", {"author": "@priya", "ref": "lumenlabs/lumen-app#274", "repo": "lumenlabs/lumen-app",
                                         "number": "274", "title": "Team invites"},
                    "Re: [lumenlabs/lumen-app] Team invites (PR #274)")
-        self.assertEqual(got.title, "Review requested · PR #274 · by Tomas Rao")
+        self.assertEqual(got.title, "Review requested · PR #274 · by Priya Natarajan")
         self.assertEqual(got.body, "lumen-app: Team invites")
 
     def test_comment_first_line(self) -> None:
         got = comment(1, T0)
-        self.assertEqual(got.title, "@tomas commented on PR #274 · lumen-app")
+        self.assertEqual(got.title, "@priya commented on PR #274 · lumen-app")
         self.assertEqual(got.body, "Comment number 1.")
         self.assertEqual(got.group, "comments:lumenlabs/lumen-app:PR #274")
 
@@ -117,20 +117,20 @@ class Text(unittest.TestCase):
         self.assertEqual(cn.excerpt("-- \nReply to this email directly"), "")
 
     def test_review_push_state(self) -> None:
-        review = note("review", {"author": "@tomas", "action": "approved", "repo": "o/lumen-app", "number": "274", "title": "T"},
+        review = note("review", {"author": "@priya", "action": "approved", "repo": "o/lumen-app", "number": "274", "title": "T"},
                       "Re: [o/lumen-app] T (PR #274)")
-        self.assertEqual(review.title, "Tomas Rao approved PR #274")
+        self.assertEqual(review.title, "Priya Natarajan approved PR #274")
         push = note("push", {"author": "@dkim", "count": "3", "hashes": ["a1b2c3d", "b2c3d4e", "c3d4e5f"],
                              "messages": ["Fix the thing", "Tidy", "Tests"], "repo": "o/lumen-app", "number": "1471", "title": "T"},
                     "Re: [o/lumen-app] T (PR #1471)")
         self.assertEqual(push.title, "@dkim pushed 3 commits to PR #1471 · lumen-app")
         self.assertEqual(push.body, "Fix the thing (+2 more)")
         state = note("state", {"action": "Merged", "number": "182", "repo": "o/r", "title": "T"}, "Re: [o/r] T (PR #182)")
-        self.assertEqual(state.title, "PR #182 merged by Tomas Rao")
+        self.assertEqual(state.title, "PR #182 merged by Priya Natarajan")
 
     def test_unreadable_falls_back_to_sender_and_subject(self) -> None:
         got = cn.note_for(mail("[o/r] Something new (PR #3)"), {"kind": "comment"}, {"status": "reteach", "values": {}})
-        self.assertEqual((got.title, got.body), ("Tomas Rao", "[o/r] Something new (PR #3)"))
+        self.assertEqual((got.title, got.body), ("Priya Natarajan", "[o/r] Something new (PR #3)"))
 
     def test_taught_template(self) -> None:
         got = note("taught", {"order": "#1182", "total": "$40", "link": "https://shop.example/o/1182"}, "Your order",
@@ -222,7 +222,7 @@ class Dispatching(unittest.TestCase):
         self.assertEqual([c["replaces"] for c in send.calls], [0, 1])
         self.assertEqual(send.calls[-1]["title"], "3 new comments on PR #274 · lumen-app")
         self.assertEqual(events[-1].title, "3 new comments on PR #274 · lumen-app")
-        self.assertEqual(events[-1].body, "@tomas, @dkim: Comment number 3.")
+        self.assertEqual(events[-1].body, "@priya, @dkim: Comment number 3.")
         # Opening or marking the group acts on all three.
         self.assertEqual(dispatcher.state["sent"]["1"]["ids"], ["m1@example.test", "m2@example.test", "m3@example.test"])
 
@@ -325,6 +325,19 @@ class Quiet(unittest.TestCase):
         events, _, _ = self.run_notes(comment(1, T0, who="deploy-app"), rules=rules)
         self.assertEqual(events[0].action, "silent")
 
+    def test_a_red_branch_alerts_once_an_hour(self) -> None:
+        def ci(n, at, branch="main", commit="4f2a9c1"):
+            return note("ci-failed", {"repo": "lumenlabs/lumen-app", "workflow": "CI", "status": "Run failed", "branch": branch,
+                                      "commit": commit, "jobs": ["test"], "results": ["Failed in 2 minutes"]},
+                        f"[lumenlabs/lumen-app] Run failed: CI - {branch} ({commit})", n=n, at=at,
+                        github={"Reason": "ci_activity", "Sender": "alex", "Recipient": "alex"})
+        events, _, send = self.run_notes(ci(1, T0 - 3000), ci(2, T0 - 1000, commit="9e1d2c3"), ci(3, T0 - 900, branch="fix/x"))
+        self.assertEqual([e.action for e in events], ["popup", "update", "popup"])
+        self.assertEqual([c["urgency"] for c in send.calls], ["critical", "critical", "critical"])
+        self.assertIn("2 CI failures · lumen-app · main", [c["title"] for c in send.calls])
+        later, _, _ = self.run_notes(ci(1, T0 - 7300), ci(2, T0))
+        self.assertEqual([e.action for e in later], ["popup", "popup"])
+
     def test_threads_that_arent_yours_and_your_own_comments_are_silent(self) -> None:
         theirs = comment(1, T0, reason="comment")
         mentioned = comment(2, T0, reason="mention", number=275)
@@ -349,6 +362,76 @@ class Quiet(unittest.TestCase):
         events, _, send = self.run_notes(ci, advisory, asked, *quiet)
         self.assertEqual([e.action for e in events], ["popup"] * 3 + ["silent"] * 4)
         self.assertEqual([c["urgency"] for c in send.calls], ["critical", "critical", "normal"])
+
+
+class Services(unittest.TestCase):
+    """Other services' mail, notified by what it says."""
+
+    def service(self, subject, brand="Hostinger", service="hostinger-com", domain="hostinger.com", n=1, at=T0, link="",
+                address=None, alerts=None):
+        values = {"link": link} if link else {}
+        address = address or f"team@info.{domain}"
+        made = mail(subject, "", f"{brand} <{address}>", at=at, n=n)
+        made.address = address
+        template = {"kind": "service", "builtin": True, "service": service, "brand": brand, "domain": domain,
+                    "alerts": [address] if alerts is None else alerts}
+        return cn.note_for(made, template, {"status": "ok", "values": values})
+
+    def test_alerts_only_from_alert_senders(self) -> None:
+        """A LinkedIn message whose preview says "Security alert" is someone's words."""
+        relayed = self.service("Alex sent you a message: Security alert, new login to your account", "LinkedIn", "linkedin-com",
+                               "linkedin.com", address="messages-noreply@linkedin.com", alerts=["security-noreply@linkedin.com"])
+        real = self.service("Please verify your new device", "LinkedIn", "linkedin-com", "linkedin.com",
+                            address="security-noreply@linkedin.com", alerts=["security-noreply@linkedin.com"])
+        self.assertEqual((relayed.kind, relayed.title), ("notice", "LinkedIn · Update"))
+        self.assertEqual((real.kind, real.title), ("security-alert", "LinkedIn · Security alert"))
+        events, _, send = Quiet().run_notes(relayed, real)
+        self.assertEqual([e.action for e in events], ["silent", "popup"])
+
+    def test_kinds(self) -> None:
+        cases = {
+            "Security alert": "security-alert", "New login to Spotify": "security-alert",
+            "Important: Login from new device": "security-alert", "A new device logged into your account": "security-alert",
+            "Payment Unsuccessful - Debit Card ending with 1234": "payment-failed", "Domain Auto-Renewals Failed": "payment-failed",
+            "Your invoice is overdue": "payment-failed",
+            "You have domain(s) expiring soon": "domain-expiring", "Domain Suspended Notification": "domain-expiring",
+            "[Action required] Validate example.dev to renew SSL certificates": "domain-expiring",
+            "[Action required] Workers CPU limit exceeded": "incident", "Deployment failed for main": "incident",
+            "Weekly Account Statement for AB123": "statement", "Your invoice is available": "invoice",
+            "Your services auto-renew soon": "invoice", "12 new jobs for you": "digest",
+            "Get 3 months of Premium for Rs 59": "marketing", "Your deal expires soon": "marketing",
+            "Stablecoin Trading Volume Is Down Nearly 40%": "notice", "Urgent: Re-KYC Overdue": "notice",
+        }
+        for subject, kind in cases.items():
+            self.assertEqual(cn.service_kind(subject)[0], kind, subject)
+
+    def test_note(self) -> None:
+        got = self.service("Re: You have domain(s) expiring soon", link="https://hpanel.hostinger.com/domains")
+        self.assertEqual((got.kind, got.title, got.body), ("domain-expiring", "Hostinger · Expiring soon", "You have domain(s) expiring soon"))
+        self.assertEqual((got.domain, got.link_label, got.group), ("hostinger.com", "Open on Hostinger", "service:hostinger-com:domain-expiring"))
+
+    def test_quiet_pops_alerts_and_counts_the_rest(self) -> None:
+        send = Recorder()
+        dispatcher = cn.Dispatcher(cn.load_rules(Path("/nonexistent")), {}, send, T0)
+        notes = [self.service("Security alert", "Google", "google-com", "google.com", n=1, at=T0 - 100),
+                 self.service("Security alert for someone@example.test", "Google", "google-com", "google.com", n=2, at=T0 - 50),
+                 self.service("Payment Unsuccessful - Debit Card", "A Bank", "a-bank", "abank.example", n=3),
+                 self.service("Weekly Account Statement", "A Broker", "a-broker", "abroker.example", n=4),
+                 self.service("Get 3 months of Premium", "Spotify", "spotify-com", "spotify.com", n=5),
+                 self.service("Your weekly digest", "Medium", "medium-com", "medium.com", n=6)]
+        events = [dispatcher.dispatch(n) for n in notes]
+        dispatcher.finish()
+        self.assertEqual([e.action for e in events], ["popup", "update", "popup", "silent", "silent", "silent"])
+        self.assertEqual(send.calls[-1]["title"], "2 security alerts from Google")
+        self.assertEqual([c["urgency"] for c in send.calls], ["critical", "critical", "critical"])
+        self.assertEqual(sum(sum(day.values()) for day in dispatcher.state["counts"].values()), 3)
+
+    def test_a_service_link_opens_only_on_its_domain(self) -> None:
+        with unittest.mock.patch.object(cn.subprocess, "Popen") as popen:
+            cn.open_link({"link": "https://hpanel.hostinger.com/x", "builtin": True, "domain": "hostinger.com"})
+            cn.open_link({"link": "https://evil.test/hostinger.com", "builtin": True, "domain": "hostinger.com"})
+            cn.open_link({"link": "https://hostinger.com.evil.test/", "builtin": True, "domain": "hostinger.com"})
+        self.assertEqual([c[0][0][1] for c in popen.call_args_list], ["https://hpanel.hostinger.com/x"])
 
 
 class Safety(unittest.TestCase):
@@ -513,6 +596,43 @@ class BuiltinMatch(unittest.TestCase):
         }
         for name, mail in forged.items():
             self.assertIsNone(self.templates.match(mail, []), name)
+
+    def gmail(self, verdict: str):
+        import email.message
+
+        parsed = email.message.EmailMessage()
+        parsed["ARC-Authentication-Results"] = verdict
+        parsed["Received"] = self.GMAIL
+        return parsed
+
+    def test_a_subdomain_sender_of_a_verified_domain(self) -> None:
+        """Gmail reports team@info.hostinger.com's DMARC pass as header.from=hostinger.com."""
+        parsed = self.gmail("i=1; mx.google.com; dkim=pass header.i=@info.hostinger.com; dmarc=pass header.from=hostinger.com")
+        mail = types.SimpleNamespace(address="team@info.hostinger.com", parsed=parsed)
+        self.assertEqual(self.templates.verified_domain(mail), "info.hostinger.com")
+        self.assertTrue(self.templates.vouched(mail, "hostinger.com"))
+        self.assertFalse(self.templates.vouched(mail, "nger.com"))
+        self.assertEqual(self.templates.verified_domain(types.SimpleNamespace(address="team@hostinger.com.evil.test", parsed=parsed)), "")
+
+    def test_service_mail_by_sender_with_no_template(self) -> None:
+        self.templates._services = {"team@info.hostinger.com": {"id": "hostinger-com", "brand": "Hostinger", "domain": "hostinger.com",
+                                                                 "senders": ["team@info.hostinger.com"]}}
+        parsed = self.gmail("i=1; mx.google.com; dmarc=pass header.from=hostinger.com")
+        mail = types.SimpleNamespace(fingerprint="team@info.hostinger.com|…|abcdef0123", account="personal",
+                                     address="team@info.hostinger.com", parsed=parsed)
+        chosen = self.templates.match(mail, [])
+        self.assertEqual((chosen["kind"], chosen["service"], chosen["brand"], chosen["domain"], chosen["id"]),
+                         ("service", "hostinger-com", "Hostinger", "hostinger.com", "hostinger-com.mail"))
+        mail.parsed = self.gmail("i=1; mx.google.com; dmarc=fail header.from=hostinger.com")
+        self.assertIsNone(self.templates.match(mail, []))
+
+    def test_private_services_come_from_their_own_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, "private.json").write_text(json.dumps({"services": [
+                {"id": "a-bank", "brand": "A Bank", "domain": "abank.example", "senders": ["alerts@abank.example"]}]}))
+            with unittest.mock.patch.dict(os.environ, {"COURIER_PRIVATE_BUILTINS": folder}):
+                fresh = load("courier_templates")
+                self.assertEqual(fresh.services()["alerts@abank.example"]["brand"], "A Bank")
 
     def test_tokens(self) -> None:
         server, results = self.templates.auth_results('mx.google.com 1; spf=pass (a; b) smtp.mailfrom="x;y"@z; dmarc=pass header.from=a.b')
