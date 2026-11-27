@@ -3,22 +3,15 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// A lane (updates, newsletters) as an email list: newest first, folded into
-// Today, Yesterday and Earlier. Each row has the sender and the mail's first
-// line, a star that is your Gmail star, and a checkbox for acting on several.
-// What to do with the picked emails is in the header above (SelectionBar in
-// ConversationView), never over the list.
+// A lane (updates, newsletters) as a compact frosted-glass email list.
 Item {
     id: root
 
     property string query: ""
     property bool oldestFirst: false
     property var folded: ({})
-    // Picked emails, id -> true.
     property var picked: ({})
     readonly property var pickedIds: Object.keys(picked)
-    // Logos tell senders apart in a mixed list (Newsletters); in one sender's
-    // list the header already shows its logo, so rows show what each email is about.
     readonly property bool mixedSenders: new Set(Inbox.messages.map(m => m.avatar || m.sender)).size > 1
 
     readonly property var rows: {
@@ -70,19 +63,20 @@ Item {
         visible: root.sections.length === 0 && root.query !== ""
         text: "No emails match."
         color: Theme.m3onSurfaceVariant
+        font.pixelSize: 13
     }
 
     Flickable {
         anchors.fill: parent
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        contentHeight: column.implicitHeight + 12
+        contentHeight: column.implicitHeight + 8
 
         ColumnLayout {
             id: column
 
             width: parent.width
-            spacing: 6
+            spacing: 4
 
             Repeater {
                 model: root.sections
@@ -94,29 +88,30 @@ Item {
                     readonly property bool isFolded: root.folded[modelData.name] === true
 
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: 5
 
                     Item {
                         Layout.fillWidth: true
-                        implicitHeight: 38
+                        implicitHeight: 28
 
                         Row {
                             anchors.verticalCenter: parent.verticalCenter
-                            x: 6
-                            spacing: 8
+                            x: 4
+                            spacing: 6
 
                             Icon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: section.isFolded ? "chevron_right" : "expand_more"
-                                size: 22
+                                size: 18
                                 color: Theme.m3onSurfaceVariant
                             }
 
                             Label {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: `${section.modelData.name}  ·  ${section.modelData.items.length}`
-                                font.pixelSize: 15
-                                font.weight: Font.Medium
+                                color: Theme.m3onSurfaceVariant
+                                font.pixelSize: 12
+                                weight: Font.Medium
                             }
                         }
 
@@ -133,11 +128,13 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.bottomMargin: 10
+                        Layout.bottomMargin: 6
                         visible: !section.isFolded
                         implicitHeight: list.implicitHeight
-                        radius: 18
-                        color: Theme.m3surfaceContainer
+                        radius: Theme.cardRadius
+                        color: Theme.glassCard
+                        border.width: 1
+                        border.color: Theme.glassBorderSubtle
 
                         Column {
                             id: list
@@ -158,31 +155,30 @@ Item {
                                         review: [Theme.m3tertiaryContainer, Theme.m3onTertiaryContainer, "Review"],
                                         merged: [Theme.m3primaryContainer, Theme.m3onPrimaryContainer, "Merged"],
                                         failed: [Theme.m3errorContainer, Theme.m3onErrorContainer, "Failed"]
-                                    })[modelData.status] ?? [Theme.m3secondaryContainer, Theme.m3onSecondaryContainer, "Update"]
+                                    })[modelData.status] ?? [Theme.glassControl, Theme.m3onSurfaceVariant, "Update"]
 
                                     width: list.width
-                                    height: 66
+                                    height: 50
 
-                                    // The open email and picked rows get the mock's outlined tint.
                                     Rectangle {
                                         id: wash
 
                                         anchors.fill: parent
                                         anchors.margins: 2
-                                        radius: 16
-                                        color: row.current || row.isPicked ? Theme.alpha(Theme.m3primary, 0.12) : (open.containsMouse ? Theme.alpha(Theme.m3onSurface, 0.05) : "transparent")
-                                        border.width: row.current ? 1.5 : 0
-                                        border.color: Theme.alpha(Theme.m3primary, 0.7)
+                                        radius: 9
+                                        color: row.current || row.isPicked ? Theme.glassActive : (open.containsMouse ? Theme.glassHover : "transparent")
+                                        border.width: row.current ? 1 : 0
+                                        border.color: Theme.glassActiveBorder
                                     }
 
                                     Rectangle {
                                         anchors.left: parent.left
                                         anchors.right: parent.right
                                         anchors.bottom: parent.bottom
-                                        anchors.leftMargin: 70
+                                        anchors.leftMargin: 54
                                         height: 1
                                         visible: row.index < section.modelData.items.length - 1
-                                        color: Theme.alpha(Theme.m3outlineVariant, 0.6)
+                                        color: Theme.glassDivider
                                     }
 
                                     MouseArea {
@@ -196,40 +192,35 @@ Item {
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.leftMargin: 16
-                                        anchors.rightMargin: 16
-                                        spacing: 14
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 10
 
-                                        // The sender's logo when one is known; otherwise an
-                                        // icon for what the email is about.
                                         Item {
-                                            implicitWidth: 40
-                                            implicitHeight: 40
+                                            implicitWidth: 32
+                                            implicitHeight: 32
 
                                             Avatar {
                                                 anchors.fill: parent
                                                 visible: root.mixedSenders && (row.modelData.avatar ?? "") !== ""
                                                 name: row.modelData.sender
                                                 image: row.modelData.avatar ?? ""
-                                                size: 40
+                                                size: 32
                                             }
 
-                                            // A round tonal tile per kind of email, in the
-                                            // wallpaper's palette: money, security, things
-                                            // on the way or on a date, and alerts.
                                             Rectangle {
                                                 readonly property var tone: ({
                                                     receipt_long: [Theme.m3tertiaryContainer, Theme.m3onTertiaryContainer],
                                                     sell: [Theme.m3tertiaryContainer, Theme.m3onTertiaryContainer],
                                                     pin: [Theme.m3primaryContainer, Theme.m3onPrimaryContainer],
                                                     shield_lock: [Theme.m3primaryContainer, Theme.m3onPrimaryContainer],
-                                                    local_shipping: [Theme.m3secondaryContainer, Theme.m3onSecondaryContainer],
-                                                    autorenew: [Theme.m3secondaryContainer, Theme.m3onSecondaryContainer],
-                                                    event: [Theme.m3secondaryContainer, Theme.m3onSecondaryContainer],
-                                                    work: [Theme.m3secondaryContainer, Theme.m3onSecondaryContainer],
+                                                    local_shipping: [Theme.glassActive, Theme.m3onSurface],
+                                                    autorenew: [Theme.glassActive, Theme.m3onSurface],
+                                                    event: [Theme.glassActive, Theme.m3onSurface],
+                                                    work: [Theme.glassActive, Theme.m3onSurface],
                                                     notification_important: [Theme.m3errorContainer, Theme.m3onErrorContainer],
                                                     error: [Theme.m3errorContainer, Theme.m3onErrorContainer]
-                                                })[row.modelData.icon] ?? [Theme.m3surfaceContainerHighest, Theme.m3onSurfaceVariant]
+                                                })[row.modelData.icon] ?? [Theme.glassControl, Theme.m3onSurfaceVariant]
 
                                                 anchors.fill: parent
                                                 visible: !root.mixedSenders || (row.modelData.avatar ?? "") === ""
@@ -239,31 +230,31 @@ Item {
                                                 Icon {
                                                     anchors.centerIn: parent
                                                     name: row.modelData.icon
-                                                    size: 24
+                                                    size: 18
                                                     color: parent.tone[1]
                                                 }
                                             }
 
-                                            // Which of your accounts it came to.
                                             AccountBadge {
-                                                x: parent.width - width + 4
-                                                y: parent.height - height + 4
+                                                x: parent.width - width + 3
+                                                y: parent.height - height + 3
                                                 account: row.modelData.account ?? ""
+                                                size: 14
                                                 ringWidth: 2
-                                                ring: Qt.tint(Theme.m3surfaceContainer, wash.color)
+                                                ring: Theme.solidSurfaceContainer
                                             }
                                         }
 
                                         ColumnLayout {
                                             Layout.fillWidth: true
-                                            spacing: 3
+                                            spacing: 1
 
                                             Label {
                                                 Layout.fillWidth: true
                                                 text: row.modelData.title
                                                 elide: Text.ElideRight
-                                                font.pixelSize: 15
-                                                font.weight: row.modelData.unread ? Font.DemiBold : Font.Medium
+                                                font.pixelSize: 13
+                                                weight: row.modelData.unread ? Font.Medium : Font.Normal
                                             }
 
                                             Label {
@@ -271,15 +262,21 @@ Item {
                                                 text: [row.modelData.sender, row.modelData.snippet].filter(part => part).join("  •  ")
                                                 elide: Text.ElideRight
                                                 color: Theme.m3onSurfaceVariant
-                                                font.pixelSize: 13
+                                                font.pixelSize: 12
                                             }
+                                        }
+
+                                        ExpiryBadge {
+                                            visible: (row.modelData.expiry ?? null) !== null
+                                            expiry: row.modelData.expiry ?? null
+                                            compact: true
                                         }
 
                                         // What the email is: a review, a merge, a failure, an update.
                                         Rectangle {
-                                            implicitHeight: 26
-                                            implicitWidth: status.implicitWidth + 20
-                                            radius: 13
+                                            implicitHeight: 20
+                                            implicitWidth: status.implicitWidth + 14
+                                            radius: 10
                                             color: row.tone[0]
 
                                             Label {
@@ -288,18 +285,18 @@ Item {
                                                 anchors.centerIn: parent
                                                 text: row.tone[2]
                                                 color: row.tone[1]
-                                                font.pixelSize: 12
-                                                font.weight: Font.DemiBold
+                                                font.pixelSize: 10
+                                                weight: Font.Medium
                                             }
                                         }
 
                                         Label {
-                                            Layout.preferredWidth: 64
+                                            Layout.preferredWidth: 54
                                             horizontalAlignment: Text.AlignRight
                                             text: row.modelData.time
                                             color: row.modelData.unread ? Theme.m3primary : Theme.m3onSurfaceVariant
-                                            font.pixelSize: 13
-                                            font.weight: row.modelData.unread ? Font.DemiBold : Font.Normal
+                                            font.pixelSize: 11
+                                            weight: row.modelData.unread ? Font.Medium : Font.Normal
                                         }
 
                                         IconButton {
@@ -308,7 +305,7 @@ Item {
                                             iconColor: row.modelData.starred ? Theme.m3tertiary : Theme.m3onSurfaceVariant
                                             iconFill: row.modelData.starred ? 1 : 0
                                             tip: row.modelData.starred ? "Unstar (also in Gmail)" : "Star (also in Gmail)"
-                                            size: 34
+                                            size: 28
                                             onClicked: Inbox.mark(row.modelData.starred ? "unstar" : "star", [row.modelData.id])
                                         }
 

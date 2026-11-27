@@ -4,64 +4,91 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Your to-dos, kept on this PC in ~/.local/share/courier/tasks.json. Each has
-// a day; unfinished ones from earlier days carry over into today.
+// Today's actionables, backed by SQLite (calendar_actionables) through
+// engine/courier_calendar.py. Uncompleted items from earlier days carry over
+// into Today with carryOver=true until checked off or dismissed.
+// Zero polling: reloads only on day change, user action, or state file change.
 Singleton {
     id: root
 
-    readonly property string path: Quickshell.env("COURIER_TASKS") || `${Quickshell.env("XDG_DATA_HOME") || Quickshell.env("HOME") + "/.local/share"}/courier/tasks.json`
-    property var tasks: []
+    property var items: []
+    property int requestId: 0
+    readonly property int openCount: items.filter(item => !item.completed).length
 
-    function dayKey(offset: int): string {
-        const day = new Date();
-        day.setDate(day.getDate() + offset);
-        return Qt.formatDate(day, "yyyy-MM-dd");
+    function applyLoaded(list: var): void {
+        if (Array.isArray(list))
+            root.items = list;
     }
 
-    // A day's to-dos; today also carries every unfinished one from before.
-    function forDay(day: string): var {
-        const today = dayKey(0);
-        return tasks.filter(task => task.day === day || (day === today && task.day < today && !task.done));
+    function loadFor(day: string): void {
+        const target = day || Calendar.selected || Calendar.todayDay;
+        const seq = ++requestId;
+        Calendar.run(["actionables", "list", "--day", target], result => {
+            if (seq === root.requestId && Array.isArray(result))
+                root.items = result;
+        });
     }
 
-    function addOn(title: string, day: string): void {
-        const text = title.trim();
-        if (text === "")
+    function reload(): void {
+        loadFor(Calendar.selected);
+    }
+
+    function add(title: string, dueDate: string, eventUid: string): void {
+        const clean = (title ?? "").trim();
+        if (clean === "")
             return;
-        tasks = tasks.concat([{ id: `${Date.now()}`, title: text, day: day, done: false }]);
-        save();
+        const target = dueDate || Calendar.selected || Calendar.todayDay;
+        const args = ["actionables", "add", clean, "--due", target];
+        const uid = (eventUid ?? "").trim();
+        if (uid !== "")
+            args.push("--event-uid", uid);
+        Calendar.run(args, () => root.reload());
     }
 
-    function toggle(id: string): void {
-        // A to-do carried over from an earlier day is finished today.
-        tasks = tasks.map(task => task.id === id ? Object.assign({}, task, { done: !task.done, day: task.done ? task.day : (task.day < dayKey(0) ? dayKey(0) : task.day) }) : task);
-        save();
+    // One-click prep actionable linked to a meeting card.
+    function addPrepFor(event: var, dueDate: string): void {
+        if (!event)
+            return;
+        const uid = String(event.uid || event.id || "").trim();
+        const title = `Prep: ${event.title || "Meeting"}`;
+        // Avoid adding duplicate open prep items for the exact same meeting.
+        const exists = items.some(item => !item.completed && (
+            (uid !== "" && item.eventUid === uid && item.title === title) ||
+            (uid === "" && item.title === title)
+        ));
+        if (exists)
+            return;
+        add(title, dueDate || Calendar.selected || Calendar.todayDay, uid);
     }
 
-    function remove(id: string): void {
-        tasks = tasks.filter(task => task.id !== id);
-        save();
+    function toggle(id: var): void {
+        Calendar.run(["actionables", "toggle", String(id)], () => root.reload());
     }
 
-    function save(): void {
-        file.setText(JSON.stringify({ tasks: root.tasks }, null, 1) + "\n");
+    function remove(id: var): void {
+        Calendar.run(["actionables", "delete", String(id)], () => root.reload());
     }
 
+    Connections {
+        target: Calendar
+
+        function onSelectedChanged(): void {
+            if (Calendar.ready)
+                root.reload();
+        }
+
+        function onTodayDayChanged(): void {
+            if (Calendar.ready)
+                root.reload();
+        }
+    }
+
+    // Initial load is piggybacked onto Calendar.bootstrap() (single Python call).
+    // Picks up CLI/external actionable changes with zero polling.
     FileView {
-        id: file
-
-        path: root.path
-        atomicWrites: true
+        path: `${Calendar.stateDir}/next-meeting.json`
         watchChanges: true
         printErrors: false
-        onFileChanged: reload()
-        onLoaded: {
-            try {
-                root.tasks = JSON.parse(text()).tasks ?? [];
-            } catch (e) {
-                console.warn("Courier: couldn't read tasks.json:", e);
-            }
-        }
-        onSaveFailed: error => console.warn("Courier: couldn't save to-dos:", error)
+        onFileChanged: root.reload()
     }
 }

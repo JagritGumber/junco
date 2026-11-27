@@ -44,6 +44,13 @@ Singleton {
     property string lastOpenedId: ""
     // The Add account window is open.
     property bool addingAccount: false
+    // Settings -> Auto-Expiry panel is open.
+    property bool settingsOpen: false
+    // Command Palette (Ctrl+K) is open.
+    property bool paletteOpen: false
+    property var expiryRules: []
+    property bool expiryRulesLoading: false
+    property var expiryPreview: null
     // A menu over the whole window, for panes too narrow to hold their own.
     property var windowMenu: null
 
@@ -70,9 +77,23 @@ Singleton {
         { id: "newsletters", label: "Newsletters", chip: false }
     ]
 
-    function unreadIn(laneId: string): int {
+    // Single-pass unread totals per lane (avoids 4x full-array filter passes per revision).
+    readonly property var laneUnreads: {
         revision;
-        return conversations.filter(c => laneId === "all" || c.lane === laneId).reduce((total, c) => total + c.unread, 0);
+        const counts = { all: 0, people: 0, updates: 0, newsletters: 0 };
+        for (const c of conversations) {
+            const u = c.unread ?? 0;
+            if (u > 0) {
+                counts.all += u;
+                if (counts[c.lane] !== undefined)
+                    counts[c.lane] += u;
+            }
+        }
+        return counts;
+    }
+
+    function unreadIn(laneId: string): int {
+        return laneUnreads[laneId] ?? 0;
     }
 
     readonly property var visibleConversations: {
@@ -105,6 +126,36 @@ Singleton {
     property var accountCard: null
     // sync.json's per-account state: { id: { state, have?, expected? } }.
     property var syncStatus: ({})
+    // When the last sync finished (sync.json's "finished", ms since epoch), and
+    // a one-line summary for the sidebar's sync pill ("Synced 5 min ago").
+    property real syncFinished: 0
+    property real syncClock: Date.now()
+    readonly property bool syncing: Object.values(syncStatus).some(entry => entry?.state === "downloading")
+    readonly property bool syncTrouble: Object.values(syncStatus).some(entry => entry?.state && entry.state !== "ok" && entry.state !== "downloading")
+    readonly property string syncLabel: {
+        if (syncTrouble)
+            return "Sync needs a look";
+        if (syncing)
+            return "Syncing…";
+        if (!syncFinished)
+            return "";
+        const minutes = Math.max(0, Math.floor((syncClock - syncFinished) / 60000));
+        if (minutes < 1)
+            return "Synced just now";
+        if (minutes < 60)
+            return `Synced ${minutes} min ago`;
+        if (minutes < 24 * 60)
+            return `Synced ${Math.floor(minutes / 60)} h ago`;
+        return `Synced ${Math.floor(minutes / (24 * 60))} d ago`;
+    }
+
+    // Keeps "Synced N min ago" current: one cheap tick a minute.
+    Timer {
+        interval: 60000
+        running: root.syncFinished > 0
+        repeat: true
+        onTriggered: root.syncClock = Date.now()
+    }
     property var folders: []
     property var listing: null
     property bool listLoading: false
@@ -263,6 +314,7 @@ Singleton {
     // Moving around ---------------------------------------------------------------------
 
     function openFolder(id: string): void {
+        settingsOpen = false;
         if (folder !== id) {
             folder = id;
             search = "";
@@ -566,6 +618,40 @@ Singleton {
         Quickshell.execDetached(day ? [calendarLauncher, day] : [calendarLauncher]);
     }
 
+    function syncNow(): void {
+        sayPending("Syncing mail…", "sync");
+        Quickshell.execDetached(["systemctl", "--user", "start", "--no-block", "courier-sync.service"]);
+        refresh();
+    }
+
+    // Archives the message(s) now and returns them to Inbox at `untilIso` (YYYY-MM-DDTHH:MM).
+    function snooze(ids: var, untilIso: string, label: string): void {
+        const list = (ids ?? []).filter(id => id && String(id).trim() !== "");
+        if (list.length === 0) {
+            sayError("Open or select a thread to snooze.");
+            return;
+        }
+        const gone = inInbox;
+        if (gone)
+            hide(list);
+        sayPending(`Snoozing until ${label}…`, "snooze");
+        run(["snooze", ...list, "--until", untilIso], (ok, result) => {
+            if (gone)
+                settle(list, ok);
+            if (!ok) {
+                sayError(result?.error ?? "Couldn't snooze that email.");
+                refresh();
+                return;
+            }
+            loadFolders();
+            if (folder === "smart")
+                loadConversations(null);
+            else
+                loadList(null);
+            say(`Snoozed until ${label}`, null, "snooze");
+        });
+    }
+
     // A meeting from an email, onto the calendar kept on this PC.
     function addMeeting(meeting: var): void {
         const event = { title: meeting.title, start: meeting.allDay ? meeting.day : meeting.start, end: meeting.allDay ? meeting.day : meeting.end, allDay: meeting.allDay, where: meeting.link || meeting.where || "", reminders: [10] };
@@ -683,12 +769,9 @@ Singleton {
         run(fetch ? ["accounts", "--fetch"] : ["accounts"], (ok, list) => {
             if (!ok)
                 return;
-            const added = list.some(a => !accounts.some(known => known.id === a.id));
             if (JSON.stringify(list) !== JSON.stringify(accounts))
                 pictureVersion++;
             accounts = list;
-            if (added && accounts.length > 0)
-                loadStorage();
             // An account that's gone stops being the one shown.
             if (account && !list.some(a => a.id === account))
                 setAccount("");
@@ -705,7 +788,12 @@ Singleton {
     function readSyncStatus(text: string): void {
         let next = {};
         try {
-            next = JSON.parse(text).accounts ?? {};
+            const data = JSON.parse(text);
+            next = data.accounts ?? {};
+            const finished = Date.parse(data.finished ?? "");
+            if (!isNaN(finished))
+                syncFinished = finished;
+            syncClock = Date.now();
         } catch (e) {
             return;
         }
@@ -1010,7 +1098,7 @@ Singleton {
             text: hexOf(Theme.m3onSurface),
             muted: hexOf(Theme.m3onSurfaceVariant),
             link: hexOf(Theme.m3primary),
-            code: hexOf(Theme.m3surfaceContainerHighest)
+            code: hexOf(Theme.solidSurfaceHighest)
         }, { footer: footer, wholeLinks: !!wholeLinks });
     }
 
@@ -1022,7 +1110,7 @@ Singleton {
     // The reader's colours, for simple HTML mail drawn in them (courier_theme.py).
     function readerTheme(): string {
         return JSON.stringify({
-            surface: hexOf(Theme.m3surfaceContainerLow),
+            surface: hexOf(Theme.solidSurfaceLow),
             text: hexOf(Theme.m3onSurface),
             muted: hexOf(Theme.m3onSurfaceVariant),
             link: hexOf(Theme.m3primary)
@@ -1057,13 +1145,67 @@ Singleton {
         return Math.abs(gb - Math.round(gb)) < 0.05 ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`;
     }
 
-    // (Storage loads with the accounts.)
-    Component.onCompleted: {
-        loadAccounts(false);
-        refresh();
-        loadTemplates();
-        // Then each account's own picture, if one was never looked up.
-        loadAccounts(true);
+    property bool storageRequested: false
+
+    // Single-process startup: loads accounts, folders, conversations, initial
+    // thread messages, and (in dev mode) templates in ONE Python invocation.
+    function bootstrap(): void {
+        const args = ["bootstrap", ...accountArgs()];
+        if (developer)
+            args.push("--include-templates");
+        const convReq = ++conversationsRequest;
+        const thReq = ++threadRequest;
+        run(args, (ok, data) => {
+            if (!ok || !data) {
+                loadAccounts(false);
+                refresh();
+                if (developer)
+                    loadTemplates();
+                return;
+            }
+            if (Array.isArray(data.accounts))
+                accounts = data.accounts;
+            if (Array.isArray(data.folders))
+                folders = data.folders;
+            if (developer && Array.isArray(data.templates))
+                templates = data.templates;
+            if (convReq === conversationsRequest && Array.isArray(data.conversations)) {
+                conversations = data.conversations;
+                if (thReq === threadRequest && data.selectedId) {
+                    selectedId = data.selectedId;
+                    messages = Array.isArray(data.messages) ? data.messages : [];
+                    threadLoading = false;
+                    threadFailed = false;
+                    const first = conversations.find(c => c.id === selectedId);
+                    if (first && first.kind === "person" && first.unread > 0) {
+                        const cleared = first.unread;
+                        first.unread = 0;
+                        folders = folders.map(f => f.id === "smart" ? Object.assign({}, f, { count: Math.max(0, (f.count ?? 0) - cleared) }) : f);
+                        run(["read", selectedId, ...accountArgs()], null);
+                    }
+                }
+                revision++;
+            }
+            if (Quickshell.env("COURIER_OFFLINE") !== "1" && accounts.some(a => !a.picture))
+                deferredAvatarFetch.restart();
+        });
+    }
+
+    Component.onCompleted: bootstrap()
+
+    // Deferred account-picture lookup (online only, never blocks cold startup).
+    Timer {
+        id: deferredAvatarFetch
+
+        interval: 8000
+        onTriggered: root.loadAccounts(true)
+    }
+
+    function ensureStorage(): void {
+        if (!storageRequested && accounts.length > 0) {
+            storageRequested = true;
+            loadStorage();
+        }
     }
 
     function loadStorage(): void {
@@ -1336,7 +1478,118 @@ Singleton {
         });
     }
 
+    function openSettings(): void {
+        closeTable();
+        stopTeaching();
+        settingsOpen = true;
+        loadExpiryRules(true);
+    }
+
+    function closeSettings(): void {
+        settingsOpen = false;
+    }
+
+    function loadExpiryRules(withCounts: bool): void {
+        expiryRulesLoading = true;
+        run(["expiry", "rules", ...(withCounts ? ["--with-counts"] : [])], (ok, result) => {
+            expiryRulesLoading = false;
+            if (ok)
+                expiryRules = result.rules ?? [];
+            else
+                sayError(result?.error ?? "Couldn't load auto-expiry rules.");
+        });
+    }
+
+    function saveExpiryRule(ruleObj: var, done: var): void {
+        run(["expiry", "rule-save", JSON.stringify(ruleObj)], (ok, result) => {
+            if (!ok) {
+                sayError(result?.error ?? "Couldn't save auto-expiry rule.");
+                if (done)
+                    done(false, result);
+                return;
+            }
+            const saved = result.rule;
+            say(saved.enabled ? `${saved.display_name} auto-delete · ${saved.retention_days}d` : `${saved.display_name} auto-delete off`, null, "auto_delete");
+            loadExpiryRules(true);
+            loadFolders();
+            if (folder === "smart")
+                loadConversations(null);
+            else
+                loadList(null);
+            refreshReading();
+            if (done)
+                done(true, result);
+        });
+    }
+
+    function deleteExpiryRule(ruleId: string): void {
+        run(["expiry", "rule-delete", ruleId], (ok, result) => {
+            if (!ok) {
+                sayError(result?.error ?? "Couldn't remove rule.");
+                return;
+            }
+            say("Custom provider removed", null, "delete");
+            loadExpiryRules(true);
+            loadFolders();
+        });
+    }
+
+    function previewExpiryRule(ruleId: string, done: var): void {
+        run(["expiry", "preview", ruleId], (ok, result) => {
+            if (ok)
+                expiryPreview = result;
+            if (done)
+                done(ok, result);
+        });
+    }
+
+    function scheduleDelete(threadOrMsgId: string, spec: string, note: string, isDate: bool, done: var): void {
+        const args = ["expiry", "set", threadOrMsgId, isDate ? "--on" : "--after", spec];
+        if (note && note.trim() !== "")
+            args.push("--note", note.trim());
+        run(args, (ok, result) => {
+            if (!ok) {
+                sayError(result?.error ?? "Couldn't schedule deletion.");
+                if (done)
+                    done(false, result);
+                return;
+            }
+            if (reading && (reading.threadId === result.thread_id || reading.id === threadOrMsgId))
+                reading = Object.assign({}, reading, { expiry: result });
+            say(`Scheduled to trash in ${result.remaining}`, null, "auto_delete");
+            loadFolders();
+            if (folder === "smart")
+                loadConversations(null);
+            else
+                loadList(null);
+            if (done)
+                done(true, result);
+        });
+    }
+
+    function cancelExpiry(threadOrMsgId: string, done: var): void {
+        run(["expiry", "cancel", threadOrMsgId], (ok, result) => {
+            if (!ok) {
+                sayError(result?.error ?? "Couldn't cancel scheduled deletion.");
+                if (done)
+                    done(false, result);
+                return;
+            }
+            if (reading && (reading.threadId === result.thread_id || reading.id === threadOrMsgId))
+                reading = Object.assign({}, reading, { expiry: null });
+            say("Scheduled deletion cancelled", null, "undo");
+            loadFolders();
+            if (folder === "smart")
+                loadConversations(null);
+            else
+                loadList(null);
+            if (done)
+                done(true, result);
+        });
+    }
+
     function openTable(id: string): void {
+        settingsOpen = false;
         stopTeaching();
         tableTemplate = id;
         table = null;

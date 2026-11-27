@@ -1,8 +1,8 @@
 import QtQuick
 import qs.services
 
-// Which inbox a conversation or event belongs to: the account's picture (or
-// its initial on its colour) and its name. "This PC" is a plain dot.
+// Which inbox a conversation or event belongs to: compact frosted pill with
+// the account's picture and name.
 Rectangle {
     id: root
 
@@ -11,34 +11,35 @@ Rectangle {
     readonly property bool local: account === "local"
     readonly property color tint: local ? Theme.m3onSurfaceVariant : Inbox.accountColor(account)
 
-    implicitHeight: 24
-    implicitWidth: row.implicitWidth + row.anchors.leftMargin + 9
+    implicitHeight: 20
+    implicitWidth: row.implicitWidth + row.anchors.leftMargin + 7
     radius: height / 2
-    color: Theme.m3surfaceContainerHighest
+    color: Theme.glassControl
+    border.width: 1
+    border.color: Theme.glassBorderSubtle
 
     Row {
         id: row
 
         anchors.left: parent.left
-        anchors.leftMargin: root.local ? 9 : 3
+        anchors.leftMargin: root.local ? 7 : 3
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
+        spacing: 5
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.local
-            width: 7
-            height: 7
-            radius: 4
+            width: 6
+            height: 6
+            radius: 3
             color: root.tint
         }
 
         AccountBadge {
             anchors.verticalCenter: parent.verticalCenter
-            // Shown even with one account; the tag's name says which.
             visible: !root.local
             account: root.local ? "" : root.account
-            size: 18
+            size: 14
             tip: ""
         }
 
@@ -46,8 +47,8 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: root.local ? "This PC" : Inbox.accountLabel(root.account)
             color: Theme.m3onSurfaceVariant
-            font.pixelSize: 12
-            font.weight: Font.Medium
+            font.pixelSize: 11
+            weight: Font.Medium
         }
     }
 }

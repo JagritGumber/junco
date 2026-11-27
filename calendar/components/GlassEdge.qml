@@ -1,0 +1,1 @@
+../../shell/components/GlassEdge.qml

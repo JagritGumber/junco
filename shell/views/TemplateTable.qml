@@ -8,7 +8,7 @@ import qs.components
 // way); the filter keeps rows that say what you type anywhere. A row opens
 // its email beside the table; one that needs re-teaching says so instead of
 // showing values, and teaches on a click.
-Rectangle {
+GlassPane {
     id: root
 
     readonly property var table: Inbox.table
@@ -70,13 +70,10 @@ Rectangle {
 
     onTableChanged: if (table && !columns.some(c => c.name === sortBy) && sortBy !== "date") sortBy = "date"
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
-
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 12
+        anchors.margins: 12
+        spacing: 8
 
         RowLayout {
             Layout.fillWidth: true
@@ -103,7 +100,7 @@ Rectangle {
                     text: root.table?.template?.name ?? (Inbox.tableLoading ? "Reading…" : "")
                     elide: Text.ElideRight
                     font.pixelSize: 20
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 Label {
@@ -153,7 +150,7 @@ Rectangle {
                             elide: Text.ElideRight
                             color: root.sortBy === parent.parent.modelData.name ? Theme.m3primary : Theme.m3onSurfaceVariant
                             font.pixelSize: 13
-                            font.weight: Font.Medium
+                            weight: Font.Medium
                         }
 
                         Icon {
@@ -254,7 +251,7 @@ Rectangle {
                                     text: "Needs re-teaching"
                                     color: Theme.m3error
                                     font.pixelSize: 12
-                                    font.weight: Font.Medium
+                                    weight: Font.Medium
                                 }
                             }
                         }

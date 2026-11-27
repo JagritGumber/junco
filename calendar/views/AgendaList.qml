@@ -42,6 +42,7 @@ Item {
 
         anchors.fill: parent
         clip: true
+        cacheBuffer: 320
         spacing: 18
         boundsBehavior: Flickable.StopAtBounds
         model: root.groups
@@ -69,7 +70,7 @@ Item {
                     text: Calendar.format(group.modelData.day, "ddd")
                     color: group.today ? Theme.m3primary : Theme.m3onSurfaceVariant
                     font.pixelSize: 13
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 Rectangle {
@@ -77,14 +78,14 @@ Item {
                     implicitWidth: 42
                     implicitHeight: 42
                     radius: 21
-                    color: group.today ? Theme.m3primary : "transparent"
+                    color: group.today ? Theme.accentFill : "transparent"
 
                     Label {
                         anchors.centerIn: parent
                         text: Number(group.modelData.day.slice(8))
-                        color: group.today ? Theme.m3onPrimary : Theme.m3onSurface
+                        color: group.today ? Theme.accentFillInk : Theme.m3onSurface
                         font.pixelSize: 22
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
                 }
 

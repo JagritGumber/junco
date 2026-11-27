@@ -76,6 +76,7 @@ class FakeGoogle:
 
     def browser(self, url: str) -> None:
         query = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).items()}
+        self.asked_scopes = query["scope"].split()
         assert query["code_challenge_method"] == "S256"
         assert query["client_id"] == CLIENT["client_id"]
         assert query["access_type"] == "offline"
@@ -193,6 +194,13 @@ class CourierAuthTest(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertIn("courier-auth add work", err)
         self.assertIsNone(self.stored("access", "work"))
+
+    def test_calendar_write_is_asked_only_when_wanted(self) -> None:
+        self.assertEqual(run("add", "personal")[0], 0)
+        self.assertNotIn(auth.CALENDAR_WRITE_SCOPE, self.google.asked_scopes)  # a plain sign-in: read-only, as before
+        self.assertEqual(run("add", "personal", "--calendar-write")[0], 0)
+        self.assertIn(auth.CALENDAR_WRITE_SCOPE, self.google.asked_scopes)  # answering invitations: asked for, by name
+        self.assertEqual(json.loads(self.stored("access", "personal"))["scope"], self.google.granted)
 
     def test_unticked_calendar_is_refused_and_revoked(self) -> None:
         self.google.granted = f"openid {auth.MAIL_SCOPE}"

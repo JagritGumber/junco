@@ -59,7 +59,7 @@ Rectangle {
                     text: "Turn it on"
                     color: Theme.m3errorContainer
                     font.pixelSize: 13
-                    font.weight: Font.DemiBold
+                    weight: Font.Medium
                 }
 
                 MouseArea {
@@ -73,8 +73,8 @@ Rectangle {
                 implicitWidth: retry.implicitWidth + 28
                 implicitHeight: 34
                 radius: 17
-                color: "transparent"
-                border.width: 1
+                color: Theme.glass ? Theme.alpha(Theme.m3onErrorContainer, 0.12) : "transparent"
+                border.width: Theme.glass ? 0 : 1
                 border.color: Theme.m3onErrorContainer
 
                 Label {
@@ -84,7 +84,7 @@ Rectangle {
                     text: "Try again"
                     color: Theme.m3onErrorContainer
                     font.pixelSize: 13
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 MouseArea {

@@ -6,18 +6,32 @@ and retention).
 
 from __future__ import annotations
 
-import email.errors
-import email.header
-import email.utils
 import itertools
 import re
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import courier_later as later
 import courier_sync as sync
+
+_LAZY_MODS = {
+    "expiry": "courier_expiry",
+    "later": "courier_later",
+}
+
+
+def _mod(name: str):
+    mod = globals().get(name)
+    if mod is None:
+        mod = __import__(_LAZY_MODS[name])
+        globals()[name] = mod
+    return mod
+
+
+def __getattr__(name: str):
+    if name in _LAZY_MODS:
+        return _mod(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Folders in the sidebar: id -> (name, description, icon, notmuch query).
 # Snoozed, Scheduled, Expiring and Trash aren't notmuch queries; see below.
@@ -32,7 +46,7 @@ FOLDERS = {
     "snoozed": ("Snoozed", "Back in your inbox when it's time", "schedule", None),
     "scheduled": ("Scheduled", "Waiting to be sent", "schedule_send", None),
     "reminders": ("Reminders", "Emails you asked to be reminded about", "notifications", None),
-    "expiring": ("Expiring", "Set to delete themselves soon", "hourglass_empty", None),
+    "expiring": ("Expiring", "Scheduled for automatic deletion", "hourglass_empty", None),
     "archive": ("Archive", "Out of the inbox, still yours", "archive", "not tag:inbox and not tag:sent"),
     "trash": ("Trash", "Deleted in Gmail; restore within 30 days", "delete", None),
 }
@@ -59,16 +73,33 @@ def ids_query(message_ids: list[str]) -> str:
 
 def expiring_ids(now: float | None = None) -> list[str]:
     limit = (now or time.time()) + EXPIRING_DAYS * 86400
-    return [message_id for message_id, item in later.retention().items() if item["until"] <= limit]
+    return [message_id for message_id, item in _mod("later").retention().items() if item["until"] <= limit]
+
+
+def expiring_query(now: float | None = None) -> str:
+    parts: list[str] = []
+    for tid in _mod("expiry").active_expiries_map(now=now):
+        # Match by thread id or direct message id
+        if "@" in tid:
+            parts.append(f"id:{sync.quote_id(tid)}")
+        else:
+            parts.append(f"thread:{tid}")
+    for mid in expiring_ids(now):
+        parts.append(f"id:{sync.quote_id(mid)}")
+    return " or ".join(parts) if parts else "id:none-at-all"
+
+
+def expiring_count(now: float | None = None) -> int:
+    return len(_mod("expiry").active_expiries_map(now=now)) + len(expiring_ids(now))
 
 
 def folder_query(folder: str) -> str:
     if folder == "snoozed":
-        return ids_query([item["id"] for item in later.snoozed()])
+        return ids_query([item["id"] for item in _mod("later").snoozed()])
     if folder == "expiring":
-        return ids_query(expiring_ids())
+        return expiring_query()
     if folder == "reminders":
-        return ids_query([item["id"] for item in later.reminders()])
+        return ids_query([item["id"] for item in _mod("later").reminders()])
     if folder not in FOLDERS or FOLDERS[folder][3] is None:
         raise ValueError(f"unknown folder {folder!r}")
     return FOLDERS[folder][3]
@@ -81,23 +112,24 @@ def account_query(account: str) -> str:
 def folders(index, account: str = "") -> dict:
     """Every folder with its badge: unread for mail views, a count for the
     rest. With an account, only that account's mail counts."""
+    later_mod = _mod("later")
     found = []
     only = f" and {account_query(account)}" if account else ""
     for folder, (name, description, icon, query) in FOLDERS.items():
         if folder in {"smart", "meetings", "dev", "college"}:
             badge = unread(index, f"({query}) and tag:inbox{only}")
         elif folder == "snoozed":
-            badge = len(later.snoozed())
+            badge = len(later_mod.snoozed())
         elif folder == "scheduled":
-            badge = len(later.scheduled())
+            badge = len(later_mod.scheduled())
         elif folder == "expiring":
-            badge = len(expiring_ids())
+            badge = expiring_count()
         elif folder == "reminders":
-            badge = len(later.reminders())
+            badge = len(later_mod.reminders())
         else:
             badge = 0
         found.append({"id": folder, "name": name, "description": description, "icon": icon, "count": badge})
-    return {"folders": found, "rules": len([r for r in later.rules() if r["enabled"]])}
+    return {"folders": found, "rules": len([r for r in later_mod.rules() if r["enabled"]])}
 
 
 # Times -----------------------------------------------------------------------------
@@ -185,6 +217,8 @@ def ics_time(params: dict, value: str) -> tuple[datetime | None, bool]:
     if value.endswith("Z"):
         return moment.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None), False
     if "TZID" in params:
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
         try:
             zone = ZoneInfo(params["TZID"].strip('"'))
             return moment.replace(tzinfo=zone).astimezone().replace(tzinfo=None), False
@@ -308,6 +342,9 @@ def calendar_events() -> list[dict]:
 
 
 def header(message, name: str) -> str:
+    import email.errors
+    import email.header
+
     try:
         return email.header.make_header(email.header.decode_header(message.header(name) or "")).__str__()
     except (LookupError, UnicodeError, email.errors.HeaderParseError):
@@ -345,6 +382,8 @@ def smart_list(index, folder: str, search: str = "", now: float | None = None, a
     """One folder's rows, newest first, under Today, Yesterday and Earlier:
     people, college and meetings by thread; machine mail folded per sender
     per day, so a morning of GitHub is one row."""
+    import email.utils
+
     import courier_avatars
 
     name, description, _, _ = FOLDERS[folder]
@@ -354,6 +393,7 @@ def smart_list(index, folder: str, search: str = "", now: float | None = None, a
     if search.strip():
         query = f"({query}) and ({search.strip()})" if query.strip() != "*" else search.strip()
     pictures = courier_avatars.load_index()
+    active_expiries = _mod("expiry").active_expiries_map(now=now)
     rows: dict[str, dict] = {}
     order: list[str] = []
     for message in itertools.islice(index.newest_first(query), SCAN):
@@ -364,7 +404,7 @@ def smart_list(index, folder: str, search: str = "", now: float | None = None, a
         domain = sender.rpartition("@")[2]
         epoch = int(message.date)
         subject = header(message, "subject") or "(no subject)"
-        folded = category in {"updates", "newsletters", "dev"} and sender not in index.me
+        folded = category in {"updates", "newsletters", "dev"} and sender not in index.me and folder != "expiring"
         day_key = datetime.fromtimestamp(epoch).date().isoformat()
         # The smart inbox reads a day's newsletters as one row.
         bundled = folded and folder == "smart" and category == "newsletters"
@@ -402,6 +442,8 @@ def smart_list(index, folder: str, search: str = "", now: float | None = None, a
                 "avatar": courier_avatars.picture_for_key(f"d:{courier_domain(domain)}", pictures) if category != "people" or not mine else "",
                 "attachment": "attachment" in tags,
                 "account": next((t.split("/", 1)[1] for t in tags if t.startswith("account/")), ""),
+                "threadId": message.threadid,
+                "expiry": active_expiries.get(message.threadid) or active_expiries.get(message.messageid),
                 "members": [],
                 "_reviews": 0,
                 "_latest": subject,
@@ -421,6 +463,8 @@ def smart_list(index, folder: str, search: str = "", now: float | None = None, a
             row["_names"].append(sender_name or sync_name(sender))
         row["unread"] += "unread" in tags
         row["starred"] = row["starred"] or "flagged" in tags
+        if row["expiry"] is None:
+            row["expiry"] = active_expiries.get(message.threadid) or active_expiries.get(message.messageid)
         if folded:
             try:
                 reason = (message.header("x-github-reason") or "").lower()
@@ -493,8 +537,12 @@ def parse_file(path: str):
 
 def details(index, message, parsed, now: float | None = None) -> dict:
     """What the panel beside an email shows."""
+    import email.utils
+
     import courier_mail
 
+    later_mod = _mod("later")
+    expiry_mod = _mod("expiry")
     now = now or time.time()
     thread_messages = list(itertools.islice(index.newest_first(f"thread:{message.threadid}"), 30))
     thread = []
@@ -526,16 +574,18 @@ def details(index, message, parsed, now: float | None = None) -> dict:
     if sender:
         for other in itertools.islice(index.newest_first(f'from:"{sender}" and not id:{sync.quote_id(message.messageid)}'), 8):
             from_sender.append({"id": other.messageid, "subject": header(other, "subject") or "(no subject)", "time": row_time(int(other.date), now)})
-    snooze = next((item for item in later.snoozed() if item["id"] == message.messageid), None)
-    reminder = next((item for item in later.reminders() if item["id"] == message.messageid), None)
-    kept = later.retention().get(message.messageid)
+    snooze = next((item for item in later_mod.snoozed() if item["id"] == message.messageid), None)
+    reminder = next((item for item in later_mod.reminders() if item["id"] == message.messageid), None)
+    kept = later_mod.retention().get(message.messageid)
     rule = None
-    for candidate in later.rules():
+    for candidate in later_mod.rules():
         if candidate["enabled"] and candidate["kind"] == "delete":
-            query = f"id:{sync.quote_id(message.messageid)} and ({later.rule_query(dict(candidate, afterDays=0))})"
+            query = f"id:{sync.quote_id(message.messageid)} and ({later_mod.rule_query(dict(candidate, afterDays=0))})"
             if index.db.count_messages(query):
-                rule = {"text": later.describe(candidate), "until": int(message.date) + candidate["afterDays"] * 86400}
+                rule = {"text": later_mod.describe(candidate), "until": int(message.date) + candidate["afterDays"] * 86400}
                 break
+    active_expiries = expiry_mod.active_expiries_map(now=now)
+    thread_expiry = active_expiries.get(message.threadid) or active_expiries.get(message.messageid)
     to_me = any(plain_address(address) in index.me for _, address in email.utils.getaddresses([header(message, "to"), header(message, "cc")]))
     return {
         "threadId": message.threadid,
@@ -545,8 +595,9 @@ def details(index, message, parsed, now: float | None = None) -> dict:
         "meeting": meeting_of(parsed, calendar_events(), now),
         "snoozedUntil": snooze["until"] if snooze else 0,
         "remindAt": reminder["at"] if reminder else 0,
-        "retention": {"period": kept["period"], "until": kept["until"], "name": later.PERIOD_NAMES[kept["period"]]} if kept else None,
+        "retention": {"period": kept["period"], "until": kept["until"], "name": later_mod.PERIOD_NAMES[kept["period"]]} if kept else None,
         "ruleRetention": rule,
+        "expiry": thread_expiry,
         "toMe": to_me,
         "category": category_of(set(message.tags)),
     }

@@ -3,8 +3,8 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// One message: a day divider when the day changes, then a chat bubble for
-// people or a compact card for machine updates (GitHub, Linear, newsletters).
+// One message: day divider pill, then a frosted-glass chat bubble or compact
+// update card.
 Column {
     id: root
 
@@ -12,23 +12,24 @@ Column {
     property var previous
     readonly property bool mine: message.from === "me"
     readonly property bool newDay: !previous || previous.day !== message.day
-    readonly property real maxBubble: Math.min(width * 0.68, 620)
-    // Sent bubbles waiting for the server have no id yet.
+    readonly property real maxBubble: Math.min(width * 0.78, 660)
     readonly property bool openable: (message.id ?? "") !== ""
 
-    spacing: 10
+    spacing: 6
 
     Item {
         width: root.width
-        height: root.newDay ? 34 : 0
+        height: root.newDay ? 26 : 0
         visible: root.newDay
 
         Rectangle {
             anchors.centerIn: parent
-            implicitHeight: 26
-            implicitWidth: day.implicitWidth + 24
-            radius: 13
-            color: Theme.m3surfaceContainerHigh
+            implicitHeight: 20
+            implicitWidth: day.implicitWidth + 18
+            radius: 10
+            color: Theme.glassControl
+            border.width: 1
+            border.color: Theme.glassBorderSubtle
 
             Label {
                 id: day
@@ -36,8 +37,8 @@ Column {
                 anchors.centerIn: parent
                 text: root.message.day ?? ""
                 color: Theme.m3onSurfaceVariant
-                font.pixelSize: 12
-                font.weight: Font.Medium
+                font.pixelSize: 11
+                weight: Font.Normal
             }
         }
     }
@@ -56,19 +57,27 @@ Column {
             Rectangle {
                 id: body
 
-                readonly property color ink: root.mine ? Theme.m3onPrimaryContainer : Theme.m3onSurface
+                readonly property color ink: root.mine ? Theme.glassBubbleMineInk : Theme.m3onSurface
 
                 anchors.right: root.mine ? parent.right : undefined
                 anchors.left: root.mine ? undefined : parent.left
-                implicitWidth: Math.min(root.maxBubble, Math.max(content.implicitWidth, 96) + 40)
-                implicitHeight: content.implicitHeight + 28
-                color: root.mine ? Theme.m3primaryContainer : Theme.m3surfaceContainerHigh
-                topLeftRadius: 22
-                topRightRadius: 22
-                bottomLeftRadius: root.mine ? 22 : 6
-                bottomRightRadius: root.mine ? 6 : 22
+                implicitWidth: Math.min(root.maxBubble, Math.max(content.implicitWidth, 92) + 32)
+                implicitHeight: content.implicitHeight + 24
+                color: root.mine ? Theme.glassBubbleMine : Theme.glassBubbleOther
+                border.width: Theme.glass ? 0 : 1
+                border.color: root.mine ? Theme.glassBubbleMineBorder : Theme.glassBubbleOtherBorder
+                topLeftRadius: 16
+                topRightRadius: 16
+                bottomLeftRadius: root.mine ? 16 : 6
+                bottomRightRadius: root.mine ? 6 : 16
 
-                // Under the text, so links still take their own clicks.
+                // Glass: a faint top glow, no outline and no vertical stripe.
+                GlassEdge {
+                    visible: Theme.glass
+                    radius: 16
+                    side: false
+                }
+
                 MouseArea {
                     anchors.fill: parent
                     enabled: root.openable
@@ -82,33 +91,37 @@ Column {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 20
-                    anchors.topMargin: 14
-                    spacing: 6
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    anchors.topMargin: 12
+                    spacing: 5
 
                     Label {
                         visible: !!root.message.subject
-                        Layout.maximumWidth: root.maxBubble - 40
+                        Layout.maximumWidth: root.maxBubble - 32
                         text: root.message.subject ?? ""
                         color: body.ink
-                        font.pixelSize: 15
-                        font.weight: Font.DemiBold
+                        font.pixelSize: 14
+                        weight: Font.Medium
                         elide: Text.ElideRight
                     }
 
                     Label {
-                        Layout.maximumWidth: root.maxBubble - 40
+                        Layout.maximumWidth: root.maxBubble - 32
                         Layout.fillWidth: true
-                        // An email sent without any words (it happens from
-                        // phones) says so instead of drawing an empty bubble.
-                        text: (root.message.body ?? "").trim() || (root.message.attachments ?? []).length > 0 ? Inbox.linked(root.message.body, "") : "<i>No text</i>"
-                        textFormat: Text.StyledText
-                        linkColor: root.mine ? Theme.m3onPrimaryContainer : Theme.m3primary
+                        text: {
+                            const htmlBody = (root.message.body ?? "").trim() || (root.message.attachments ?? []).length > 0
+                                ? Inbox.linked(root.message.body, Theme.m3primary)
+                                : "<i>No text</i>";
+                            return `<style>b,strong{font-weight:600;}</style>${htmlBody}`;
+                        }
+                        textFormat: Text.RichText
+                        linkColor: Theme.m3primary
                         onLinkActivated: link => Qt.openUrlExternally(link.replace(/&amp;/g, "&"))
                         color: body.ink
                         wrapMode: Text.Wrap
-                        font.pixelSize: 15
-                        lineHeight: 1.15
+                        font.pixelSize: 14
+                        lineHeight: 1.24
                     }
 
                     Repeater {
@@ -121,21 +134,23 @@ Column {
                             required property int index
                             readonly property string kind: modelData.name.endsWith(".pdf") ? "description" : "image"
 
-                            Layout.topMargin: 4
-                            Layout.preferredWidth: Math.min(root.maxBubble - 40, 360)
-                            implicitHeight: 62
-                            radius: 18
+                            Layout.topMargin: 3
+                            Layout.preferredWidth: Math.min(root.maxBubble - 26, 320)
+                            implicitHeight: 46
+                            radius: Theme.controlRadius
                             color: Theme.alpha(body.ink, 0.08)
+                            border.width: 1
+                            border.color: Theme.glassBorderSubtle
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 14
-                                anchors.rightMargin: 10
-                                spacing: 12
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 6
+                                spacing: 9
 
                                 Icon {
                                     name: file.kind
-                                    size: 24
+                                    size: 20
                                     color: body.ink
                                 }
 
@@ -148,14 +163,14 @@ Column {
                                         text: file.modelData.name
                                         elide: Text.ElideMiddle
                                         color: body.ink
-                                        font.pixelSize: 14
-                                        font.weight: Font.Medium
+                                        font.pixelSize: 13
+                                        weight: Font.Medium
                                     }
 
                                     Label {
                                         text: file.modelData.size
                                         color: Theme.alpha(body.ink, 0.65)
-                                        font.pixelSize: 12
+                                        font.pixelSize: 11
                                     }
                                 }
 
@@ -163,7 +178,7 @@ Column {
                                     icon: "download"
                                     tip: "Save to Downloads"
                                     iconColor: body.ink
-                                    size: 38
+                                    size: 30
                                     visible: root.openable
                                     onClicked: Inbox.saveAttachment(root.message.id, file.index)
                                 }
@@ -178,17 +193,16 @@ Column {
                         Label {
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.message.time
-                            color: Theme.alpha(body.ink, 0.6)
-                            font.pixelSize: 11
+                            color: Theme.alpha(body.ink, 0.62)
+                            font.pixelSize: 10
                         }
 
-                        // Delivery state of what you sent: sending, sent, or failed.
                         Icon {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: root.mine
                             name: root.message.failed ? "error" : root.message.sending ? "schedule" : "done_all"
-                            size: 16
-                            color: root.message.failed ? Theme.m3error : Theme.alpha(body.ink, 0.7)
+                            size: 14
+                            color: root.message.failed ? Theme.m3error : Theme.alpha(body.ink, 0.72)
                         }
                     }
                 }
@@ -206,13 +220,15 @@ Column {
                 review: [Theme.m3tertiaryContainer, Theme.m3onTertiaryContainer, "Review"],
                 merged: [Theme.m3primaryContainer, Theme.m3onPrimaryContainer, "Merged"],
                 failed: [Theme.m3errorContainer, Theme.m3onErrorContainer, "Failed"],
-                info: [Theme.m3surfaceContainerHighest, Theme.m3onSurfaceVariant, "Update"]
-            })[root.message.status] ?? [Theme.m3surfaceContainerHighest, Theme.m3onSurfaceVariant, "Update"]
+                info: [Theme.glassControl, Theme.m3onSurfaceVariant, "Update"]
+            })[root.message.status] ?? [Theme.glassControl, Theme.m3onSurfaceVariant, "Update"]
 
-            implicitWidth: Math.min(root.width, 720)
-            implicitHeight: 70
-            radius: 20
-            color: open.containsMouse ? Theme.m3surfaceContainerHigh : Theme.m3surfaceContainer
+            implicitWidth: Math.min(root.width, 740)
+            implicitHeight: 54
+            radius: Theme.cardRadius
+            color: open.containsMouse ? Theme.glassCardHover : Theme.glassCard
+            border.width: 1
+            border.color: Theme.glassBorderSubtle
 
             MouseArea {
                 id: open
@@ -225,19 +241,20 @@ Column {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 14
-                anchors.rightMargin: 16
-                spacing: 14
+                anchors.leftMargin: 10
+                anchors.rightMargin: 12
+                spacing: 10
 
                 Rectangle {
-                    implicitWidth: 42
-                    implicitHeight: 42
-                    radius: 14
+                    implicitWidth: 34
+                    implicitHeight: 34
+                    radius: 10
                     color: card.tone[0]
 
                     Icon {
                         anchors.centerIn: parent
                         name: root.message.icon
+                        size: 18
                         fill: 1
                         color: card.tone[1]
                     }
@@ -245,14 +262,14 @@ Column {
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: 1
 
                     Label {
                         Layout.fillWidth: true
                         text: root.message.title
                         elide: Text.ElideRight
-                        font.pixelSize: 14
-                        font.weight: Font.Medium
+                        font.pixelSize: 13
+                        weight: Font.Medium
                     }
 
                     Label {
@@ -260,14 +277,14 @@ Column {
                         text: root.message.meta
                         elide: Text.ElideRight
                         color: Theme.m3onSurfaceVariant
-                        font.pixelSize: 12
+                        font.pixelSize: 11
                     }
                 }
 
                 Rectangle {
-                    implicitHeight: 24
-                    implicitWidth: status.implicitWidth + 18
-                    radius: 12
+                    implicitHeight: 20
+                    implicitWidth: status.implicitWidth + 14
+                    radius: 10
                     color: card.tone[0]
 
                     Label {
@@ -276,15 +293,15 @@ Column {
                         anchors.centerIn: parent
                         text: card.tone[2]
                         color: card.tone[1]
-                        font.pixelSize: 11
-                        font.weight: Font.DemiBold
+                        font.pixelSize: 10
+                        weight: Font.Medium
                     }
                 }
 
                 Label {
                     text: root.message.time
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                 }
             }
         }

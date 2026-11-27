@@ -135,9 +135,9 @@ class BuiltinTemplates(unittest.TestCase):
 ROLE = re.compile(r"(?:^|[._+-])(?:no-?reply|do-?not-?reply|notifications?|notify|alerts?|security|accounts?|team|em|"
                   r"updates?|news(?:letters)?|messages|messaging|digest|jobs?|jobalerts|recommendations|store|order|payments?|"
                   r"marketplace|analytics|cloudplatform|google|gemini|googleaistudio|googledev|googleplay|kaggle|meetings|"
-                  r"playpartners|sc|stitch|pinterest)(?:$|[._+-])", re.I)
-MONEY = re.compile(r"bank|broker|trad(?:e|ing)|invest|financ|fund|mutual|\bmf\b|insur|crypto|coin|exchange|wallet|pay|tax|loan|"
-                   r"credit|stock|demat|capital|wealth|stripe", re.I)
+                  r"playpartners|sc|stitch|pinterest|confirm|shipment|tracking)(?:$|[._+-])", re.I)
+MONEY = re.compile(r"\.bank\.in$|bank|zerodha|groww|upstox|kotak|icici|hdfc|sbi|axis|paytm|phonepe|razorpay|slice|mutual|"
+                   r"kfintech|insurance|binance|kucoin|crypto|stripe|paypal", re.I)
 DEDICATED = re.compile(r"(?:^|[._+-])(?:security|alerts?|auth|accounts?|payments?|billing|verify|verification|login|signin)"
                        r"(?:$|[._+-])", re.I)
 # Generic senders reviewed by hand: only the service's own words.

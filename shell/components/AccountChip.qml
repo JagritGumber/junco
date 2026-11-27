@@ -1,9 +1,6 @@
 import QtQuick
 import qs.services
 
-// An account to pick, as a chip: its picture (or initial) and its address.
-// The compose window's From. (Not the shared Chip: Calendar uses that, and
-// has no accounts.)
 Rectangle {
     id: root
 
@@ -14,27 +11,26 @@ Rectangle {
 
     signal clicked
 
-    implicitHeight: 34
-    implicitWidth: row.implicitWidth + 6 + 14
+    implicitHeight: 28
+    implicitWidth: row.implicitWidth + 5 + 11
     radius: height / 2
-    color: selected ? Theme.m3primary : (area.containsMouse ? Theme.alpha(Theme.m3onSurface, 0.08) : "transparent")
+    color: selected ? Theme.m3primary : (area.containsMouse ? Theme.glassControlHover : Theme.glassControl)
     border.width: selected ? 0 : 1
-    border.color: Theme.m3outlineVariant
+    border.color: Theme.glassBorderSubtle
 
     Row {
         id: row
 
         anchors.left: parent.left
-        anchors.leftMargin: 6
+        anchors.leftMargin: 5
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 8
+        spacing: 6
 
         AccountBadge {
             anchors.verticalCenter: parent.verticalCenter
-            // Shown even with one account; the chip's address names it.
             visible: true
             account: root.account
-            size: 24
+            size: 20
             tip: ""
         }
 
@@ -42,8 +38,8 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: root.info?.email ?? root.account
             color: root.selected ? Theme.m3onPrimary : Theme.m3onSurfaceVariant
-            font.pixelSize: 13
-            font.weight: Font.Medium
+            font.pixelSize: 12
+            weight: root.selected ? Font.Medium : Font.Normal
         }
     }
 

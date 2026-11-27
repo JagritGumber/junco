@@ -94,9 +94,11 @@
    "brand": "Amazon",
    "domain": "amazon.in",
    "senders": [
+    "auto-confirm@amazon.in",
     "marketplace-messages@amazon.in",
     "order-update@amazon.in",
     "payments-update@amazon.in",
+    "shipment-tracking@amazon.in",
     "store-news@amazon.in"
    ],
    "alerts": [

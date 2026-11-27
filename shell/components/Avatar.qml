@@ -33,7 +33,7 @@ Rectangle {
         text: root.name.split(" ").filter(w => w.length > 0).map(w => w[0]).slice(0, 2).join("").toUpperCase()
         color: root.ink
         font.pixelSize: Math.round(root.size * 0.38)
-        font.weight: Font.Medium
+        weight: Font.Medium
     }
 
     Icon {

@@ -3,17 +3,16 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// A folder's list (Sent, Archive, Trash…; the inbox is ConversationList):
-// its name and what it holds, filter and search, then the rows under Today,
-// Yesterday and Earlier. Folded rows (a sender's morning of GitHub) open in
-// place to show their emails.
-Rectangle {
+// A folder's list (Sent, Archive, Trash…): compact frosted-glass pane with
+// scannable date groups and dense rows.
+GlassPane {
     id: root
+
+    fill: Theme.glassList
 
     property bool searching: false
     readonly property bool searchShown: searching || Inbox.search !== ""
 
-    // A search can start in the inbox's box and land here.
     Connections {
         target: Inbox
 
@@ -23,9 +22,6 @@ Rectangle {
         }
     }
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
@@ -33,27 +29,28 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: 6
+            Layout.leftMargin: 4
             spacing: 6
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 2
+                spacing: 0
 
                 Label {
                     Layout.fillWidth: true
                     text: Inbox.listing?.title ?? Inbox.currentFolder?.name ?? ""
                     elide: Text.ElideRight
-                    font.pixelSize: 24
-                    font.weight: Font.Medium
+                    font.pixelSize: 17
+                    weight: Font.DemiBold
                 }
 
                 Label {
                     Layout.fillWidth: true
+                    visible: text !== ""
                     text: Inbox.search.trim() ? `Results for “${Inbox.search.trim()}”` : (Inbox.listing?.subtitle ?? "")
                     elide: Text.ElideRight
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 13
+                    font.pixelSize: 11
                 }
             }
 
@@ -62,10 +59,10 @@ Rectangle {
 
                 icon: "tune"
                 tip: "Filter"
-                size: 44
+                size: 28
                 filled: Inbox.unreadOnly || Inbox.withFiles
-                fillColor: Theme.m3secondaryContainer
-                iconColor: Inbox.unreadOnly || Inbox.withFiles ? Theme.m3onSecondaryContainer : Theme.m3onSurfaceVariant
+                fillColor: Theme.glassActive
+                iconColor: Inbox.unreadOnly || Inbox.withFiles ? Theme.m3primary : Theme.m3onSurfaceVariant
                 onClicked: menu.show(filterButton, [
                     { icon: "mark_email_unread", label: "Unread only", checked: Inbox.unreadOnly, run: () => Inbox.unreadOnly = !Inbox.unreadOnly },
                     { icon: "attach_file", label: "With attachments", checked: Inbox.withFiles, run: () => Inbox.withFiles = !Inbox.withFiles },
@@ -77,10 +74,10 @@ Rectangle {
             IconButton {
                 icon: "search"
                 tip: "Search this folder"
-                size: 44
+                size: 28
                 filled: root.searchShown
-                fillColor: Theme.m3secondaryContainer
-                iconColor: root.searchShown ? Theme.m3onSecondaryContainer : Theme.m3onSurfaceVariant
+                fillColor: Theme.glassActive
+                iconColor: root.searchShown ? Theme.m3primary : Theme.m3onSurfaceVariant
                 onClicked: {
                     if (root.searchShown) {
                         root.searching = false;
@@ -94,23 +91,24 @@ Rectangle {
             }
         }
 
-        // Words in the subject, sender or text, or notmuch syntax (from:aarav).
         Rectangle {
             Layout.fillWidth: true
             visible: root.searchShown
-            implicitHeight: 44
-            radius: 22
-            color: Theme.m3surfaceContainerHigh
+            implicitHeight: 32
+            radius: Theme.controlRadius
+            color: Theme.glassControl
+            border.width: 1
+            border.color: searchInput.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glass ? Theme.glassBorder : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 14
-                anchors.rightMargin: 6
-                spacing: 8
+                anchors.leftMargin: 10
+                anchors.rightMargin: 4
+                spacing: 7
 
                 Icon {
                     name: "search"
-                    size: 20
+                    size: 16
                 }
 
                 TextInput {
@@ -122,7 +120,7 @@ Rectangle {
                     selectionColor: Theme.m3primary
                     selectedTextColor: Theme.m3onPrimary
                     font.family: Theme.sans
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                     clip: true
                     onAccepted: Inbox.runSearch(text)
                     Keys.onEscapePressed: {
@@ -136,6 +134,7 @@ Rectangle {
                         visible: searchInput.text === ""
                         text: `Search ${Inbox.currentFolder?.name ?? "mail"}, then Enter`
                         color: Theme.m3onSurfaceVariant
+                        font.pixelSize: 12
                     }
                 }
 
@@ -143,7 +142,7 @@ Rectangle {
                     visible: searchInput.text !== ""
                     icon: "close"
                     tip: "Clear"
-                    size: 32
+                    size: 24
                     onClicked: {
                         searchInput.text = "";
                         Inbox.runSearch("");
@@ -159,11 +158,12 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: Inbox.flatRows.length === 0
-                width: parent.width - 40
+                width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
                 text: Inbox.listLoading ? "Loading…" : Inbox.listFailed ? "Couldn't load this folder." : Inbox.search.trim() ? "Nothing matches." : Inbox.unreadOnly || Inbox.withFiles ? "Nothing here with that filter." : "Nothing here."
                 color: Theme.m3onSurfaceVariant
+                font.pixelSize: 13
             }
 
             ListView {
@@ -174,19 +174,19 @@ Rectangle {
                 footer: Label {
                     width: ListView.view.width
                     visible: Inbox.listing?.more ?? false
-                    height: visible ? 48 : 0
+                    height: visible ? 36 : 0
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     text: "Showing the newest 150. Search to find older mail."
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                 }
                 clip: true
+                cacheBuffer: 320
                 boundsBehavior: Flickable.StopAtBounds
                 model: Inbox.flatRows
                 reuseItems: false
 
-                // Only the kind of item each entry needs is built.
                 delegate: Item {
                     id: slot
 
@@ -206,15 +206,16 @@ Rectangle {
                         id: header
 
                         Item {
-                            implicitHeight: 42
+                            implicitHeight: 26
 
                             Label {
-                                x: 8
+                                x: 6
                                 anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
+                                anchors.bottomMargin: 4
                                 text: slot.modelData.name
-                                font.pixelSize: 15
-                                font.weight: Font.Medium
+                                color: Theme.m3onSurfaceVariant
+                                font.pixelSize: 12
+                                weight: Font.Medium
                             }
                         }
                     }
@@ -228,44 +229,45 @@ Rectangle {
                         }
                     }
 
-                    // One email of a folded row, opened in place.
                     Component {
                         id: member
 
                         Item {
-                            implicitHeight: 48
+                            implicitHeight: 38
 
                             Rectangle {
                                 readonly property bool current: Inbox.openId === slot.modelData.id
 
-                                x: 70
-                                width: parent.width - 76
-                                height: 46
-                                radius: 14
-                                color: current ? Theme.alpha(Theme.m3primary, 0.14) : (memberArea.containsMouse ? Theme.alpha(Theme.m3onSurface, 0.05) : "transparent")
+                                x: 54
+                                width: parent.width - 58
+                                height: 36
+                                radius: 9
+                                color: current ? Theme.glassActive : (memberArea.containsMouse ? Theme.glassHover : "transparent")
+                                border.width: current ? 1 : 0
+                                border.color: Theme.glassActiveBorder
 
                                 Rectangle {
-                                    x: -10
+                                    x: -9
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 6
-                                    height: 6
-                                    radius: 3
+                                    width: 5
+                                    height: 5
+                                    radius: 2.5
                                     visible: slot.modelData.unread
                                     color: Theme.m3primary
                                 }
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 12
-                                    anchors.rightMargin: 12
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
                                     spacing: 8
 
                                     Label {
-                                        Layout.maximumWidth: 120
+                                        Layout.maximumWidth: 110
                                         text: slot.modelData.title
                                         elide: Text.ElideRight
-                                        font.pixelSize: 13
-                                        font.weight: slot.modelData.unread ? Font.DemiBold : Font.Medium
+                                        font.pixelSize: 12
+                                        weight: slot.modelData.unread ? Font.Medium : Font.Normal
                                     }
 
                                     Label {
@@ -273,13 +275,13 @@ Rectangle {
                                         text: slot.modelData.subtitle
                                         elide: Text.ElideRight
                                         color: Theme.m3onSurfaceVariant
-                                        font.pixelSize: 13
+                                        font.pixelSize: 12
                                     }
 
                                     Label {
                                         text: slot.modelData.time
                                         color: Theme.m3onSurfaceVariant
-                                        font.pixelSize: 11
+                                        font.pixelSize: 10
                                     }
                                 }
 

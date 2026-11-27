@@ -10,34 +10,34 @@ Rectangle {
 
     signal clicked
 
-    implicitHeight: 34
-    implicitWidth: row.implicitWidth + 28
+    implicitHeight: 26
+    implicitWidth: row.implicitWidth + 20
     radius: height / 2
-    color: selected ? Theme.m3primary : (area.containsMouse ? Theme.alpha(Theme.m3onSurface, 0.08) : "transparent")
-    border.width: selected ? 0 : 1
-    border.color: Theme.m3outlineVariant
+    color: selected ? Theme.pill : (area.containsMouse ? Theme.glassControlHover : Theme.glassControl)
+    border.width: 1
+    border.color: Theme.glass ? Theme.glassBorder : Theme.glassBorderSubtle
 
     Row {
         id: row
 
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 5
 
         Label {
             anchors.verticalCenter: parent.verticalCenter
             text: root.text
-            color: root.selected ? Theme.m3onPrimary : Theme.m3onSurfaceVariant
-            font.pixelSize: 13
-            font.weight: Font.Medium
+            color: root.selected ? Theme.pillInk : Theme.m3onSurfaceVariant
+            font.pixelSize: 12
+            weight: root.selected ? Font.Medium : Font.Normal
         }
 
         Label {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.count > 0
             text: root.count > 99 ? "99+" : root.count
-            color: root.selected ? Theme.m3onPrimary : Theme.m3onSurface
-            font.pixelSize: 12
-            font.weight: Font.DemiBold
+            color: root.selected ? Theme.pillInk : Theme.m3onSurface
+            font.pixelSize: 11
+            weight: Font.Medium
         }
     }
 

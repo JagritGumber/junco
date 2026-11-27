@@ -9,11 +9,11 @@ Rectangle {
 
     required property var meeting
 
-    implicitHeight: content.implicitHeight + 32
-    radius: 20
-    color: Theme.m3surfaceContainer
+    implicitHeight: content.implicitHeight + 22
+    radius: Theme.cardRadius
+    color: Theme.glassCard
     border.width: 1
-    border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
+    border.color: Theme.glassBorderSubtle
 
     RowLayout {
         id: content
@@ -21,8 +21,8 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 16
-        spacing: 14
+        anchors.margins: 11
+        spacing: 10
 
         Icon {
             Layout.alignment: Qt.AlignTop
@@ -47,7 +47,7 @@ Rectangle {
                     Label {
                         text: "Meeting"
                         font.pixelSize: 15
-                        font.weight: Font.DemiBold
+                        weight: Font.Medium
                     }
 
                     Label {
@@ -79,7 +79,7 @@ Rectangle {
                             text: "Added to calendar"
                             color: Theme.m3onPrimary
                             font.pixelSize: 12
-                            font.weight: Font.DemiBold
+                            weight: Font.Medium
                         }
 
                         Icon {

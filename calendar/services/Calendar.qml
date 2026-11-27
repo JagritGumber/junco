@@ -14,11 +14,14 @@ Singleton {
     id: root
 
     readonly property string engine: `${Quickshell.shellDir}/../engine/courier_calendar.py`
+    readonly property string mailLauncher: `${Quickshell.shellDir}/../bin/courier`
     readonly property string stateDir: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/courier`
 
     property var status: ({ state: "never" })
     property bool reminders: true
     property string todayDay: dayOf(new Date())
+    // Updated on the single 60s clock tick (zero busy-wait polling).
+    property double nowMs: Date.now()
     // "month", "week", "day" or "agenda".
     property string view: "month"
     // The picked day. The month, week or day on screen is the one holding it.
@@ -27,10 +30,15 @@ Singleton {
     property var accounts: []
     // Calendar ids switched off in "My calendars", id -> true.
     property var hidden: ({})
+    // User-resized side panel widths, persisted in calendar-view.json.
+    property int sidebarWidth: 228
+    property int dayPanelWidth: 296
     // Every event touching the days on screen.
     property var events: []
-    // The picked day and the six weeks after it, for the day panel.
+    // Events strictly for the picked day (never future months).
     property var around: []
+    // Events strictly for Today (keeps Join next meeting accurate from any date).
+    property var todayEvents: []
     // Search covers every copied event: 60 days back, a year ahead.
     property string query: ""
     property var everything: []
@@ -43,7 +51,13 @@ Singleton {
 
     readonly property var shownEvents: visible(events)
     readonly property var dayEvents: visible(around).filter(event => touches(event, selected))
-    readonly property var comingUp: visible(around).filter(event => event.startDay > selected).slice(0, 3)
+    readonly property var nextMeeting: {
+        const ref = nowMs;
+        const upcoming = visible(todayEvents)
+            .filter(event => !event.allDay && touches(event, todayDay) && !isEventPast(event, ref))
+            .sort((a, b) => eventStartMs(a) - eventStartMs(b));
+        return upcoming.length > 0 ? upcoming[0] : null;
+    }
     readonly property var found: {
         const needle = query.trim().toLowerCase();
         if (needle === "")
@@ -147,6 +161,78 @@ Singleton {
         return "event";
     }
 
+    function eventStartMs(event): double {
+        if (!event || event.allDay)
+            return 0;
+        const parsed = Date.parse(event.start ?? "");
+        if (!Number.isNaN(parsed))
+            return parsed;
+        if (!event.startDay)
+            return 0;
+        const base = dateOf(event.startDay);
+        return base.getTime() + (event.startMinutes ?? 0) * 60000;
+    }
+
+    function eventEndMs(event): double {
+        if (!event || event.allDay)
+            return 0;
+        const parsed = Date.parse(event.end ?? "");
+        if (!Number.isNaN(parsed))
+            return parsed;
+        if (!event.endDay && !event.startDay)
+            return 0;
+        const base = dateOf(event.endDay ?? event.startDay);
+        return base.getTime() + (event.endMinutes ?? 0) * 60000;
+    }
+
+    function formatDurationShort(totalMinutes: int): string {
+        const mins = Math.max(1, Math.round(totalMinutes));
+        if (mins < 60)
+            return `${mins}m`;
+        const hours = Math.floor(mins / 60);
+        const rem = mins % 60;
+        return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
+    }
+
+    function isEventLive(event, refMs): bool {
+        if (!event || event.allDay)
+            return false;
+        const start = eventStartMs(event);
+        const end = eventEndMs(event);
+        return start <= refMs && refMs < end;
+    }
+
+    function isEventPast(event, refMs): bool {
+        if (!event || event.allDay)
+            return false;
+        return eventEndMs(event) <= refMs;
+    }
+
+    function countdownLabel(event, refMs): string {
+        if (!event || event.allDay)
+            return "";
+        const start = eventStartMs(event);
+        const end = eventEndMs(event);
+        if (start <= refMs && refMs < end) {
+            const leftMin = Math.max(1, Math.ceil((end - refMs) / 60000));
+            return `Live now · ${formatDurationShort(leftMin)} left`;
+        }
+        if (start > refMs) {
+            const waitMin = Math.ceil((start - refMs) / 60000);
+            if (waitMin <= 0)
+                return "Starting now";
+            return `In ${formatDurationShort(waitMin)}`;
+        }
+        return "Ended";
+    }
+
+    function attendeeLabel(event): string {
+        const count = Number(event?.attendeeCount ?? 0);
+        if (count <= 1)
+            return "";
+        return `${count} people`;
+    }
+
     // The title above the month grid, week or day.
     function spanTitle(): string {
         if (view === "month" || view === "agenda")
@@ -208,23 +294,69 @@ Singleton {
 
     // Loading -------------------------------------------------------------------
 
+    property bool ready: false
+    property int bootstrapRequest: 0
     property int spanRequest: 0
     property int aroundRequest: 0
+    property int todayRequest: 0
     property int everythingRequest: 0
+    property string loadedSpanFirst: ""
+    property string loadedSpanAfter: ""
 
     function loadSpan(): void {
+        if (!ready)
+            return;
+        const first = spanFirst;
+        const after = spanAfter;
         const request = ++spanRequest;
-        run(["range", spanFirst, spanAfter], found => {
-            if (request === root.spanRequest)
+        run(["range", first, after], found => {
+            if (request === root.spanRequest) {
                 root.events = found;
+                root.loadedSpanFirst = first;
+                root.loadedSpanAfter = after;
+                if (root.selected >= first && root.selected < after) {
+                    const selEvents = found.filter(ev => root.touches(ev, root.selected));
+                    root.around = selEvents;
+                    if (root.selected === root.todayDay)
+                        root.todayEvents = selEvents;
+                }
+            }
         });
     }
 
     function loadAround(): void {
+        if (!ready)
+            return;
+        // Fast path: if the picked day sits inside the already-loaded span,
+        // derive its events in-memory with zero Python subprocess spawn.
+        if (loadedSpanFirst !== "" && selected >= loadedSpanFirst && selected < loadedSpanAfter) {
+            const selEvents = events.filter(ev => touches(ev, selected));
+            around = selEvents;
+            if (selected === todayDay)
+                todayEvents = selEvents;
+            return;
+        }
         const request = ++aroundRequest;
-        run(["range", selected, addDays(selected, 43)], found => {
-            if (request === root.aroundRequest)
+        run(["range", selected, addDays(selected, 1)], found => {
+            if (request === root.aroundRequest) {
                 root.around = found;
+                if (root.selected === root.todayDay)
+                    root.todayEvents = found;
+            }
+        });
+    }
+
+    function loadToday(): void {
+        if (!ready)
+            return;
+        if (loadedSpanFirst !== "" && todayDay >= loadedSpanFirst && todayDay < loadedSpanAfter) {
+            todayEvents = events.filter(ev => touches(ev, todayDay));
+            return;
+        }
+        const request = ++todayRequest;
+        run(["range", todayDay, addDays(todayDay, 1)], found => {
+            if (request === root.todayRequest)
+                root.todayEvents = found;
         });
     }
 
@@ -244,18 +376,43 @@ Singleton {
         });
     }
 
-    // After a sync or an edit: everything on screen again.
+    // Single-process startup & refresh: loads calendars, accounts, status,
+    // span events, selected day, today, and actionables in ONE Python call.
     function refresh(): void {
-        loadCalendars();
-        loadSpan();
-        loadAround();
-        if (query !== "")
+        nowMs = Date.now();
+        const first = spanFirst;
+        const after = spanAfter;
+        const sel = selected;
+        const today = todayDay;
+        const request = ++bootstrapRequest;
+        spanRequest++;
+        aroundRequest++;
+        todayRequest++;
+        run(["bootstrap", first, after, sel, "--today", today], result => {
+            if (request !== root.bootstrapRequest)
+                return;
+            root.calendars = result.calendars ?? [];
+            root.accounts = result.accounts ?? [];
+            root.status = result.status ?? ({ state: "never" });
+            root.events = result.events ?? [];
+            root.loadedSpanFirst = first;
+            root.loadedSpanAfter = after;
+            root.around = result.around ?? [];
+            root.todayEvents = result.todayEvents ?? [];
+            if (result.actionables !== undefined)
+                Tasks.applyLoaded(result.actionables);
+        });
+        if (query !== "" || everything.length > 0)
             loadEverything();
     }
 
     function syncNow(): void {
         status = Object.assign({}, status, { state: status.state === "ok" ? "syncing" : status.state });
         Quickshell.execDetached(["systemctl", "--user", "start", "--no-block", "courier-calendar.service"]);
+    }
+
+    function openMail(): void {
+        Quickshell.execDetached([mailLauncher]);
     }
 
     function setReminders(on: bool): void {
@@ -294,7 +451,7 @@ Singleton {
         else
             delete next[id];
         hidden = next;
-        saveView();
+        saveView(true);
     }
 
     function showOnly(id: string): void {
@@ -303,21 +460,28 @@ Singleton {
             if (calendar.id !== id)
                 next[calendar.id] = true;
         hidden = next;
-        saveView();
+        saveView(true);
     }
 
     function showAll(): void {
         hidden = {};
-        saveView();
+        saveView(true);
     }
 
     function setView(name: string): void {
         view = name;
-        saveView();
+        saveView(false);
     }
 
-    function saveView(): void {
-        viewFile.setText(JSON.stringify({ view: root.view, hidden: Object.keys(root.hidden) }) + "\n");
+    function saveView(updateFeed): void {
+        viewFile.setText(JSON.stringify({
+            view: root.view,
+            hidden: Object.keys(root.hidden),
+            sidebarWidth: root.sidebarWidth,
+            dayPanelWidth: root.dayPanelWidth
+        }) + "\n");
+        if (updateFeed === true)
+            run(["next", "--write"], () => {});
     }
 
     // One process per request, so a slow one never swallows the next.
@@ -328,24 +492,28 @@ Singleton {
         job.running = true;
     }
 
-    onSpanFirstChanged: Qt.callLater(loadSpan)
-    onSpanAfterChanged: Qt.callLater(loadSpan)
-    onSelectedChanged: Qt.callLater(loadAround)
+    onSpanFirstChanged: if (ready) Qt.callLater(loadSpan)
+    onSpanAfterChanged: if (ready) Qt.callLater(loadSpan)
+    onSelectedChanged: if (ready) Qt.callLater(loadAround)
+    onTodayDayChanged: if (ready) Qt.callLater(loadToday)
     onQueryChanged: if (query !== "" && everything.length === 0)
         loadEverything()
 
     Component.onCompleted: {
+        ready = true;
         refresh();
         remindersProc.exec(["systemctl", "--user", "is-enabled", "courier-remind.timer"]);
     }
 
-    // Past midnight, today moves on.
+    // Single minute tick: keeps countdowns and midnight rollover fresh (zero busy-wait).
     Timer {
         interval: 60 * 1000
         running: true
         repeat: true
         onTriggered: {
-            const now = root.dayOf(new Date());
+            const current = new Date();
+            root.nowMs = current.getTime();
+            const now = root.dayOf(current);
             if (now !== root.todayDay) {
                 if (root.selected === root.todayDay)
                     root.selected = now;
@@ -412,6 +580,10 @@ Singleton {
                 for (const id of saved.hidden ?? [])
                     hidden[id] = true;
                 root.hidden = hidden;
+                if (typeof saved.sidebarWidth === "number" && saved.sidebarWidth >= 180 && saved.sidebarWidth <= 360)
+                    root.sidebarWidth = Math.round(saved.sidebarWidth);
+                if (typeof saved.dayPanelWidth === "number" && saved.dayPanelWidth >= 220 && saved.dayPanelWidth <= 440)
+                    root.dayPanelWidth = Math.round(saved.dayPanelWidth);
             } catch (e) {
                 console.warn("Courier: couldn't read calendar-view.json:", e);
             }

@@ -1,6 +1,6 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
+import Quickshell
 import qs.services
 
 // What just happened, at the bottom of the window: "Deleting…" with a spinner
@@ -16,8 +16,8 @@ Item {
     onNoticeChanged: if (notice)
         shown = notice
 
-    implicitWidth: Math.min(Math.max(320, row.implicitWidth + 40), 600)
-    implicitHeight: 56
+    implicitWidth: Math.min(Math.max(280, row.implicitWidth + 32), 520)
+    implicitHeight: 44
     opacity: notice ? 1 : 0
     visible: opacity > 0
 
@@ -39,37 +39,46 @@ Item {
         }
     }
 
-    RectangularShadow {
+    // Static pre-rendered 9-slice shadow (zero QML shaders).
+    BorderImage {
+        visible: root.visible
+        z: -1
         anchors.fill: bar
-        radius: bar.radius
-        blur: 24
-        spread: 0
-        offset.y: 6
-        color: Theme.alpha(Theme.m3shadow, 0.45)
+        anchors.margins: -12
+        source: `file://${Quickshell.shellDir}/../assets/glass/card-shadow.png`
+        border.left: 28
+        border.right: 28
+        border.top: 28
+        border.bottom: 28
+        horizontalTileMode: BorderImage.Stretch
+        verticalTileMode: BorderImage.Stretch
+        smooth: true
     }
 
     Rectangle {
         id: bar
 
         anchors.fill: parent
-        radius: 16
-        color: root.shown?.error ? Theme.m3errorContainer : Theme.m3inverseSurface
+        radius: 12
+        color: root.shown?.error ? Theme.m3errorContainer : Theme.m3popupHigh
+        border.width: 1
+        border.color: root.shown?.error ? Theme.alpha(Theme.m3error, 0.5) : Theme.glassPopupBorder
 
         RowLayout {
             id: row
 
             anchors.fill: parent
-            anchors.leftMargin: 18
-            anchors.rightMargin: 8
-            spacing: 14
+            anchors.leftMargin: 14
+            anchors.rightMargin: 6
+            spacing: 10
 
             // A spinner while Gmail is still doing it, else what was done.
             Icon {
                 id: mark
 
                 name: root.shown?.pending ? "progress_activity" : root.shown?.error ? "error" : (root.shown?.icon ?? "check_circle")
-                size: 22
-                color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3inverseOnSurface
+                size: 18
+                color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3primary
 
                 RotationAnimation on rotation {
                     running: root.visible && (root.shown?.pending ?? false)
@@ -87,18 +96,19 @@ Item {
                 textFormat: Text.PlainText
                 text: root.shown?.text ?? ""
                 elide: Text.ElideRight
-                color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3inverseOnSurface
+                color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3onSurface
                 font.family: Theme.sans
-                font.pixelSize: 14
-                font.weight: Font.Medium
+                font.pixelSize: 13
+                font.weight: Font.Normal
+                font.variableAxes: ({ "wght": Theme.weightMedium })
             }
 
             Rectangle {
                 visible: (root.shown?.undo ?? null) !== null && !(root.shown?.pending ?? false)
-                implicitWidth: undoLabel.implicitWidth + 24
-                implicitHeight: 36
-                radius: 18
-                color: undoArea.containsMouse ? Theme.alpha(Theme.m3inversePrimary, 0.16) : "transparent"
+                implicitWidth: undoLabel.implicitWidth + 20
+                implicitHeight: 30
+                radius: 15
+                color: undoArea.containsMouse ? Theme.glassActive : "transparent"
 
                 Text {
                     id: undoLabel
@@ -106,10 +116,11 @@ Item {
                     anchors.centerIn: parent
                     renderType: Text.NativeRendering
                     text: "Undo"
-                    color: Theme.m3inversePrimary
+                    color: Theme.m3primary
                     font.family: Theme.sans
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
+                    font.pixelSize: 13
+                    font.weight: Font.Normal
+                    font.variableAxes: ({ "wght": Theme.weightMedium })
                 }
 
                 MouseArea {
@@ -125,16 +136,16 @@ Item {
             Rectangle {
                 id: closeButton
 
-                implicitWidth: 36
-                implicitHeight: 36
-                radius: 18
-                color: closeArea.containsMouse ? Theme.alpha(Theme.m3inverseOnSurface, 0.1) : "transparent"
+                implicitWidth: 30
+                implicitHeight: 30
+                radius: 15
+                color: closeArea.containsMouse ? Theme.glassControlHover : "transparent"
 
                 Icon {
                     anchors.centerIn: parent
                     name: "close"
-                    size: 20
-                    color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3inverseOnSurface
+                    size: 18
+                    color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3onSurfaceVariant
                 }
 
                 MouseArea {

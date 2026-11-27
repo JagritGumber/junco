@@ -79,6 +79,7 @@ Item {
         anchorX = at.x;
         anchorTop = at.y;
         anchorBottom = at.y + item.height;
+        Inbox.ensureStorage();
         visible = true;
     }
 
@@ -123,10 +124,10 @@ Item {
         // when there's no room above.
         x: Math.max(8, Math.min(root.anchorX - 6, root.width - width - 8))
         y: root.anchorTop - height - 10 >= 8 ? root.anchorTop - height - 10 : Math.min(root.anchorBottom + 10, root.height - height - 8)
-        radius: 20
+        radius: 15
         color: Theme.m3popupHigh
         border.width: 1
-        border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
+        border.color: Theme.glassPopupBorder
 
         HoverHandler {
             id: cardHover
@@ -218,7 +219,7 @@ Item {
                         text: root.info?.label ?? root.account
                         elide: Text.ElideRight
                         font.pixelSize: 16
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     Label {
@@ -258,7 +259,7 @@ Item {
                         text: "Storage"
                         color: Theme.m3onSurfaceVariant
                         font.pixelSize: 12
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     Label {
@@ -312,7 +313,7 @@ Item {
                     Layout.topMargin: 4
                     text: "All accounts"
                     font.pixelSize: 16
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 Label {
@@ -359,7 +360,7 @@ Item {
                                     Layout.preferredWidth: 0
                                     text: row.modelData.label
                                     elide: Text.ElideRight
-                                    font.weight: Font.Medium
+                                    weight: Font.Medium
                                 }
 
                                 Label {

@@ -2,49 +2,43 @@ import QtQuick
 import QtQuick.Controls
 import qs.services
 
-// What an icon-only button does, after a moment's hover: Material's plain
-// tooltip, a small dark label. It sits under the button, or above it near
-// the window's bottom edge. Buttons build it only while hovered (Loader), so
-// a list of hundreds of buttons costs nothing.
-//
-//     Loader {
-//         active: area.containsMouse && root.tip !== ""
-//         sourceComponent: Tooltip { parent: root; text: root.tip }
-//     }
+// Compact frosted-glass tooltip built lazily on hover via Loader.
 ToolTip {
     id: root
 
-    // Under the button unless that would run off the window.
     readonly property bool below: {
         const window = parent?.Window.window ?? null;
         if (!parent || !window)
             return true;
-        return parent.mapToItem(null, 0, parent.height).y + implicitHeight + 14 <= window.height;
+        return parent.mapToItem(null, 0, parent.height).y + implicitHeight + 12 <= window.height;
     }
 
     visible: true
-    delay: 450
-    margins: 8
+    delay: 420
+    margins: 6
     padding: 0
     x: Math.round(((parent?.width ?? 0) - implicitWidth) / 2)
-    y: below ? (parent?.height ?? 0) + 6 : -implicitHeight - 6
+    y: below ? (parent?.height ?? 0) + 5 : -implicitHeight - 5
 
     contentItem: Text {
         renderType: Text.NativeRendering
-        leftPadding: 10
-        rightPadding: 10
-        topPadding: 5
-        bottomPadding: 6
+        leftPadding: 9
+        rightPadding: 9
+        topPadding: 4
+        bottomPadding: 5
         text: root.text
-        color: Theme.m3inverseOnSurface
+        color: Theme.m3onSurface
         font.family: Theme.sans
-        font.pixelSize: 12
-        font.weight: Font.Medium
+        font.pixelSize: 11
+        font.weight: Font.Normal
+        font.variableAxes: ({ "wght": Theme.weightMedium })
     }
 
     background: Rectangle {
         radius: 8
-        color: Theme.m3inverseSurface
+        color: Theme.m3popupHigh
+        border.width: 1
+        border.color: Theme.glassPopupBorder
     }
 
     enter: Transition {
@@ -52,7 +46,7 @@ ToolTip {
             property: "opacity"
             from: 0
             to: 1
-            duration: 120
+            duration: 110
         }
     }
 
@@ -61,7 +55,7 @@ ToolTip {
             property: "opacity"
             from: 1
             to: 0
-            duration: 80
+            duration: 75
         }
     }
 }

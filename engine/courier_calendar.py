@@ -7,19 +7,19 @@ kept only here, with desktop reminders.
     courier-calendar remind    notify about reminders that are due (run every minute)
 
 Google events land in ~/.local/share/courier/calendar/google.json; events
-made on this PC live in local.json beside it. Read-only towards Google.
+made on this PC live in local.json beside it. Read-only towards Google, but
+for one thing: answering an invitation from the notification dock's button
+(respond), which needs the calendar.events permission
+(courier-auth add <account> --calendar-write).
 """
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
+import re
 import sys
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -49,10 +49,126 @@ def status_path() -> Path:
     return sync.state_dir() / "calendar.json"
 
 
+def next_meeting_path() -> Path:
+    return sync.state_dir() / "next-meeting.json"
+
+
+def actionables_db_path() -> Path:
+    return calendar_dir() / "actionables.db"
+
+
+def write_atomic_private(path: Path, text: str) -> None:
+    """Atomically write a private file (0600) with a PID-scoped temp file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except Exception:
+        try:
+            temporary.unlink()
+        except OSError:
+            pass
+        raise
+
+
+# Meeting link extraction -------------------------------------------------------
+
+URL_PATTERN = re.compile(r"https?://[^\s<>\"'`\)\]\}]+" , re.I)
+TRAILING_URL_PUNCT = ".,;:!?)'\"]}>"
+ZOOM_PATH_RE = re.compile(r"^/(j|w|my|s|wc/join)/.+")
+WEBEX_JOIN_RE = re.compile(r"/(meet|join)/.+")
+WEBEX_JPHP_RE = re.compile(r"^/[^/]+/j\.php")
+
+
+def _match_meeting_provider(url: str) -> str:
+    """Return the provider label if `url` is a validated meeting link, else ''."""
+    clean = sync.web_link(url)
+    if not clean:
+        return ""
+    import urllib.parse
+
+    parts = urllib.parse.urlsplit(clean)
+    host = (parts.hostname or "").lower()
+    path = parts.path or ""
+    path_lower = path.lower()
+    if host == "meet.google.com" and len(path.strip("/")) > 0:
+        return "Google Meet"
+    if (host == "zoom.us" or host.endswith(".zoom.us") or host.endswith(".zoom.gov")) and ZOOM_PATH_RE.match(
+        path_lower
+    ):
+        return "Zoom"
+    if host == "teams.microsoft.com" and (path_lower.startswith("/l/meetup-join") or path_lower.startswith("/meet/")):
+        return "Microsoft Teams"
+    if host == "teams.live.com" and path_lower.startswith("/meet/"):
+        return "Microsoft Teams"
+    if (host == "app.slack.com" or host.endswith(".slack.com")) and path_lower.startswith("/huddle/"):
+        return "Slack Huddle"
+    if host == "meet.jit.si" and len(path.strip("/")) > 0:
+        return "Jitsi Meet"
+    if (host == "webex.com" or host.endswith(".webex.com")) and (
+        WEBEX_JOIN_RE.search(path_lower) or path_lower.endswith("/j.php") or "/j.php" in path_lower or WEBEX_JPHP_RE.match(path_lower)
+    ):
+        return "Webex"
+    return ""
+
+
+def meeting_provider_name(url: str) -> str:
+    """Friendly name for a known meeting URL, or '' if generic/empty."""
+    return _match_meeting_provider(url)
+
+
+def extract_meeting_url_from_text(text: str) -> str:
+    """Extract the first validated known meeting link from arbitrary text."""
+    if not text:
+        return ""
+    for match in URL_PATTERN.finditer(text):
+        candidate = match.group(0).rstrip(TRAILING_URL_PUNCT)
+        clean = sync.web_link(candidate)
+        if clean and _match_meeting_provider(clean):
+            return clean
+    return ""
+
+
+def extract_meeting_url(event: dict) -> str:
+    """Auto-extract a validated meeting join URL from hangoutLink,
+    conferenceData, saved video field, location/where, or description/notes."""
+    if not isinstance(event, dict):
+        return ""
+    hangout = sync.web_link(event.get("hangoutLink") or "")
+    if hangout:
+        return hangout
+    conf = event.get("conferenceData") or {}
+    if isinstance(conf, dict):
+        for entry in conf.get("entryPoints") or []:
+            if isinstance(entry, dict) and entry.get("entryPointType") == "video":
+                uri = sync.web_link(entry.get("uri") or "")
+                if uri:
+                    return uri
+    existing_video = sync.web_link(event.get("video") or "")
+    if existing_video:
+        return existing_video
+    for field in ("location", "where", "description", "notes"):
+        value = event.get(field)
+        if isinstance(value, str) and value:
+            found = extract_meeting_url_from_text(value)
+            if found:
+                return found
+    return ""
+
+
 # Google ------------------------------------------------------------------------
 
 
 def api_get(token: str, path: str, params: dict) -> dict:
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
     url = f"{API}{path}?{urllib.parse.urlencode(params)}"
     request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
@@ -70,6 +186,79 @@ def api_get(token: str, path: str, params: dict) -> dict:
         raise CalendarError(f"Google Calendar said: {message}") from None
     except urllib.error.URLError as error:
         raise CalendarError(f"Can't reach Google Calendar: {error.reason}") from None
+
+
+def api_patch(token: str, path: str, params: dict, body: dict) -> dict:
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    url = f"{API}{path}?{urllib.parse.urlencode(params)}"
+    request = urllib.request.Request(url, data=json.dumps(body).encode(), method="PATCH",
+                                     headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        try:
+            detail = json.loads(error.read()).get("error", {})
+        except ValueError:
+            detail = {}
+        finally:
+            error.close()
+        reasons = " ".join(str(e.get("reason", "")) for e in detail.get("errors", []) if isinstance(e, dict)) + " " + str(detail.get("status", ""))
+        if error.code == 403 and re.search(r"insufficient|SCOPE", reasons + " " + detail.get("message", ""), re.I):
+            raise CalendarError("Junco may only read your calendar: run courier-auth add <account> --calendar-write") from None
+        raise CalendarError(f"Google Calendar said: {detail.get('message', str(error))}") from None
+    except urllib.error.URLError as error:
+        raise CalendarError(f"Can't reach Google Calendar: {error.reason}") from None
+
+
+ANSWERS = {"accept": "accepted", "maybe": "tentative", "decline": "declined"}
+SAID = {"accepted": "You said yes", "tentative": "You said maybe", "declined": "You said no"}
+
+
+def respond(invite: dict, answer: str) -> str:
+    """Answers an invitation as you, on Google Calendar (only from the
+    dock's own button): your response on the event the invite put on your
+    calendar, and Google tells the organiser. Returns the one line the dock
+    shows; raises CalendarError. COURIER_CALENDAR_DRY_RUN=1 changes nothing."""
+    status = ANSWERS[answer]
+    uid, account = invite.get("uid", ""), invite.get("account", "")
+
+    def same_time(event: dict) -> bool:
+        try:
+            return datetime.fromisoformat(event["start"]).astimezone() == datetime.fromisoformat(invite["start"]).astimezone()
+        except (KeyError, TypeError, ValueError):
+            return False
+
+    # The event at the card's own time (a series shares one id), on the
+    # account the email came to.
+    event = next((e for e in load_google().get("events", []) if uid and e.get("uid") == uid
+                  and (not account or e.get("account") == account) and same_time(e)), None)
+    if event is None:
+        raise CalendarError("That invitation isn't on your calendar yet: try again after the next calendar sync")
+    import urllib.parse
+
+    calendar_id = str(event.get("calendarId", "")).split(":", 1)[-1]
+    path = f"/calendars/{urllib.parse.quote(calendar_id, safe='')}/events/{urllib.parse.quote(str(event['id']), safe='')}"
+    if os.environ.get("COURIER_CALENDAR_DRY_RUN") == "1":
+        return f"dry run: {status} on {event['id']}"
+    token = sync.auth_token(event["account"])
+    current = api_get(token, path, {})
+    # Only the meeting the card shows: Google's own copy has the card's
+    # organiser (an invite reusing another meeting's id can't answer it).
+    organiser = str((current.get("organizer") or {}).get("email", "")).lower()
+    if organiser != str((invite.get("organizer") or {}).get("email", "")).lower():
+        raise CalendarError("That invitation doesn't match the meeting on your calendar: nothing was answered")
+    attendees = current.get("attendees") or []
+    mine = [a for a in attendees if a.get("self")]
+    if not mine:
+        raise CalendarError("You're not on that invitation's guest list")
+    for person in mine:
+        person["responseStatus"] = status
+    api_patch(token, path, {"sendUpdates": "all"}, {"attendees": attendees})
+    return SAID[status]
 
 
 def paged(token: str, path: str, params: dict) -> list[dict]:
@@ -94,10 +283,18 @@ def event_record(event: dict, account: str, calendar: dict, defaults: list[int])
     start, end = event.get("start", {}), event.get("end", {})
     reminders = event.get("reminders", {})
     minutes = defaults if reminders.get("useDefault", True) else popup_minutes(reminders.get("overrides", []))
-    video = event.get("hangoutLink") or next(
-        (p.get("uri") for p in event.get("conferenceData", {}).get("entryPoints", []) if p.get("entryPointType") == "video"), ""
-    )
+    video = extract_meeting_url(event)
     birthday = event.get("eventType") == "birthday" or "#contacts@" in calendar.get("id", "")
+    raw_attendees = [
+        a for a in (event.get("attendees") or [])
+        if isinstance(a, dict) and not a.get("resource") and a.get("responseStatus") != "declined"
+    ]
+    provider_label = meeting_provider_name(video)
+    raw_location = (event.get("location") or "").strip()
+    if raw_location and video and raw_location == video and provider_label:
+        where_label = provider_label
+    else:
+        where_label = raw_location or provider_label or ("Video call" if video else "")
     return {
         "id": event["id"],
         "account": account,
@@ -106,20 +303,25 @@ def event_record(event: dict, account: str, calendar: dict, defaults: list[int])
         "color": calendar.get("backgroundColor", ""),
         "kind": "birthday" if birthday else "event",
         "title": event.get("summary") or "(No title)",
-        "where": event.get("location") or ("Google Meet" if video else ""),
+        "where": where_label,
         "allDay": "date" in start,
         "start": start.get("dateTime") or start.get("date"),
         "end": end.get("dateTime") or end.get("date"),
         "reminders": minutes,
         # Other people write events (invites): only web links are kept.
-        "video": sync.web_link(video),
+        "video": video,
         "link": sync.web_link(event.get("htmlLink", "")),
         # The invite's own id, so an email's invite can be matched to it.
         "uid": event.get("iCalUID", ""),
+        # Your answer to it ("needsAction", "accepted", "tentative"), if invited.
+        "response": next((a.get("responseStatus", "") for a in event.get("attendees", []) if a.get("self")), ""),
+        "attendeeCount": len(raw_attendees),
     }
 
 
 def sync_calendars() -> dict:
+    import urllib.parse
+
     now = datetime.now().astimezone()
     window = {
         "timeMin": (now - timedelta(days=DAYS_BACK)).isoformat(),
@@ -154,6 +356,7 @@ def sync_calendars() -> dict:
     sync.write_private(
         calendar_dir() / "google.json", json.dumps({"synced": int(time.time()), "calendars": calendars, "events": events}) + "\n"
     )
+    write_next_meeting_feed()
     return {"state": "ok", "calendars": len(calendars), "events": len(events), "synced": int(time.time())}
 
 
@@ -194,22 +397,24 @@ def load_google() -> dict:
 BIRTHDAYS = {"id": "birthdays", "name": "Birthdays", "color": "#80cbc4", "source": "google"}
 
 
-def calendars() -> list[dict]:
-    google = load_google()
+def calendars(google: dict | None = None, local: dict | None = None) -> list[dict]:
+    google = load_google() if google is None else google
+    local = load_local() if local is None else local
     listed = list(google.get("calendars", []))
     if any(event.get("kind") == "birthday" for event in google.get("events", [])):
         listed.append(dict(BIRTHDAYS))
-    return listed + [dict(c, source="local") for c in load_local()["calendars"]]
+    return listed + [dict(c, source="local") for c in local["calendars"]]
 
 
-def all_events() -> list[dict]:
+def all_events(google: dict | None = None, local: dict | None = None) -> list[dict]:
     events = []
-    for event in load_google().get("events", []):
+    google = load_google() if google is None else google
+    for event in google.get("events", []):
         event.setdefault("calendarId", f"{event.get('account', '')}:{event.get('calendar', '')}")
         if event.get("kind") == "birthday":
             event.update(calendarId=BIRTHDAYS["id"], calendar=BIRTHDAYS["name"], color=BIRTHDAYS["color"])
         events.append(event)
-    local = load_local()
+    local = load_local() if local is None else local
     by_id = {c["id"]: c for c in local["calendars"]}
     for event in local["events"]:
         calendar = by_id.get(event.get("calendarId"), local["calendars"][0])
@@ -345,6 +550,7 @@ def remind(now: datetime | None = None) -> list[str]:
             shown.append(event.get("title", ""))
     cutoff = now.timestamp() - 3 * 86400
     sync.write_private(fired_path, json.dumps({k: v for k, v in fired.items() if v > cutoff}) + "\n")
+    write_next_meeting_feed(now=now, only_if_changed=True)
     return shown
 
 
@@ -360,11 +566,15 @@ def last_day(start: datetime, end: datetime, all_day: bool) -> date:
 
 def occurrence(event: dict, start: datetime, end: datetime) -> dict:
     all_day = event.get("allDay", False)
+    video = extract_meeting_url(event)
+    provider_label = meeting_provider_name(video)
+    raw_where = (event.get("where") or "").strip()
+    where = provider_label if (raw_where and video and raw_where == video and provider_label) else (raw_where or provider_label)
     return {
         "id": event.get("id", ""),
         "title": event.get("title", ""),
-        "where": event.get("where", ""),
-        "video": sync.web_link(event.get("video", "")),
+        "where": where,
+        "video": video,
         "link": sync.web_link(event.get("link", "")),
         "notes": event.get("notes", ""),
         "calendarId": event.get("calendarId", ""),
@@ -376,6 +586,9 @@ def occurrence(event: dict, start: datetime, end: datetime) -> dict:
         "reminders": event.get("reminders") or [],
         "start": event.get("start", ""),
         "end": event.get("end", ""),
+        "uid": event.get("uid", ""),
+        "response": event.get("response", ""),
+        "attendeeCount": int(event.get("attendeeCount", 0) or 0),
         "startDay": start.date().isoformat(),
         "endDay": last_day(start, end, all_day).isoformat(),
         "startMinutes": 0 if all_day else start.hour * 60 + start.minute,
@@ -384,12 +597,12 @@ def occurrence(event: dict, start: datetime, end: datetime) -> dict:
     }
 
 
-def events_between(first: date, after_last: date) -> list[dict]:
+def events_between(first: date, after_last: date, *, preloaded: list[dict] | None = None) -> list[dict]:
     """Every event touching the days first ≤ day < after_last, earliest first."""
     window_start = datetime.combine(first, datetime.min.time()).astimezone()
     window_end = datetime.combine(after_last, datetime.min.time()).astimezone()
     found = []
-    for event in all_events():
+    for event in (all_events() if preloaded is None else preloaded):
         try:
             start = moment(event["start"], event.get("allDay", False))
             end = moment(event["end"], event.get("allDay", False))
@@ -398,6 +611,38 @@ def events_between(first: date, after_last: date) -> list[dict]:
         if start < window_end and (end > window_start or start >= window_start):
             found.append((start, not event.get("allDay", False), occurrence(event, start, end)))
     return [item for _, _, item in sorted(found, key=lambda row: (row[0], row[1]))]
+
+
+def bootstrap(first: date, after_last: date, selected: date, today: date | None = None) -> dict:
+    """Single-shot startup payload for the Calendar UI: reads google.json and
+    local.json once and returns calendars, accounts, status, visible span
+    events, selected-day events, today's events, and selected-day actionables."""
+    today_day = today or date.today()
+    google = load_google()
+    local = load_local()
+    loaded_events = all_events(google=google, local=local)
+    span_events = events_between(first, after_last, preloaded=loaded_events)
+    if first <= selected < after_last:
+        sel_iso = selected.isoformat()
+        around = [ev for ev in span_events if ev["startDay"] <= sel_iso <= ev["endDay"]]
+    else:
+        around = events_between(selected, selected + timedelta(days=1), preloaded=loaded_events)
+    if today_day == selected:
+        today_events = around
+    elif first <= today_day < after_last:
+        today_iso = today_day.isoformat()
+        today_events = [ev for ev in span_events if ev["startDay"] <= today_iso <= ev["endDay"]]
+    else:
+        today_events = events_between(today_day, today_day + timedelta(days=1), preloaded=loaded_events)
+    return {
+        "calendars": calendars(google=google, local=local),
+        "accounts": sync.load_accounts(),
+        "status": read_status(),
+        "events": span_events,
+        "around": around,
+        "todayEvents": today_events,
+        "actionables": list_actionables(selected.isoformat()),
+    }
 
 
 # Events on this PC -------------------------------------------------------------------
@@ -440,6 +685,7 @@ def add_event(payload: dict) -> dict:
     event = {"id": f"local-{int(time.time() * 1000)}"} | checked_event(payload, local)
     local["events"].append(event)
     save_local(local)
+    write_next_meeting_feed()
     return event
 
 
@@ -449,6 +695,7 @@ def update_event(event_id: str, payload: dict) -> dict:
         if event["id"] == event_id:
             local["events"][number] = {"id": event_id} | checked_event(payload, local)
             save_local(local)
+            write_next_meeting_feed()
             return local["events"][number]
     raise EventError("Only events on this PC can be edited here; open Google events in Google Calendar.")
 
@@ -460,6 +707,7 @@ def delete_event(event_id: str) -> dict:
         raise EventError("Only events on this PC can be deleted here.")
     local["events"] = kept
     save_local(local)
+    write_next_meeting_feed()
     return {"deleted": event_id}
 
 
@@ -478,7 +726,355 @@ def add_calendar(name: str) -> dict:
     return calendar
 
 
+# Actionables (SQLite) --------------------------------------------------------------
+
+
+ACTIONABLES_MIGRATIONS: list[tuple[int, tuple[str, ...]]] = [
+    (
+        1,
+        (
+            """
+            CREATE TABLE IF NOT EXISTS calendar_actionables (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                due_date TEXT NOT NULL,
+                completed INTEGER NOT NULL DEFAULT 0,
+                completed_at TEXT,
+                event_uid TEXT,
+                created_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_calendar_actionables_due_date
+            ON calendar_actionables(due_date)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_calendar_actionables_open
+            ON calendar_actionables(completed, due_date)
+            """,
+        ),
+    ),
+]
+
+
+ACTIONABLES_SCHEMA_VERSION = 1
+
+
+def open_actionables_db():
+    """Open the local SQLite actionables store and apply any pending migrations."""
+    import sqlite3
+
+    path = actionables_db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        os.close(descriptor)
+    conn = sqlite3.connect(str(path), timeout=5.0)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA temp_store = MEMORY")
+    user_version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if user_version < ACTIONABLES_SCHEMA_VERSION:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
+        with conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL
+                )
+                """
+            )
+            applied = {row[0] for row in conn.execute("SELECT version FROM schema_migrations")}
+            applied_at = datetime.now().astimezone().replace(microsecond=0).isoformat()
+            for version, statements in ACTIONABLES_MIGRATIONS:
+                if version in applied:
+                    continue
+                for statement in statements:
+                    conn.execute(statement)
+                conn.execute(
+                    "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                    (version, applied_at),
+                )
+            conn.execute(f"PRAGMA user_version = {ACTIONABLES_SCHEMA_VERSION}")
+    return conn
+
+
+def _actionable_row(row, today_str: str) -> dict:
+    completed = bool(row["completed"])
+    due_date = row["due_date"]
+    return {
+        "id": int(row["id"]),
+        "title": row["title"],
+        "dueDate": due_date,
+        "completed": completed,
+        "completedAt": row["completed_at"] or "",
+        "eventUid": row["event_uid"] or "",
+        "createdAt": row["created_at"],
+        "carryOver": bool(due_date < today_str and not completed),
+    }
+
+
+def list_actionables(day: str | None = None, *, include_carryover: bool = True, now: datetime | None = None) -> list[dict]:
+    """List actionables for `day` (default: today). When viewing today, uncompleted
+    actionables from earlier days surface with carryOver=True (and carry-overs
+    checked off today remain visible as completed for the rest of today)."""
+    current = (now or datetime.now().astimezone()).replace(microsecond=0)
+    today_str = current.date().isoformat()
+    target = day or today_str
+    date.fromisoformat(target)
+    conn = open_actionables_db()
+    try:
+        if target == today_str and include_carryover:
+            rows = conn.execute(
+                """
+                SELECT id, title, due_date, completed, completed_at, event_uid, created_at
+                FROM calendar_actionables
+                WHERE due_date = ?
+                   OR (due_date < ? AND completed = 0)
+                   OR (due_date < ? AND completed = 1 AND substr(completed_at, 1, 10) = ?)
+                ORDER BY completed ASC,
+                         CASE WHEN due_date < ? AND completed = 0 THEN 0 ELSE 1 END ASC,
+                         due_date ASC,
+                         id ASC
+                """,
+                (target, today_str, today_str, today_str, today_str),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT id, title, due_date, completed, completed_at, event_uid, created_at
+                FROM calendar_actionables
+                WHERE due_date = ?
+                ORDER BY completed ASC, id ASC
+                """,
+                (target,),
+            ).fetchall()
+        return [_actionable_row(row, today_str) for row in rows]
+    finally:
+        conn.close()
+
+
+def add_actionable(
+    title: str,
+    due_date: str | None = None,
+    event_uid: str = "",
+    *,
+    now: datetime | None = None,
+) -> dict:
+    clean_title = str(title or "").strip()
+    if not clean_title:
+        raise EventError("An actionable needs a title.")
+    current = (now or datetime.now().astimezone()).replace(microsecond=0)
+    today_str = current.date().isoformat()
+    target = (due_date or today_str).strip()
+    try:
+        date.fromisoformat(target)
+    except ValueError:
+        raise EventError("Due date must be YYYY-MM-DD.") from None
+    clean_uid = str(event_uid or "").strip() or None
+    conn = open_actionables_db()
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO calendar_actionables (title, due_date, completed, completed_at, event_uid, created_at)
+                VALUES (?, ?, 0, NULL, ?, ?)
+                """,
+                (clean_title, target, clean_uid, current.isoformat()),
+            )
+            row = conn.execute(
+                "SELECT id, title, due_date, completed, completed_at, event_uid, created_at FROM calendar_actionables WHERE id = ?",
+                (cursor.lastrowid,),
+            ).fetchone()
+        created = _actionable_row(row, today_str)
+    finally:
+        conn.close()
+    write_next_meeting_feed(now=current)
+    return created
+
+
+def toggle_actionable(
+    actionable_id: int,
+    completed: bool | None = None,
+    *,
+    now: datetime | None = None,
+) -> dict:
+    current = (now or datetime.now().astimezone()).replace(microsecond=0)
+    today_str = current.date().isoformat()
+    conn = open_actionables_db()
+    try:
+        with conn:
+            row = conn.execute(
+                "SELECT id, title, due_date, completed, completed_at, event_uid, created_at FROM calendar_actionables WHERE id = ?",
+                (int(actionable_id),),
+            ).fetchone()
+            if row is None:
+                raise EventError(f"Actionable {actionable_id} not found.")
+            new_completed = (not bool(row["completed"])) if completed is None else bool(completed)
+            completed_at = current.isoformat() if new_completed else None
+            conn.execute(
+                "UPDATE calendar_actionables SET completed = ?, completed_at = ? WHERE id = ?",
+                (1 if new_completed else 0, completed_at, int(actionable_id)),
+            )
+            updated_row = conn.execute(
+                "SELECT id, title, due_date, completed, completed_at, event_uid, created_at FROM calendar_actionables WHERE id = ?",
+                (int(actionable_id),),
+            ).fetchone()
+        updated = _actionable_row(updated_row, today_str)
+    finally:
+        conn.close()
+    write_next_meeting_feed(now=current)
+    return updated
+
+
+def delete_actionable(actionable_id: int, *, now: datetime | None = None) -> dict:
+    current = (now or datetime.now().astimezone()).replace(microsecond=0)
+    conn = open_actionables_db()
+    try:
+        with conn:
+            cursor = conn.execute("DELETE FROM calendar_actionables WHERE id = ?", (int(actionable_id),))
+            if cursor.rowcount == 0:
+                raise EventError(f"Actionable {actionable_id} not found.")
+    finally:
+        conn.close()
+    write_next_meeting_feed(now=current)
+    return {"deleted": int(actionable_id)}
+
+
+# Zero-polling next-meeting state feed ---------------------------------------------
+
+
+def _hidden_calendar_ids() -> set[str]:
+    try:
+        saved = json.loads((sync.state_dir() / "calendar-view.json").read_text())
+        return {str(cid) for cid in (saved.get("hidden") or [])}
+    except (FileNotFoundError, ValueError, TypeError):
+        return set()
+
+
+def _dedupe_visible_events(events: list[dict]) -> list[dict]:
+    hidden = _hidden_calendar_ids()
+    seen: set[tuple[str, str, str]] = set()
+    kept: list[dict] = []
+    for event in events:
+        if event.get("calendarId", "") in hidden:
+            continue
+        key = (str(event.get("title", "")).strip().lower(), str(event.get("start", "")), str(event.get("end", "")))
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(event)
+    return kept
+
+
+def build_next_meeting_feed(now: datetime | None = None) -> dict:
+    """Build Today's focused meeting & actionables feed for top-bar widgets.
+    Strictly scoped to today's date (never leaks tomorrow or next month)."""
+    current = (now or datetime.now().astimezone()).replace(microsecond=0)
+    today = current.date()
+    today_str = today.isoformat()
+
+    today_rows: list[tuple[datetime, datetime, dict, dict]] = []
+    for event in _dedupe_visible_events(all_events()):
+        all_day = bool(event.get("allDay", False))
+        try:
+            start_dt = moment(event["start"], all_day)
+            end_dt = moment(event["end"], all_day)
+        except (KeyError, ValueError):
+            continue
+        start_day = start_dt.date()
+        end_day = last_day(start_dt, end_dt, all_day)
+        if not (start_day <= today <= end_day):
+            continue
+        join_url = extract_meeting_url(event)
+        provider_label = meeting_provider_name(join_url)
+        raw_where = (event.get("where") or "").strip()
+        location = provider_label if (raw_where and join_url and raw_where == join_url and provider_label) else (raw_where or provider_label)
+        item = {
+            "id": event.get("id", ""),
+            "title": event.get("title", ""),
+            "startIso": event.get("start", "") if all_day else start_dt.isoformat(),
+            "endIso": event.get("end", "") if all_day else end_dt.isoformat(),
+            "allDay": all_day,
+            "joinUrl": join_url,
+            "location": location,
+            "calendarName": event.get("calendar", ""),
+            "calendarColor": event.get("color", ""),
+        }
+        today_rows.append((start_dt, end_dt, event, item))
+
+    today_rows.sort(key=lambda row: (row[0], not bool(row[2].get("allDay", False)), row[1]))
+    today_events = [row[3] for row in today_rows]
+    today_meeting_count = sum(1 for row in today_rows if not bool(row[2].get("allDay", False)))
+
+    # Next upcoming or currently live timed meeting today.
+    next_candidates = [
+        (start_dt, end_dt, item)
+        for start_dt, end_dt, event, item in today_rows
+        if not bool(event.get("allDay", False)) and end_dt > current
+    ]
+    next_meeting: dict | None = None
+    if next_candidates:
+        next_start, next_end, base_item = next_candidates[0]
+        next_meeting = {
+            "id": base_item["id"],
+            "title": base_item["title"],
+            "startIso": base_item["startIso"],
+            "endIso": base_item["endIso"],
+            "allDay": False,
+            "inProgress": bool(next_start <= current < next_end),
+            "joinUrl": base_item["joinUrl"],
+            "location": base_item["location"],
+            "calendarName": base_item["calendarName"],
+            "calendarColor": base_item["calendarColor"],
+        }
+
+    today_actionables = list_actionables(today_str, include_carryover=True, now=current)
+    feed_actionables = [
+        {
+            "id": item["id"],
+            "title": item["title"],
+            "dueDate": item["dueDate"],
+            "completed": item["completed"],
+            "carryOver": item["carryOver"],
+        }
+        for item in today_actionables
+    ]
+    open_actionables_count = sum(1 for item in feed_actionables if not item["completed"])
+
+    return {
+        "updatedAt": current.isoformat(),
+        "todayDate": today_str,
+        "todayMeetingCount": today_meeting_count,
+        "openActionablesCount": open_actionables_count,
+        "nextMeeting": next_meeting,
+        "todayEvents": today_events,
+        "actionables": feed_actionables,
+    }
+
+
+def write_next_meeting_feed(now: datetime | None = None, *, only_if_changed: bool = False) -> dict:
+    """Atomically write $XDG_STATE_HOME/courier/next-meeting.json."""
+    payload = build_next_meeting_feed(now=now)
+    target = next_meeting_path()
+    if only_if_changed and target.exists():
+        try:
+            existing = json.loads(target.read_text(encoding="utf-8"))
+            if {k: v for k, v in existing.items() if k != "updatedAt"} == {
+                k: v for k, v in payload.items() if k != "updatedAt"
+            }:
+                return payload
+        except (OSError, ValueError, TypeError):
+            pass
+    write_atomic_private(target, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    return payload
+
+
 def main(argv: list[str] | None = None) -> int:
+    import argparse
+
     parser = argparse.ArgumentParser(prog="courier-calendar", description="Junco's calendar.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("sync", help="copy Google calendars to this PC")
@@ -488,12 +1084,36 @@ def main(argv: list[str] | None = None) -> int:
     span = commands.add_parser("range", help="events touching FIRST ≤ day < AFTER (YYYY-MM-DD)")
     span.add_argument("first")
     span.add_argument("after")
+    boot = commands.add_parser("bootstrap", help="single-shot startup payload for the Calendar UI")
+    boot.add_argument("first")
+    boot.add_argument("after")
+    boot.add_argument("selected")
+    boot.add_argument("--today", default="")
     commands.add_parser("add", help="add an event on this PC").add_argument("json")
     editor = commands.add_parser("update", help="change an event on this PC")
     editor.add_argument("id")
     editor.add_argument("json")
     commands.add_parser("delete", help="delete an event on this PC").add_argument("id")
     commands.add_parser("add-calendar", help="a new calendar on this PC").add_argument("name")
+
+    next_cmd = commands.add_parser("next", help="next meeting and today's actionables feed")
+    next_cmd.add_argument("--json", action="store_true", help="output JSON (default)")
+    next_cmd.add_argument("--write", action="store_true", help="also refresh next-meeting.json")
+
+    act = commands.add_parser("actionables", help="manage Today's actionables checklist")
+    act_sub = act.add_subparsers(dest="actionables_command", required=True)
+    act_list = act_sub.add_parser("list", help="list actionables for a day (default: today)")
+    act_list.add_argument("--day", default=None, help="YYYY-MM-DD")
+    act_add = act_sub.add_parser("add", help="add an actionable")
+    act_add.add_argument("title")
+    act_add.add_argument("--due", default=None, help="YYYY-MM-DD (default: today)")
+    act_add.add_argument("--event-uid", default="", help="optional meeting UID link")
+    act_toggle = act_sub.add_parser("toggle", help="toggle or set actionable completion")
+    act_toggle.add_argument("id", type=int)
+    act_toggle.add_argument("--completed", choices=["true", "false"], default=None)
+    act_del = act_sub.add_parser("delete", help="delete an actionable")
+    act_del.add_argument("id", type=int)
+
     args = parser.parse_args(argv)
 
     if args.command == "sync":
@@ -517,14 +1137,35 @@ def main(argv: list[str] | None = None) -> int:
             result = {"calendars": calendars(), "status": read_status(), "accounts": sync.load_accounts()}
         elif args.command == "range":
             result = events_between(date.fromisoformat(args.first), date.fromisoformat(args.after))
+        elif args.command == "bootstrap":
+            result = bootstrap(
+                date.fromisoformat(args.first),
+                date.fromisoformat(args.after),
+                date.fromisoformat(args.selected),
+                date.fromisoformat(args.today) if args.today else None,
+            )
         elif args.command == "add":
             result = add_event(json.loads(args.json))
         elif args.command == "update":
             result = update_event(args.id, json.loads(args.json))
         elif args.command == "delete":
             result = delete_event(args.id)
-        else:
+        elif args.command == "add-calendar":
             result = add_calendar(args.name)
+        elif args.command == "next":
+            result = write_next_meeting_feed() if args.write else build_next_meeting_feed()
+        elif args.command == "actionables":
+            if args.actionables_command == "list":
+                result = list_actionables(args.day)
+            elif args.actionables_command == "add":
+                result = add_actionable(args.title, args.due, args.event_uid)
+            elif args.actionables_command == "toggle":
+                flag = None if args.completed is None else (args.completed == "true")
+                result = toggle_actionable(args.id, flag)
+            else:
+                result = delete_actionable(args.id)
+        else:
+            raise ValueError(f"Unknown command: {args.command}")
     except (EventError, ValueError) as error:
         print(json.dumps({"error": str(error)}))
         return 1

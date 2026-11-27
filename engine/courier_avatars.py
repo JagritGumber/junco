@@ -19,25 +19,36 @@ nothing here ever writes it.
 
 from __future__ import annotations
 
-import concurrent.futures
-import fcntl
-import hashlib
-import html.parser
-import io
 import json
 import os
 import re
-import subprocess
 import sys
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import courier_html  # noqa: E402
 import courier_sync as sync  # noqa: E402
+
+
+def __getattr__(name: str):
+    if name == "urllib":
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
+        globals()["urllib"] = urllib
+        return urllib
+    if name == "courier_html":
+        import courier_html as _html
+
+        globals()["courier_html"] = _html
+        return _html
+    if name == "subprocess":
+        import subprocess as _subprocess
+
+        globals()["subprocess"] = _subprocess
+        return _subprocess
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Courier-mail-client"
 MAX_BYTES = 512 * 1024
@@ -117,6 +128,9 @@ def download(url: str) -> tuple[bytes, str] | None:
     public addresses only, https only, every redirect checked, 512 KB and
     6 seconds at most."""
     import http.client
+    import urllib.parse
+
+    import courier_html
 
     host = urllib.parse.urlsplit(url).hostname
     try:
@@ -151,6 +165,8 @@ def image_kind(data: bytes) -> str | None:
 
 def bimi_logo(domain: str) -> str | None:
     """The logo URL from a domain's BIMI record (default._bimi.<domain>)."""
+    import subprocess
+
     try:
         result = subprocess.run(
             ["resolvectl", "query", "--legend=no", "-t", "TXT", f"default._bimi.{domain}"],
@@ -162,39 +178,47 @@ def bimi_logo(domain: str) -> str | None:
     return match.group(1) if match else None
 
 
-class _IconLinks(html.parser.HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.icons: list[tuple[int, str]] = []
+def _extract_icon_links(markup: str) -> list[tuple[int, str]]:
+    import html.parser
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag != "link":
-            return
-        values = {key: value or "" for key, value in attrs}
-        rel = values.get("rel", "").lower()
-        href = values.get("href", "")
-        if not href or "icon" not in rel or "mask" in rel:
-            return
-        sizes = [int(number) for number in re.findall(r"(\d+)x\d+", values.get("sizes", ""))]
-        score = max(sizes, default=0)
-        if "apple-touch-icon" in rel:
-            score = max(score, 180)
-        if values.get("type", "").endswith("svg") or href.lower().split("?")[0].endswith(".svg"):
-            score = max(score, 160)
-        self.icons.append((score, href))
+    class _IconLinks(html.parser.HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.icons: list[tuple[int, str]] = []
+
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            if tag != "link":
+                return
+            values = {key: value or "" for key, value in attrs}
+            rel = values.get("rel", "").lower()
+            href = values.get("href", "")
+            if not href or "icon" not in rel or "mask" in rel:
+                return
+            sizes = [int(number) for number in re.findall(r"(\d+)x\d+", values.get("sizes", ""))]
+            score = max(sizes, default=0)
+            if "apple-touch-icon" in rel:
+                score = max(score, 180)
+            if values.get("type", "").endswith("svg") or href.lower().split("?")[0].endswith(".svg"):
+                score = max(score, 160)
+            self.icons.append((score, href))
+
+    parser = _IconLinks()
+    try:
+        parser.feed(markup)
+    except (AssertionError, ValueError):
+        pass
+    return parser.icons
 
 
 def site_icon(domain: str) -> tuple[bytes, str] | None:
+    import urllib.parse
+
     for host in (domain, f"www.{domain}"):
         page = fetch(f"https://{host}/")
         if page is None:
             continue
-        parser = _IconLinks()
-        try:
-            parser.feed(page[0].decode("utf-8", "replace"))
-        except (AssertionError, ValueError):
-            pass
-        for _, href in sorted(parser.icons, reverse=True):
+        icons = _extract_icon_links(page[0].decode("utf-8", "replace"))
+        for _, href in sorted(icons, reverse=True):
             found = fetch(urllib.parse.urljoin(f"https://{host}/", href))
             if found and (kind := image_kind(found[0])):
                 return found[0], kind
@@ -236,6 +260,8 @@ def brand_picture(domain: str) -> tuple[bytes, str] | None:
 
 
 def gravatar_url(address: str, size: int = 160) -> str:
+    import hashlib
+
     # d=404: no generated placeholder; no Gravatar means no picture.
     digest = hashlib.sha256(address.strip().lower().encode()).hexdigest()
     return f"https://gravatar.com/avatar/{digest}?d=404&s={size}"
@@ -273,6 +299,8 @@ def round_png(data: bytes, kind: str) -> bytes | None:
     """The picture as a round PNG on a white disc, the way mail clients show
     senders. Tiles with opaque corners fill the disc; transparent logos sit
     centred with breathing room. The app then needs no clipping at all."""
+    import io
+    import subprocess
     from PIL import Image, ImageDraw, ImageOps
 
     if kind == "svg":
@@ -316,7 +344,10 @@ def round_png(data: bytes, kind: str) -> bytes | None:
 def decode(data: bytes, kind: str):
     """The picture, decoded as RGBA; None when it's over LARGEST_PICTURE a
     side, judged from its header before decoding. Raises for a bad one."""
+    import io
     from PIL import Image
+
+    import courier_html
 
     with courier_html.pixel_limit(LARGEST_PICTURE * LARGEST_PICTURE):
         image = Image.open(io.BytesIO(data), formats=FORMATS.get(kind, ["PNG", "JPEG", "ICO", "WEBP"]))
@@ -331,6 +362,8 @@ def decode(data: bytes, kind: str):
 
 
 def store(key: str, data: bytes, kind: str) -> str | None:
+    import hashlib
+
     picture = round_png(data, kind)
     if picture is None:
         return None
@@ -401,6 +434,8 @@ def fetch_missing() -> int:
     ][:LOOKUPS_PER_RUN]
     if not todo:
         return 0
+    import concurrent.futures
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         for key, name in pool.map(look_up, todo):
             index[key] = {"file": name, "checked": int(now), "round": True}
@@ -454,6 +489,10 @@ def default_source(account_id: str, index: dict | None = None) -> str:
 
 def google_photo(account: dict) -> tuple[bytes, str] | None:
     """The Google account's profile photo, or None when Google has none."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
     try:
         token = sync.auth_token(account["id"])
     except sync.SignedOut:
@@ -538,6 +577,8 @@ def fetch_account_pictures(again: bool = False) -> dict:
     index_path.parent.mkdir(parents=True, exist_ok=True)
     # The avatars service and the app can both start this; the second waits,
     # then finds the pictures already there.
+    import fcntl
+
     with open(index_path.with_name(index_path.name + ".lock"), "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         index = load_account_index()

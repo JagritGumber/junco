@@ -18,21 +18,25 @@ up. Courier never deletes or moves anything in Gmail.
 
 from __future__ import annotations
 
-import argparse
-import email.parser
-import email.policy
-import email.utils
-import fcntl
-import imaplib
 import json
 import os
 import re
-import shlex
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+_HEADER_PARSER = None
+
+
+def _header_parser():
+    global _HEADER_PARSER
+    if _HEADER_PARSER is None:
+        import email.parser
+        import email.policy
+
+        _HEADER_PARSER = email.parser.BytesHeaderParser(policy=email.policy.default)
+    return _HEADER_PARSER
 
 ENGINE = Path(__file__).resolve().parent
 AUTH = ENGINE / "courier_auth.py"
@@ -48,7 +52,7 @@ UPDATE_DOMAINS = {"github.com", "linear.app"}
 NOTIFY_WITHIN = 2 * 60 * 60
 LANES = ("people", "updates", "newsletters")
 # Categories beside the lanes, for Courier's smart views. A message can have
-# several: a university's invite is both college and meeting.
+# several: an IGNOU invite is both college and meeting.
 CATEGORIES = ("meeting", "dev", "college")
 # Developer tools whose mail is project activity, matched on the sender's
 # domain and its subdomains (notify.cloudflare.com).
@@ -158,6 +162,8 @@ def desktop_notify(summary: str, body: str, *options: str) -> None:
         text = re.sub(r"[\x00-\x1f\x7f\u2028\u2029]+", " ", text)
         return text.replace("<", "\u2039").replace(">", "\u203a").replace("](", "]\u200b(").replace("][", "]\u200b[")
 
+    import subprocess
+
     subprocess.run(["notify-send", *options, "--", inert(summary), inert(body)], capture_output=True)
 
 
@@ -174,10 +180,14 @@ def write_private(path: Path, text: str) -> None:
 
 
 def token_command(account: str) -> str:
+    import shlex
+
     return f"{shlex.quote(str(AUTH))} token {shlex.quote(account)}"
 
 
 def auth_token(account: str) -> str:
+    import subprocess
+
     result = subprocess.run([str(AUTH), "token", account], capture_output=True, text=True)
     if result.returncode == 2:
         raise SignedOut(account)
@@ -201,6 +211,8 @@ def detect_all_mail(account: dict) -> str:
 def special_folders(account: dict) -> dict[str, str]:
     """Gmail's own folders by their special use ("\\All", "\\Drafts"), named
     in the account's language. Read-only: one LIST."""
+    import imaplib
+
     token = auth_token(account["id"])
     sasl = f"user={account['email']}\x01auth=Bearer {token}\x01\x01".encode()
     try:
@@ -233,6 +245,8 @@ def first_download_size(account: dict, all_mail: str) -> int | None:
     progress. None once the account has finished a full download."""
     if (state_dir() / f"downloaded-{account['id']}").exists():
         return None
+    import imaplib
+
     token = auth_token(account["id"])
     sasl = f"user={account['email']}\x01auth=Bearer {token}\x01\x01".encode()
     try:
@@ -478,6 +492,8 @@ def is_machine(headers: dict[str, str], local: str, domain: str) -> bool:
     if any(name in headers for name in MACHINE_HEADERS):
         return True
     # Sending services bounce to their own domain; a person's mail bounces home.
+    import email.utils
+
     bounce = email.utils.parseaddr(headers.get("return-path", ""))[1].lower()
     if bounce and bounce.rpartition("@")[2] != domain:
         return True
@@ -492,14 +508,12 @@ def is_machine(headers: dict[str, str], local: str, domain: str) -> bool:
     return len(brand) >= 4 and brand in local.replace(".", "").replace("-", "")
 
 
-HEADER_PARSER = email.parser.BytesHeaderParser(policy=email.policy.default)
-
-
 def read_headers(paths: list[str]) -> dict[str, str]:
+    parser = _header_parser()
     for path in paths:
         try:
             with open(path, "rb") as handle:
-                parsed = HEADER_PARSER.parse(handle)
+                parsed = parser.parse(handle)
             return {key: str(value) for key, value in parsed.items()}
         except FileNotFoundError:
             continue
@@ -529,7 +543,9 @@ HIDDEN = "not tag:trash and not tag:spam and not tag:unsent and not tag:draft"
 def index(accounts: list[dict]) -> dict[str, int]:
     """Indexes new files, mirrors Gmail's inbox, and sorts new mail into lanes.
     Returns how many new messages each account got."""
+    import email.utils
     import notmuch2  # Ships with the notmuch package.
+    import subprocess
 
     result = subprocess.run(["notmuch", "new", "--quiet"], capture_output=True, text=True)
     if result.returncode != 0:
@@ -598,6 +614,7 @@ def index(accounts: list[dict]) -> dict[str, int]:
     handled = notify_fields(new_ids, me)
     notify([(name, subject) for name, subject, message_id in fresh if message_id not in handled])
     read_fields(new_ids)
+    apply_expiry_rules(new_ids)
     return counts
 
 
@@ -633,12 +650,28 @@ def read_fields(message_ids: list[str]) -> None:
         print(f"courier-sync: fields: {problem}", file=sys.stderr)
 
 
+def apply_expiry_rules(message_ids: list[str]) -> None:
+    """Auto-expiry: apply enabled provider notification rules to newly synced
+    mail (courier_expiry). No-ops in O(1) when no rules are enabled, and a
+    problem there never stops mail coming in."""
+    if not message_ids:
+        return
+    try:
+        import courier_expiry
+
+        courier_expiry.after_sync(message_ids)
+    except Exception as problem:  # noqa: BLE001 - mail first, expiry second
+        print(f"courier-sync: expiry: {problem}", file=sys.stderr)
+
+
 def mirror_drafts(db, drafts: set[str], me: set[str]) -> None:
     """Gmail drafts (messages with a copy in <account>/drafts) are tagged
     "unsent" and never "sent": every view hides them, and they never count as
     mail you wrote to someone. One that left Drafts (sent or discarded in
     Gmail) loses the tag and, if it is yours, becomes sent mail. (Not the
     tag "draft": see HIDDEN.)"""
+    import email.utils
+
     for message_id in drafts:
         message = db.find(message_id)
         message.tags.add("unsent")
@@ -670,6 +703,8 @@ def message_paths(message) -> list[str]:
 
 
 def recipients(headers: dict[str, str]) -> set[str]:
+    import email.utils
+
     lookup = {key.lower(): value for key, value in headers.items()}
     # Python 3.13+ parses strictly: one empty field makes the whole result empty.
     fields = [value for name in ("to", "cc", "bcc") if (value := lookup.get(name))]
@@ -719,6 +754,8 @@ def categories_of(sender: str) -> set[str]:
 def categorize(db, query: str) -> int:
     """Sets the dev, college and meeting tags on mail matching `query`.
     Meetings are emails carrying a calendar invite (text/calendar)."""
+    import email.utils
+
     changed = 0
     invites = "(mimetype:text/calendar or from:calendar-notification@google.com)"
     # notmuch's "*" means everything only on its own, never inside brackets.
@@ -774,6 +811,8 @@ def quote_id(message_id: str) -> str:
 
 def relane(db, query: str, me: set[str], written: set[str]) -> dict[str, int]:
     """Sorts already-indexed mail again; returns how many messages each lane got."""
+    import email.utils
+
     totals = dict.fromkeys(LANES, 0)
     for message_id in ids(db, query):
         message = db.find(message_id)
@@ -815,6 +854,7 @@ INDEX_EVERY = 60
 def run_mbsync(account: str, progress=None) -> None:
     """Runs mbsync for one account. While it runs, progress(have) is called
     every few seconds with how many emails are on this PC."""
+    import subprocess
     import tempfile
 
     with tempfile.TemporaryFile("w+") as errors:
@@ -858,6 +898,9 @@ def write_status(accounts: dict[str, dict]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import fcntl
+
     parser = argparse.ArgumentParser(prog="courier-sync", description="Sync Junco's mail.")
     parser.add_argument("--configure", action="store_true", help="rewrite the generated configs and stop")
     parser.add_argument("--relane", action="store_true", help="sort all downloaded mail into lanes again, without syncing")
@@ -941,6 +984,8 @@ def sync_all(accounts: list[dict], configure_only: bool) -> int:
         status.setdefault(name, {"state": "ok"})["new"] = count
     write_status(status)
     # Pictures for new senders, in the background so new mail never waits.
+    import subprocess
+
     subprocess.run(["systemctl", "--user", "start", "--no-block", "courier-avatars.service"], capture_output=True)
 
     for name, entry in status.items():

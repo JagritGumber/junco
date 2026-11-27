@@ -51,7 +51,7 @@ Item {
             text: (root.info?.label || root.info?.email || root.account).charAt(0).toUpperCase()
             color: Qt.color(root.tint).hslLightness > 0.55 ? "#1b1b1f" : "#ffffff"
             font.pixelSize: Math.round(root.size * 0.45) + 1
-            font.weight: Font.DemiBold
+            weight: Font.Medium
         }
 
         // Saved already round by the engine (account-picture, courier-avatars).

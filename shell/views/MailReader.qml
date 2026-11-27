@@ -3,12 +3,9 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// One email: a toolbar (back, archive, delete, unread, more), the subject,
-// who it's from and to, its meeting, the email itself (designed mail as
-// designed, drawn by Qt's rich text; mail from people as text with working
-// links), its files, Reply / Reply all / Forward, and a reply bar. In the inbox it takes the
-// conversation's place; back or Escape returns to it.
-Rectangle {
+// One email: compact frosted-glass toolbar, tighter header & subject chrome,
+// maximum room for the email body, and slim reply bar.
+GlassPane {
     id: root
 
     readonly property var mail: Inbox.reading
@@ -17,36 +14,35 @@ Rectangle {
     readonly property string accountEmail: Inbox.accounts.length > 1 ? (Inbox.accounts.find(a => a.id === mail?.account)?.email ?? "") : ""
     property bool showRecipients: false
     property bool showFull: false
-    // For this email only: "text" (its text, quotes folded) or "html" (its
-    // HTML) instead of the view the engine chose; "" keeps that.
     property string override: ""
-    // Teaching fields shows the surface the template is taught on: the plain
-    // view (what notification mail opens in) or the designed version.
     readonly property string teachSurface: Inbox.teaching ? (Inbox.teachDraft?.surface ?? "") : ""
-    // How the email shows (courier_mail.reading): "plain" its text part drawn
-    // natively, "themed" simple HTML in the app's colours, "designed" HTML on
-    // its own paper, "text" mail from people; while teaching, its surface.
     readonly property string mode: !mail ? "" : teachSurface === "text" ? "plain"
         : teachSurface === "html" && (mail.html ?? "") !== "" ? (mail.themed ? "themed" : "designed")
         : override === "text" ? "text"
         : override === "html" && (mail.html ?? "") !== "" ? (mail.themed ? "themed" : "designed") : (mail.view ?? "text")
     readonly property bool designed: mode === "designed" || mode === "themed"
     readonly property bool themedView: mode === "themed"
-    // The email's own background, white unless it says otherwise; none when
-    // it's drawn in the app's colours.
-    readonly property color paper: themedView ? "transparent" : mail?.htmlBackground ? mail.htmlBackground : "#ffffff"
-    // The plain view, for teach mode: selectionStart/selectionEnd and
-    // getText() of what it shows (courier_mail.message_text, formatted).
+    // The body's own card: in glass mode a lighter, third level of glass
+    // nested in the reader card; an email that brings its own colours keeps them.
+    readonly property color paper: themedView ? (Theme.glass ? Theme.glassCard : "transparent") : mail?.htmlBackground ? mail.htmlBackground : "#ffffff"
     readonly property Item plainView: plainText
     readonly property string sender: mail?.prefs?.sender ?? ""
-    // The designed view, for teach mode when a template is taught on HTML.
     readonly property Item designedView: designedText
-    // Where the last selection was made: "subject" or "body".
     property string lastSelected: "body"
 
-    // The selection, for Teach fields: in the subject, or in the email as the
-    // reader shows it (offsets in its text, and that text, which the engine
-    // lines up with its own).
+    // Rubik[wght].ttf (OS/2 usWeightClass=300) triggers Qt 6's synthetic
+    // double-bolding at weight >= 700 (<b>, <strong>, <h1>..<h6>, <th>,
+    // font-weight: bold). Driving RichText bold tags at font-weight: 600
+    // selects Rubik's crisp SemiBold instance cleanly in both light and dark.
+    function crispRichText(markup: string): string {
+        if (!markup)
+            return "";
+        const rule = "<style>b,strong,h1,h2,h3,h4,h5,h6,th{font-weight:600;}</style>";
+        if (/<head\b[^>]*>/i.test(markup))
+            return markup.replace(/<head\b[^>]*>/i, match => match + rule);
+        return rule + markup;
+    }
+
     function selection(): var {
         if (lastSelected === "subject" && subjectText.selectedText !== "")
             return { subject: true, value: subjectText.selectedText, text: subjectText.selectedText };
@@ -69,9 +65,17 @@ Rectangle {
         placing.restart();
     }
 
-    Component.onCompleted: Inbox.reader = root
+    function openSchedulePopover(anchor: Item, mailObj: var): void {
+        if (!schedulePopoverLoader.active)
+            schedulePopoverLoader.active = true;
+        if (schedulePopoverLoader.item)
+            schedulePopoverLoader.item.show(anchor, mailObj);
+    }
 
-    // A selection settles before the engine places it.
+    Component.onCompleted: Inbox.reader = root
+    Component.onDestruction: if (Inbox.reader === root)
+        Inbox.reader = null
+
     Timer {
         id: placing
 
@@ -86,19 +90,16 @@ Rectangle {
         page.contentY = 0;
     }
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
-
     // Nothing open yet.
     ColumnLayout {
         anchors.centerIn: parent
         visible: root.mail === null
-        spacing: 12
+        spacing: 10
 
         Icon {
             Layout.alignment: Qt.AlignHCenter
             name: Inbox.readingFailed ? "error" : "mail"
-            size: 48
+            size: 40
             color: Theme.m3onSurfaceVariant
         }
 
@@ -106,28 +107,57 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: Inbox.readingFailed ? "Couldn't open that email." : Inbox.openId !== "" ? "Opening…" : "Pick an email to read it here."
             color: Theme.m3onSurfaceVariant
+            font.pixelSize: 13
         }
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
+        anchors.margins: 22
         visible: root.mail !== null
-        spacing: 12
+        spacing: 14
 
-        // The toolbar.
+        // Calm mockup-style subject row (back button only when navigating from a conversation/history).
         RowLayout {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: 10
 
             IconButton {
+                visible: Inbox.folder === "smart" || Inbox.history.length > 0
                 icon: "arrow_back"
-                tip: Inbox.history.length > 0 ? "Back to the email before" : Inbox.folder === "smart" ? "Back to the conversation (Esc)" : "Close (Esc)"
+                tip: Inbox.history.length > 0 ? "Back to the email before" : "Back to the conversation (Esc)"
+                size: 30
                 onClicked: Inbox.back()
             }
 
-            Item {
+            TextEdit {
+                id: subjectText
+
                 Layout.fillWidth: true
+                renderType: Text.NativeRendering
+                textFormat: TextEdit.PlainText
+                readOnly: true
+                selectByMouse: true
+                persistentSelection: Inbox.teaching
+                text: root.mail?.subject ?? ""
+                wrapMode: TextEdit.Wrap
+                color: Theme.m3onSurface
+                selectionColor: Theme.m3primary
+                selectedTextColor: Theme.m3onPrimary
+                font.family: Theme.sans
+                font.pixelSize: 20
+                font.weight: Font.Normal
+                font.variableAxes: ({ "wght": Theme.weightHeading })
+                onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("subject")
+            }
+
+            Rectangle {
+                visible: !root.inTrash
+                Layout.alignment: Qt.AlignVCenter
+                width: 8
+                height: 8
+                radius: 4
+                color: Theme.complementDot
             }
 
             Pill {
@@ -135,42 +165,119 @@ Rectangle {
                 style: "filled"
                 icon: "restore_from_trash"
                 text: "Restore"
-                size: 40
+                size: 32
+                fontSize: 12
                 onClicked: Inbox.act("untrash", [root.mail.id])
             }
+        }
 
-            IconButton {
-                visible: !root.inTrash
-                icon: root.inbox ? "archive" : "move_to_inbox"
-                tip: root.inbox ? "Archive" : "Move to Inbox"
-                onClicked: Inbox.act(root.inbox ? "archive" : "inbox", [root.mail.id])
+        // Calm sender header: Avatar + Name <address> / to me ▾ | time + star + reply + overflow menu.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 12
+
+            Avatar {
+                Layout.alignment: Qt.AlignVCenter
+                name: root.mail?.fromName ?? ""
+                image: root.mail?.avatar ?? ""
+                size: 38
             }
 
-            IconButton {
-                visible: !root.inTrash
-                icon: "delete"
-                tip: "Delete"
-                onClicked: Inbox.act("trash", [root.mail.id])
-            }
-
-            IconButton {
-                visible: !root.inTrash
-                icon: "mark_email_unread"
-                tip: "Mark unread"
-                onClicked: Inbox.mark("unread", [root.mail.id])
-            }
-
-            Item {
+            ColumnLayout {
                 Layout.fillWidth: true
+                spacing: 2
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Label {
+                        text: root.mail?.fromName ?? ""
+                        color: Theme.m3onSurface
+                        font.pixelSize: 14
+                        weight: Font.Medium
+                        elide: Text.ElideRight
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        visible: (root.mail?.fromAddress ?? "") !== ""
+                        text: `<${root.mail?.fromAddress ?? ""}>`
+                        color: Theme.m3onSurfaceVariant
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Item {
+                    implicitWidth: recipientsRow.implicitWidth
+                    implicitHeight: recipientsRow.implicitHeight
+
+                    Row {
+                        id: recipientsRow
+
+                        spacing: 3
+
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: (root.mail?.mine ? `to ${(root.mail?.to ?? "").split(",")[0]}` : (root.mail?.details?.toMe ?? true) ? "to me" : `to ${(root.mail?.to ?? "").split(",")[0]}`) + (root.accountEmail ? "  · " : "")
+                            color: Theme.m3onSurfaceVariant
+                            font.pixelSize: 12
+                        }
+
+                        AccountBadge {
+                            anchors.verticalCenter: parent.verticalCenter
+                            account: root.accountEmail ? (root.mail?.account ?? "") : ""
+                            size: 14
+                            tip: ""
+                        }
+
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: root.accountEmail !== ""
+                            text: root.accountEmail
+                            color: Theme.m3onSurfaceVariant
+                            font.pixelSize: 12
+                        }
+
+                        Icon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: root.showRecipients ? "expand_less" : "expand_more"
+                            size: 16
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.showRecipients = !root.showRecipients
+                    }
+                }
             }
 
-            // Teach fields: name what's in emails like this one.
+            Label {
+                Layout.alignment: Qt.AlignVCenter
+                text: root.mail ? Inbox.whenText(root.mail.epoch) : ""
+                color: Theme.m3onSurfaceVariant
+                font.pixelSize: 12
+            }
+
             IconButton {
-                visible: !root.inTrash && Inbox.developer
-                icon: "dataset"
-                filled: Inbox.teaching
-                tip: Inbox.teaching ? "Stop teaching fields" : "Teach fields: pick out what emails like this one say"
-                onClicked: Inbox.teaching ? Inbox.stopTeaching() : Inbox.startTeaching()
+                visible: !root.inTrash
+                icon: "star"
+                iconFill: (root.mail?.starred ?? false) ? 1 : 0
+                iconColor: (root.mail?.starred ?? false) ? Theme.m3tertiary : Theme.m3onSurfaceVariant
+                tip: (root.mail?.starred ?? false) ? "Unstar" : "Star"
+                size: 30
+                onClicked: Inbox.mark(root.mail.starred ? "unstar" : "star", [root.mail.id])
+            }
+
+            IconButton {
+                visible: !root.inTrash
+                icon: "reply"
+                tip: "Reply"
+                size: 30
+                onClicked: Inbox.compose("reply", root.mail.id)
             }
 
             IconButton {
@@ -179,26 +286,35 @@ Rectangle {
                 visible: !root.inTrash
                 icon: "more_vert"
                 tip: "More"
+                size: 30
                 onClicked: menu.show(moreButton, [
-                    { icon: "star", label: root.mail.starred ? "Unstar" : "Star", run: () => Inbox.mark(root.mail.starred ? "unstar" : "star", [root.mail.id]) },
-                    // The text part, natively; remembered for the sender.
+                    { icon: root.inbox ? "archive" : "move_to_inbox", label: root.inbox ? "Archive" : "Move to Inbox", run: () => Inbox.act(root.inbox ? "archive" : "inbox", [root.mail.id]) },
+                    { icon: "mark_email_unread", label: "Mark unread", run: () => Inbox.mark("unread", [root.mail.id]) },
+                    { icon: "auto_delete", label: (root.mail?.expiry ?? null) !== null ? "Change scheduled delete…" : "Schedule delete…", run: () => root.openSchedulePopover(moreButton, root.mail) },
+                    { icon: "delete", label: "Delete", run: () => Inbox.act("trash", [root.mail.id]) },
+                    { separator: true },
                     ...(root.mail.plain && root.mail.html && root.sender ? [root.mode === "plain"
                         ? { icon: "web", label: "Show original", run: () => Inbox.setReaderPref(root.sender, "plain", "original") }
                         : { icon: "notes", label: "Show plain text", run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.plainAuto ? "auto" : "always") }] : []),
                     ...(root.mail.plain && root.sender ? [
                         { icon: root.mail.prefs.plain === "always" ? "check_box" : "check_box_outline_blank", label: "Always plain text",
                           run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.prefs.plain === "always" ? "auto" : "always") }] : []),
-                    // Its colours or the app's; remembered for the sender.
                     ...(root.designed && root.sender ? [{ icon: root.themedView ? "light_mode" : "dark_mode", label: root.themedView ? "Original colours" : "Dark",
                         run: () => Inbox.setReaderPref(root.sender, "colours", root.themedView ? "original" : "dark") }] : []),
                     ...(root.mail.html && !root.mail.plain && root.mode !== "plain" ? [{ icon: root.designed ? "notes" : "web", label: root.designed ? "Show as plain text" : "Show designed version",
                         run: () => root.override = root.designed ? "text" : "html" }] : []),
                     { icon: "open_in_new", label: "Open in browser", run: () => Inbox.viewOriginal(root.mail.id) },
-                    ...(Inbox.developer ? [{ icon: "dataset", label: "Teach fields", run: () => Inbox.startTeaching() }] : []),
+                    ...(Inbox.developer ? [{ icon: "dataset", label: Inbox.teaching ? "Stop teaching fields" : "Teach fields", run: () => Inbox.teaching ? Inbox.stopTeaching() : Inbox.startTeaching() }] : []),
                     { separator: true },
                     { icon: "report", label: "Report spam", danger: true, run: () => Inbox.act("spam", [root.mail.id]) }
                 ])
             }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 1
+            color: Theme.glassDivider
         }
 
         Flickable {
@@ -213,50 +329,28 @@ Rectangle {
             ColumnLayout {
                 id: column
 
-                x: 4
-                width: Math.min(page.width - 8, 820)
-                spacing: 18
+                x: 2
+                width: Math.min(page.width - 4, 920)
+                spacing: 14
 
-                // Selectable, so a field can come from the subject (a PR's number).
-                TextEdit {
-                    id: subjectText
-
-                    Layout.fillWidth: true
-                    Layout.topMargin: 4
-                    renderType: Text.NativeRendering
-                    textFormat: TextEdit.PlainText
-                    readOnly: true
-                    selectByMouse: true
-                    // While teaching, a selection stays as you name it.
-                    persistentSelection: Inbox.teaching
-                    text: root.mail?.subject ?? ""
-                    wrapMode: TextEdit.Wrap
-                    color: Theme.m3onSurface
-                    selectionColor: Theme.m3primary
-                    selectedTextColor: Theme.m3onPrimary
-                    font.family: Theme.sans
-                    font.pixelSize: 28
-                    font.weight: Font.Medium
-                    onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("subject")
-                }
-
-                // Deleted: what's possible from here.
                 Rectangle {
                     Layout.fillWidth: true
                     visible: root.inTrash
-                    implicitHeight: 48
-                    radius: 14
-                    color: Theme.m3surfaceContainer
+                    implicitHeight: 38
+                    radius: Theme.controlRadius
+                    color: Theme.glassCard
+                    border.width: 1
+                    border.color: Theme.glassBorderSubtle
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 14
-                        anchors.rightMargin: 14
-                        spacing: 10
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
 
                         Icon {
                             name: "delete"
-                            size: 20
+                            size: 18
                         }
 
                         Label {
@@ -264,114 +358,30 @@ Rectangle {
                             text: "In Trash. Restore it to reply, archive, label or open its files. Gmail empties Trash after 30 days."
                             elide: Text.ElideRight
                             color: Theme.m3onSurfaceVariant
-                            font.pixelSize: 13
+                            font.pixelSize: 12
                         }
                     }
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 14
+                // Subtle interactive expiry pill when this thread is scheduled for deletion.
+                ExpiryBadge {
+                    id: expiryBadge
 
-                    Avatar {
-                        Layout.alignment: Qt.AlignTop
-                        name: root.mail?.fromName ?? ""
-                        image: root.mail?.avatar ?? ""
-                        size: 46
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 3
-
-                        Text {
-                            Layout.fillWidth: true
-                            renderType: Text.NativeRendering
-                            textFormat: Text.StyledText
-                            elide: Text.ElideRight
-                            color: Theme.m3onSurface
-                            font.family: Theme.sans
-                            font.pixelSize: 15
-                            text: root.mail ? `<b>${Inbox.linked(root.mail.fromName, "")}</b> <font color="${Theme.m3onSurfaceVariant}">&lt;${Inbox.linked(root.mail.fromAddress, "")}&gt;</font>` : ""
-                        }
-
-                        // "to me ⌄": everyone it went to, on a click. (The click
-                        // area sits beside the Row: inside, it would size the
-                        // Row by its own width, without end.)
-                        Item {
-                            implicitWidth: recipientsRow.implicitWidth
-                            implicitHeight: recipientsRow.implicitHeight
-
-                            Row {
-                                id: recipientsRow
-
-                                spacing: 2
-
-                            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: (root.mail?.mine ? `to ${(root.mail?.to ?? "").split(",")[0]}` : (root.mail?.details?.toMe ?? true) ? "to me" : `to ${(root.mail?.to ?? "").split(",")[0]}`) + (root.accountEmail ? "  · " : "")
-                                color: Theme.m3onSurfaceVariant
-                                font.pixelSize: 13
-                            }
-
-                            // The account it came to, with its picture
-                            // (only with more than one account).
-                            AccountBadge {
-                                anchors.verticalCenter: parent.verticalCenter
-                                account: root.accountEmail ? (root.mail?.account ?? "") : ""
-                                size: 16
-                                tip: ""
-                            }
-
-                            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: root.accountEmail !== ""
-                                text: root.accountEmail
-                                color: Theme.m3onSurfaceVariant
-                                font.pixelSize: 13
-                            }
-
-                            Icon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                name: root.showRecipients ? "expand_less" : "expand_more"
-                                size: 18
-                            }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.showRecipients = !root.showRecipients
-                            }
-                        }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignTop
-                        Layout.topMargin: 2
-                        text: root.mail ? Inbox.whenText(root.mail.epoch) : ""
-                        color: Theme.m3onSurfaceVariant
-                        font.pixelSize: 13
-                    }
-
-                    IconButton {
-                        Layout.alignment: Qt.AlignTop
-                        icon: "star"
-                        iconFill: (root.mail?.starred ?? false) ? 1 : 0
-                        iconColor: (root.mail?.starred ?? false) ? Theme.m3tertiary : Theme.m3onSurfaceVariant
-                        tip: (root.mail?.starred ?? false) ? "Unstar" : "Star"
-                        size: 34
-                        onClicked: Inbox.mark(root.mail.starred ? "unstar" : "star", [root.mail.id])
-                    }
+                    visible: !root.inTrash && (root.mail?.expiry ?? null) !== null
+                    expiry: root.mail?.expiry ?? null
+                    interactive: true
+                    onChangeClicked: root.openSchedulePopover(expiryBadge, root.mail)
+                    onCancelClicked: Inbox.cancelExpiry(root.mail.threadId || root.mail.id, null)
                 }
 
-                // Everyone it went to.
                 Rectangle {
                     Layout.fillWidth: true
                     visible: root.showRecipients
-                    implicitHeight: recipients.implicitHeight + 24
-                    radius: 16
-                    color: Theme.m3surfaceContainer
+                    implicitHeight: recipients.implicitHeight + 18
+                    radius: Theme.cardRadius
+                    color: Theme.glassCard
+                    border.width: 1
+                    border.color: Theme.glassBorderSubtle
 
                     ColumnLayout {
                         id: recipients
@@ -379,8 +389,8 @@ Rectangle {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: 12
-                        spacing: 4
+                        anchors.margins: 9
+                        spacing: 3
 
                         Repeater {
                             model: [["From", root.mail ? `${root.mail.fromName} <${root.mail.fromAddress}>` : ""], ["To", root.mail?.to ?? ""], ["Cc", root.mail?.cc ?? ""], ["Date", root.mail?.date ?? ""]].filter(line => line[1])
@@ -389,21 +399,21 @@ Rectangle {
                                 required property var modelData
 
                                 Layout.fillWidth: true
-                                spacing: 10
+                                spacing: 8
 
                                 Label {
-                                    Layout.preferredWidth: 44
+                                    Layout.preferredWidth: 40
                                     Layout.alignment: Qt.AlignTop
                                     text: parent.modelData[0]
                                     color: Theme.m3onSurfaceVariant
-                                    font.pixelSize: 13
+                                    font.pixelSize: 12
                                 }
 
                                 Label {
                                     Layout.fillWidth: true
                                     text: parent.modelData[1]
                                     wrapMode: Text.Wrap
-                                    font.pixelSize: 13
+                                    font.pixelSize: 12
                                 }
                             }
                         }
@@ -416,23 +426,23 @@ Rectangle {
                     meeting: root.mail?.details?.meeting ?? ({})
                 }
 
-                // What this email's template says, as fields you taught.
                 FieldsCard {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 680
+                    Layout.maximumWidth: 720
                     visible: Inbox.developer && (root.mail?.fields ?? null) !== null && !Inbox.teaching
                     card: root.mail?.fields ?? null
                     messageId: root.mail?.id ?? ""
                 }
 
-                // Teaching: what to do, over the email.
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 680
+                    Layout.maximumWidth: 720
                     visible: Inbox.teaching
-                    implicitHeight: teachHint.implicitHeight + 24
-                    radius: 16
-                    color: Theme.alpha(Theme.m3primary, 0.12)
+                    implicitHeight: teachHint.implicitHeight + 18
+                    radius: Theme.cardRadius
+                    color: Theme.glassActive
+                    border.width: 1
+                    border.color: Theme.glassActiveBorder
 
                     RowLayout {
                         id: teachHint
@@ -440,13 +450,13 @@ Rectangle {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 14
-                        anchors.rightMargin: 14
-                        spacing: 10
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
 
                         Icon {
                             name: "text_select_start"
-                            size: 20
+                            size: 18
                             color: Theme.m3primary
                         }
 
@@ -455,27 +465,22 @@ Rectangle {
                             text: root.teachSurface === "html" ? "Select text in the email (or the subject), then name it in the panel. Teaching on the designed version." : "Select text in the email (or the subject), then name it in the panel. Teaching on the email's text."
                             wrapMode: Text.Wrap
                             color: Theme.m3onSurface
-                            font.pixelSize: 13
+                            font.pixelSize: 12
                         }
                     }
                 }
 
-                // The designed version on its own background, the way it was
-                // made to be seen. Qt's rich text runs no scripts; the engine
-                // already removed anything active (courier_html.py).
-                // Designed mail is made 600–640 px wide and centred with
-                // max-width, which Qt's rich text ignores, so the card is that
-                // wide instead.
                 Rectangle {
-                    // In the app's colours there is no paper, so no margin either.
-                    readonly property int inset: root.themedView ? 0 : 16
+                    readonly property int inset: root.themedView ? 0 : 14
 
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 680
+                    Layout.maximumWidth: 720
                     visible: root.designed
                     implicitHeight: designedText.implicitHeight + 2 * inset
-                    radius: 18
+                    radius: 13
                     color: root.paper
+                    border.width: root.themedView && Theme.glass ? 1 : 0
+                    border.color: Theme.glassBubbleOtherBorder
                     clip: true
 
                     TextEdit {
@@ -490,9 +495,8 @@ Rectangle {
                         wrapMode: TextEdit.Wrap
                         textFormat: TextEdit.RichText
                         persistentSelection: Inbox.teaching
-                        text: root.designed ? root.mail.html : ""
+                        text: root.designed ? root.crispRichText(root.mail.html) : ""
                         onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("body")
-                        // Text the email didn't colour, readable on its background.
                         color: root.themedView ? Theme.m3onSurface : root.paper.hslLightness < 0.5 ? "#e8eaed" : "#202124"
                         selectionColor: Theme.m3primary
                         selectedTextColor: Theme.m3onPrimary
@@ -506,57 +510,80 @@ Rectangle {
                     }
                 }
 
-                // A notification's text part, drawn natively (PlainText.formatted):
-                // links, lists, quotes and code formatted lightly, the footer
-                // folded into one small line.
-                // Teaching shows all of it, footer too, every address whole, so a
-                // selection lines up with the engine's text (message_text).
-                TextEdit {
-                    id: plainText
+                // Plain and text bodies: on a lighter glass card of their own
+                // (level 3), nested in the reader card.
+                Rectangle {
+                    readonly property int inset: Theme.glass ? 14 : 0
 
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 760
-                    visible: root.mode === "plain"
-                    renderType: Text.NativeRendering
-                    readOnly: true
-                    selectByMouse: true
-                    wrapMode: TextEdit.Wrap
-                    textFormat: TextEdit.RichText
-                    persistentSelection: Inbox.teaching
-                    text: !visible ? "" : root.teachSurface === "text" ? Inbox.formatted(root.mail.plain || root.mail.full || root.mail.body, -1, true)
-                        : Inbox.formatted(root.mail.plain, root.mail.plainFooter ?? -1, false)
-                    onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("body")
-                    color: Theme.m3onSurface
-                    selectionColor: Theme.m3primary
-                    selectedTextColor: Theme.m3onPrimary
-                    font.family: Theme.sans
-                    font.pixelSize: 15
-                    onLinkActivated: link => Qt.openUrlExternally(link.replace(/&amp;/g, "&"))
+                    Layout.maximumWidth: 820 + 2 * inset
+                    visible: root.mode === "plain" || root.mode === "text"
+                    implicitHeight: bodyColumn.implicitHeight + 2 * inset
+                    radius: 13
+                    color: Theme.glass ? Theme.glassCard : "transparent"
+                    border.width: Theme.glass ? 1 : 0
+                    border.color: Theme.glassBubbleOtherBorder
 
-                    HoverHandler {
-                        cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                    GlassEdge {
+                        visible: Theme.glass
+                        radius: 13
+                        side: false
                     }
-                }
 
-                TextEdit {
-                    Layout.fillWidth: true
-                    visible: root.mode === "text"
-                    renderType: Text.NativeRendering
-                    readOnly: true
-                    selectByMouse: true
-                    wrapMode: TextEdit.Wrap
-                    textFormat: TextEdit.RichText
-                    text: root.mail && root.mode === "text" ? Inbox.linked(root.showFull && root.mail.full ? root.mail.full : root.mail.body, Theme.m3primary) : ""
-                    color: Theme.m3onSurface
-                    selectionColor: Theme.m3primary
-                    selectedTextColor: Theme.m3onPrimary
-                    font.family: Theme.sans
-                    font.pixelSize: 15
-                    onLinkActivated: link => Qt.openUrlExternally(link.replace(/&amp;/g, "&"))
+                    ColumnLayout {
+                        id: bodyColumn
 
-                    // TextEdit has no hover cursor for links.
-                    HoverHandler {
-                        cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                        x: parent.inset
+                        y: parent.inset
+                        width: parent.width - 2 * parent.inset
+                        spacing: 0
+
+                        TextEdit {
+                            id: plainText
+
+                            Layout.fillWidth: true
+                            visible: root.mode === "plain"
+                            renderType: Text.NativeRendering
+                            readOnly: true
+                            selectByMouse: true
+                            wrapMode: TextEdit.Wrap
+                            textFormat: TextEdit.RichText
+                            persistentSelection: Inbox.teaching
+                            text: !visible ? "" : root.crispRichText(root.teachSurface === "text" ? Inbox.formatted(root.mail.plain || root.mail.full || root.mail.body, -1, true)
+                                : Inbox.formatted(root.mail.plain, root.mail.plainFooter ?? -1, false))
+                            onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("body")
+                            color: Theme.m3onSurface
+                            selectionColor: Theme.m3primary
+                            selectedTextColor: Theme.m3onPrimary
+                            font.family: Theme.sans
+                            font.pixelSize: 14
+                            onLinkActivated: link => Qt.openUrlExternally(link.replace(/&amp;/g, "&"))
+
+                            HoverHandler {
+                                cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                            }
+                        }
+
+                        TextEdit {
+                            Layout.fillWidth: true
+                            visible: root.mode === "text"
+                            renderType: Text.NativeRendering
+                            readOnly: true
+                            selectByMouse: true
+                            wrapMode: TextEdit.Wrap
+                            textFormat: TextEdit.RichText
+                            text: root.mail && root.mode === "text" ? root.crispRichText(Inbox.linked(root.showFull && root.mail.full ? root.mail.full : root.mail.body, Theme.m3primary)) : ""
+                            color: Theme.m3onSurface
+                            selectionColor: Theme.m3primary
+                            selectedTextColor: Theme.m3onPrimary
+                            font.family: Theme.sans
+                            font.pixelSize: 14
+                            onLinkActivated: link => Qt.openUrlExternally(link.replace(/&amp;/g, "&"))
+
+                            HoverHandler {
+                                cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                            }
+                        }
                     }
                 }
 
@@ -564,7 +591,8 @@ Rectangle {
                     visible: root.mode === "text" && (root.mail?.full ?? "") !== ""
                     text: root.showFull ? "Hide quoted text" : "Show quoted text"
                     color: Theme.m3primary
-                    font.weight: Font.Medium
+                    font.pixelSize: 13
+                    weight: Font.Medium
 
                     MouseArea {
                         anchors.fill: parent
@@ -574,13 +602,12 @@ Rectangle {
                     }
                 }
 
-                // Qt's rich text draws HTML 4 and CSS 2; the browser draws the rest.
                 Label {
                     visible: (root.mail?.hasOriginal ?? false) && !Inbox.teaching
                     text: root.mode === "plain" ? "The email's text version, in Junco's colours. Show original"
                         : root.designed ? "Looks off? Open it in the browser ↗" : root.mail?.html ? "This email has a designed version. Show it" : "This email has a designed version. Open it in the browser ↗"
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 13
+                    font.pixelSize: 12
 
                     MouseArea {
                         anchors.fill: parent
@@ -597,7 +624,7 @@ Rectangle {
                         required property var modelData
 
                         Layout.fillWidth: true
-                        Layout.maximumWidth: 560
+                        Layout.maximumWidth: 520
                         messageId: root.mail.id
                         file: modelData
                         inTrash: root.inTrash
@@ -607,33 +634,50 @@ Rectangle {
                 RowLayout {
                     Layout.topMargin: 6
                     visible: !root.inTrash
-                    spacing: 12
+                    spacing: 10
 
                     Pill {
-                        style: "outlined"
+                        style: "tonal"
                         icon: "reply"
                         text: "Reply"
-                        size: 48
-                        fontSize: 15
+                        size: 34
+                        fontSize: 13
                         onClicked: Inbox.compose("reply", root.mail.id)
                     }
 
                     Pill {
-                        style: "outlined"
+                        style: "tonal"
                         icon: "reply_all"
                         text: "Reply all"
-                        size: 48
-                        fontSize: 15
+                        size: 34
+                        fontSize: 13
                         onClicked: Inbox.compose("replyall", root.mail.id)
                     }
 
                     Pill {
-                        style: "outlined"
+                        style: "tonal"
                         icon: "forward"
                         text: "Forward"
-                        size: 48
-                        fontSize: 15
+                        size: 34
+                        fontSize: 13
                         onClicked: Inbox.compose("forward", root.mail.id)
+                    }
+
+                    IconButton {
+                        id: bottomMore
+
+                        icon: "more_horiz"
+                        tip: "More actions"
+                        size: 34
+                        filled: true
+                        fillColor: Theme.glassControl
+                        iconColor: Theme.m3onSurface
+                        onClicked: menu.show(bottomMore, [
+                            { icon: root.inbox ? "archive" : "move_to_inbox", label: root.inbox ? "Archive" : "Move to Inbox", run: () => Inbox.act(root.inbox ? "archive" : "inbox", [root.mail.id]) },
+                            { icon: "mark_email_unread", label: "Mark unread", run: () => Inbox.mark("unread", [root.mail.id]) },
+                            { icon: "auto_delete", label: (root.mail?.expiry ?? null) !== null ? "Change scheduled delete…" : "Schedule delete…", run: () => root.openSchedulePopover(bottomMore, root.mail) },
+                            { icon: "delete", label: "Delete", run: () => Inbox.act("trash", [root.mail.id]) }
+                        ])
                     }
                 }
             }
@@ -641,17 +685,14 @@ Rectangle {
 
         ReplyBar {
             Layout.fillWidth: true
-            // Not for no-reply senders: nobody reads replies there.
             visible: root.mail !== null && !root.inTrash && !/no-?reply|do-?not-?reply|notifications?@|mailer-daemon/i.test(root.mail?.fromAddress ?? "")
             mail: root.mail
         }
     }
 
-    // Only one Escape may be live at a time (two cancel each other out), so
-    // this one waits while a menu, Compose or Add account has it.
     Shortcut {
         sequence: "Escape"
-        enabled: root.visible && Inbox.readerOpen && !menu.visible && !Inbox.composing && !Inbox.addingAccount && !Inbox.pictureCrop && !(Inbox.windowMenu?.visible ?? false)
+        enabled: root.visible && Inbox.readerOpen && !menu.visible && !(schedulePopoverLoader.item?.visible ?? false) && !Inbox.composing && !Inbox.addingAccount && !Inbox.pictureCrop && !Inbox.paletteOpen && !(Inbox.windowMenu?.visible ?? false)
         onActivated: Inbox.closeMessage()
     }
 
@@ -659,5 +700,14 @@ Rectangle {
         id: menu
 
         anchors.fill: parent
+    }
+
+    Loader {
+        id: schedulePopoverLoader
+
+        anchors.fill: parent
+        active: false
+        source: "../components/ScheduleDeletePopover.qml"
+        z: 120
     }
 }

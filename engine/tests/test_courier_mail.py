@@ -59,7 +59,7 @@ class MailFixture(unittest.TestCase):
 
         self.deliver("1", message("a1@x", "Aarav Mehta <aarav@northwind.example>", ME, "Brand review",
                                   "Sharing the guidelines.\n", "Thu, 19 Nov 2026 18:02:00 +0530"), "S")
-        self.deliver("2", message("me1@x", f"Alex <{ME}>", "Aarav Mehta <aarav@northwind.example>", "Re: Brand review",
+        self.deliver("2", message("me1@x", f"Jagrit <{ME}>", "Aarav Mehta <aarav@northwind.example>", "Re: Brand review",
                                   "Looks great.\n\nOn Thu, 19 Nov 2026 at 18:02, Aarav <aarav@northwind.example> wrote:\n> Sharing the guidelines.\n",
                                   "Thu, 19 Nov 2026 18:20:00 +0530", "In-Reply-To: <a1@x>\n"), "S", inbox=False)
         html = (
@@ -121,7 +121,7 @@ class CourierMailTest(MailFixture):
     def test_reply_threads_onto_the_latest_message(self) -> None:
         result = self.run_json("send", "p:aarav@northwind.example", "--body", "Thursday works.", "--dry-run")
         text = result["message"]
-        self.assertIn("From: Alex <someone@example.com>", text)
+        self.assertIn("From: Jagrit <someone@example.com>", text)
         self.assertIn("To: Aarav Mehta <aarav@northwind.example>", text)
         self.assertIn("Subject: Re: Brand review", text)
         self.assertIn("In-Reply-To: <a2@x>", text)
@@ -260,8 +260,8 @@ class CourierMailTest(MailFixture):
         (drafts / "cur" / f"{name}:2,S").write_bytes(content)
 
     def test_a_gmail_draft_never_shows_as_sent(self) -> None:
-        # The empty-draft case: an empty reply Gmail saved as a draft in a thread.
-        draft = message("draft@me", f"Alex <{ME}>", "Aarav Mehta <aarav@northwind.example>", "Re: Brand review", "",
+        # The IGNOU case: an empty reply Gmail saved as a draft in a thread.
+        draft = message("draft@me", f"Jagrit <{ME}>", "Aarav Mehta <aarav@northwind.example>", "Re: Brand review", "",
                         "Fri, 20 Nov 2026 19:00:00 +0530", "In-Reply-To: <a2@x>\nReferences: <a1@x> <me1@x> <a2@x>\n")
         self.deliver_draft("draft", draft)
         sync.index(ACCOUNTS)
@@ -404,7 +404,7 @@ class CourierMailTest(MailFixture):
         self.assertEqual(self.run_json("draft", "forward", "team@x")["subject"], "Fwd: Launch plan")
 
     def test_replying_to_a_note_to_yourself_goes_to_you(self) -> None:
-        self.deliver("9", message("note@x", f"Alex <{ME}>", ME, "Groceries", "Milk.\n", "Sat, 21 Nov 2026 10:00:00 +0530"))
+        self.deliver("9", message("note@x", f"Jagrit <{ME}>", ME, "Groceries", "Milk.\n", "Sat, 21 Nov 2026 10:00:00 +0530"))
         sync.index(ACCOUNTS)
         self.assertEqual(self.run_json("draft", "reply", "note@x")["to"], [ME])
         self.assertEqual(self.run_json("draft", "reply", "me1@x")["to"], ["Aarav Mehta <aarav@northwind.example>"])
@@ -535,7 +535,7 @@ INVITE = (
     "DTSTART;TZID=Asia/Kolkata:20261122T113000\nDTEND;TZID=Asia/Kolkata:20261122T120000\n"
     "ORGANIZER;CN=Aarav Mehta:mailto:aarav@northwind.example\n"
     "ATTENDEE;CN=Sana Lal;ROLE=REQ-PARTICIPANT:mailto:sana@northwind.example\n"
-    "ATTENDEE;CN=Alex:mailto:someone@example.com\n"
+    "ATTENDEE;CN=Jagrit:mailto:someone@example.com\n"
     "X-GOOGLE-CONFERENCE:https://meet.google.com/abc-defg-hij\nEND:VEVENT\nEND:VCALENDAR\n--b--\n"
 ).encode()
 
@@ -591,7 +591,7 @@ class SmartViewsTest(MailFixture):
             index.close()
         self.assertEqual(meeting["when"], "Tomorrow, Sun 22 Nov · 11:30 – 12:00 (30 min)")
         self.assertEqual((meeting["provider"], meeting["link"]), ("Google Meet", "https://meet.google.com/abc-defg-hij"))
-        self.assertEqual([a["name"] for a in meeting["attendees"]], ["Aarav Mehta", "Sana Lal", "Alex"])
+        self.assertEqual([a["name"] for a in meeting["attendees"]], ["Aarav Mehta", "Sana Lal", "Jagrit"])
         self.assertTrue(meeting["added"])
         self.assertEqual(meeting["eventLink"], "https://calendar.google.com/e")
 

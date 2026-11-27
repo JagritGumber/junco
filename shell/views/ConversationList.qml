@@ -3,55 +3,53 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// The inbox as conversations, Beeper-style: each person is a chat, newest
-// first; a sender's updates and the day's newsletters are lists of their own.
-// Every account's mail is here together, each row with its account's dot.
-Rectangle {
+// The inbox as conversations, Beeper-style: dense, scannable frosted-glass
+// thread list maximizing vertical count on 15" 16:9 displays.
+GlassPane {
     id: root
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
+    fill: Theme.glassList
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
-        spacing: 12
+        spacing: 10
 
+        // Calm header: Inbox · N unread + filter button.
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: 6
-            spacing: 6
+            Layout.leftMargin: 4
+            Layout.rightMargin: 2
+            spacing: 8
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-
-                Label {
-                    Layout.fillWidth: true
-                    text: "Inbox"
-                    font.pixelSize: 24
-                    font.weight: Font.Medium
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    text: Inbox.lane === "newsletters" ? "Newsletters" : "People first, then updates"
-                    elide: Text.ElideRight
-                    color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 13
-                }
+            Label {
+                text: Inbox.lane === "newsletters" ? "Newsletters" : "Inbox"
+                font.pixelSize: 17
+                weight: Font.DemiBold
             }
 
-            // Lanes too quiet for a chip live here.
+            Label {
+                readonly property int unreadTotal: Inbox.unreadIn(Inbox.lane)
+
+                visible: unreadTotal > 0
+                text: `·  ${unreadTotal} unread`
+                color: Theme.m3onSurfaceVariant
+                font.pixelSize: 12
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
             IconButton {
                 id: filterButton
 
                 icon: "tune"
-                tip: "Filter"
-                size: 44
+                tip: "Filter & refresh"
+                size: 28
                 filled: Inbox.lane === "newsletters"
-                fillColor: Theme.m3secondaryContainer
-                iconColor: Inbox.lane === "newsletters" ? Theme.m3onSecondaryContainer : Theme.m3onSurfaceVariant
+                fillColor: Theme.glassActive
+                iconColor: Inbox.lane === "newsletters" ? Theme.m3primary : Theme.m3onSurfaceVariant
                 onClicked: menu.show(filterButton, [
                     { icon: "newspaper", label: "Newsletters", checked: Inbox.lane === "newsletters", run: () => Inbox.lane = Inbox.lane === "newsletters" ? "all" : "newsletters" },
                     { separator: true },
@@ -60,21 +58,25 @@ Rectangle {
             }
         }
 
+        // Calm frosted-glass search field.
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 44
-            radius: 22
-            color: Theme.m3surfaceContainerHigh
+            implicitHeight: 36
+            radius: 12
+            color: Theme.glassControl
+            border.width: 1
+            border.color: search.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glass ? Theme.glassBorder : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 14
+                anchors.leftMargin: 12
                 anchors.rightMargin: 6
                 spacing: 8
 
                 Icon {
                     name: "search"
-                    size: 20
+                    size: 16
+                    color: Theme.m3onSurfaceVariant
                 }
 
                 TextInput {
@@ -86,10 +88,9 @@ Rectangle {
                     selectionColor: Theme.m3primary
                     selectedTextColor: Theme.m3onPrimary
                     font.family: Theme.sans
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                     clip: true
                     onTextChanged: Inbox.query = text
-                    // Typing narrows the list; Enter searches every email.
                     onAccepted: {
                         const words = text;
                         text = "";
@@ -100,8 +101,9 @@ Rectangle {
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: search.text === ""
-                        text: "Search (Enter for every email)"
+                        text: "Search mail (Enter for all)"
                         color: Theme.m3onSurfaceVariant
+                        font.pixelSize: 12
                     }
                 }
 
@@ -109,15 +111,16 @@ Rectangle {
                     visible: search.text !== ""
                     icon: "close"
                     tip: "Clear"
-                    size: 32
+                    size: 24
                     onClicked: search.text = ""
                 }
             }
         }
 
+        // Compact lane filter chips.
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 5
 
             Repeater {
                 model: Inbox.lanes.filter(lane => lane.chip)
@@ -131,6 +134,10 @@ Rectangle {
                     onClicked: Inbox.lane = modelData.id
                 }
             }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         Item {
@@ -140,17 +147,19 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: Inbox.visibleConversations.length === 0
-                width: parent.width - 40
+                width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
                 lineHeight: 1.2
                 text: Inbox.query.trim() !== "" ? "No conversation matches.\nPress Enter to search every email." : Inbox.conversations.length === 0 ? "Loading…" : "Nothing here."
                 color: Theme.m3onSurfaceVariant
+                font.pixelSize: 13
             }
 
             ListView {
                 anchors.fill: parent
                 clip: true
+                cacheBuffer: 320
                 spacing: 4
                 model: Inbox.visibleConversations
                 boundsBehavior: Flickable.StopAtBounds

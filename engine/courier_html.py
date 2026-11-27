@@ -383,6 +383,14 @@ def image_size(path: Path) -> tuple[int, int] | None:
 
 
 LINE_HEIGHT = re.compile(r"line-height\s*:\s*([^;}]+)", re.I)
+# Rubik[wght].ttf (OS/2 usWeightClass=300) triggers Qt 6 synthetic double-bolding
+# at CSS weight >= 700 / bold. Clamping heavy weights to 600 selects Rubik's crisp
+# SemiBold instance cleanly without changing markup structure.
+HEAVY_WEIGHT = re.compile(r"font-weight\s*:\s*(?:bold|bolder|[789]\d\d)(\s*!important)?", re.I)
+
+
+def fix_font_weight(declarations: str) -> str:
+    return HEAVY_WEIGHT.sub(lambda m: f"font-weight:600{m.group(1) or ''}", declarations)
 
 
 def fix_line_height(declarations: str) -> str:
@@ -428,7 +436,7 @@ def clean_css(css: str) -> str:
                 start = i + 1
     if not at_rule:
         out.append(css[start:])
-    kept = re.sub(r"\{([^{}]*)\}", lambda match: "{" + fix_line_height(match.group(1)) + "}", "".join(out))
+    kept = re.sub(r"\{([^{}]*)\}", lambda match: "{" + fix_font_weight(fix_line_height(match.group(1))) + "}", "".join(out))
     return URLS.sub("none", kept)
 
 
@@ -720,7 +728,7 @@ class _Cleaner(html.parser.HTMLParser):
                 if not value:
                     continue
             if name == "style":
-                value = fix_line_height(safe_css(value))
+                value = fix_font_weight(fix_line_height(safe_css(value)))
             kept.append((name, value))
         rendered = "".join(f' {name}="{html.escape(value, quote=True)}"' for name, value in kept)
         return f"<{tag}{rendered}>"
@@ -950,7 +958,7 @@ def backed_image(path: Path, theme, scale: float) -> tuple[Path, int] | None:
 
 
 # What makes an email designed rather than written: hero images, background
-# images, coloured blocks (measured on 2026-11-24 against a real mailbox;
+# images, coloured blocks (measured on 2026-11-24 against Jagrit's mail;
 # see classify()).
 HERO_WIDTH, HERO_HEIGHT = 300, 100
 # Bounded scans (attacker-written HTML must not make this slow).

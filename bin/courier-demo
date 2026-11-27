@@ -1,0 +1,194 @@
+#!/bin/bash
+# courier-demo: Courier with made-up mail, for demos and recordings.
+#
+# It runs as its own Quickshell instance beside your real Courier and shares
+# nothing with it:
+#   - its own folders: every XDG data, config, state, cache and runtime path,
+#     and NOTMUCH_CONFIG, point into the demo profile
+#     (~/.local/share/courier-demo, or $COURIER_DEMO_HOME);
+#   - COURIER_OFFLINE=1: the engine never signs in, syncs, sends or looks
+#     anything up; sending and archiving change only the demo's own copy;
+#   - its own network namespace (unshare --net) with no route anywhere, and
+#     its own mount namespace hiding the name resolver's sockets (so not even
+#     a DNS lookup leaves the PC), the system bus, and your session's runtime
+#     folder (session bus, keyring with your sign-in tokens, systemd's user
+#     units like courier-sync): only the display's socket is let through.
+#     Your real Courier's folders are hidden from it too;
+#   - a guard folder first on its PATH whose systemctl, mbsync, msmtp,
+#     secret-tool, resolvectl, curl, wget and kdialog (its file picker would
+#     show your real files) refuse and log.
+# The app itself is the demo profile's own copy (app/), made by --reset, so
+# your real Courier's code and data are never used.
+#
+#   courier-demo                  the mail window (shows it if already open)
+#   courier-demo calendar         Courier Calendar
+#   courier-demo --reset [DIR] [--quick]
+#                                 (re)build the profile: fresh made-up mail,
+#                                 calendar and pictures. DIR is a Courier
+#                                 checkout to copy the app from (default: the
+#                                 profile's own copy)
+#   courier-demo --run CMD...     run CMD in the demo environment and namespace
+#   courier-demo --env            print the demo environment, one VAR=value a line
+set -euo pipefail
+
+DEMO="${COURIER_DEMO_HOME:-$HOME/.local/share/courier-demo}"
+DEMO="$(realpath -m -- "$DEMO")"
+APP="$DEMO/app"
+SELF="$(realpath -- "$0")"
+REAL_DIRS=("$HOME/.local/share/courier" "$HOME/.config/courier" "$HOME/.local/state/courier" "$HOME/.cache/courier")
+
+die() {
+    echo "courier-demo: $*" >&2
+    exit 1
+}
+
+# Never anywhere near the real profile: not one of its folders, inside one,
+# or around one.
+for real in "${REAL_DIRS[@]}"; do
+    real="$(realpath -m -- "$real")"
+    case "$DEMO/" in "$real/"*) die "$DEMO is inside the real Junco's $real" ;; esac
+    case "$real/" in "$DEMO/"*) die "$DEMO holds the real Junco's $real" ;; esac
+done
+[ "$DEMO" != "$(realpath -m -- "$HOME")" ] && [ "$DEMO" != / ] || die "the demo profile can't be $DEMO"
+
+# The environment every demo process gets, and nothing else from yours.
+demo_env() {
+    local wayland="${WAYLAND_DISPLAY:-}"
+    # A bare name is relative to XDG_RUNTIME_DIR, which the demo replaces;
+    # inside, the display's socket is bound in as the demo's own wayland-0.
+    if [ -n "$wayland" ] && [ "${wayland#/}" = "$wayland" ]; then
+        wayland="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$wayland"
+    fi
+    printf '%s\n' \
+        "HOME=$HOME" "USER=${USER:-$(id -un)}" "LOGNAME=${LOGNAME:-$(id -un)}" "SHELL=/bin/sh" \
+        "PATH=$DEMO/guard:/usr/local/bin:/usr/bin:/bin" \
+        "XDG_CONFIG_HOME=$DEMO/config" "XDG_DATA_HOME=$DEMO/data" "XDG_STATE_HOME=$DEMO/state" \
+        "XDG_CACHE_HOME=$DEMO/cache" "XDG_RUNTIME_DIR=$DEMO/run" \
+        "NOTMUCH_CONFIG=$DEMO/config/courier/notmuch-config" \
+        "COURIER_OFFLINE=1" "COURIER_NO_NOTIFY=1" "COURIER_DEMO=1"
+    [ -S "$wayland" ] && printf '%s\n' "WAYLAND_DISPLAY=wayland-0" "COURIER_DEMO_WAYLAND=$wayland"
+    # Display, language and scale only.
+    local name
+    for name in LANG LANGUAGE LC_ALL LC_CTYPE LC_TIME LC_NUMERIC TZ TERM XDG_SESSION_TYPE XDG_CURRENT_DESKTOP \
+        QT_QPA_PLATFORM QT_SCALE_FACTOR QT_SCREEN_SCALE_FACTORS QT_ENABLE_HIGHDPI_SCALING QT_FONT_DPI \
+        QT_WAYLAND_DISABLE_WINDOWDECORATION XCURSOR_THEME XCURSOR_SIZE COURIER_GLASS_MODE COURIER_THEME; do
+        [ -n "${!name:-}" ] && printf '%s=%s\n' "$name" "${!name}"
+    done
+    return 0
+}
+
+# PATH's first folder: qs, and stand-ins that refuse anything that would
+# reach a server, the keyring or systemd, and say so in log/guard.log.
+make_guard() {
+    local qs tool
+    qs="$(command -v qs || true)"
+    [ -n "$qs" ] || qs="$HOME/.local/bin/qs"
+    [ -x "$qs" ] || die "Quickshell (qs) isn't installed"
+    mkdir -p "$DEMO/guard" "$DEMO/log" "$DEMO/run"
+    chmod 700 "$DEMO/run"
+    ln -sfn "$qs" "$DEMO/guard/qs"
+    # kdialog too: its file picker would show your real home folder on screen.
+    for tool in systemctl mbsync msmtp secret-tool resolvectl curl wget notify-send kdialog \
+        courier courier-auth courier-sync courier-mail courier-avatars courier-calendar courier-push; do
+        printf '#!/bin/sh\necho "$(date -Is) refused: %s $*" >> "%s"\necho "courier-demo: %s is off in the demo profile" >&2\nexit 1\n' \
+            "$tool" "$DEMO/log/guard.log" "$tool" > "$DEMO/guard/$tool"
+        chmod 755 "$DEMO/guard/$tool"
+    done
+    # Links open only if they're files on this PC (an attachment preview).
+    printf '#!/bin/sh\ncase "$1" in\n  /*|file://*) exec /usr/bin/xdg-open "$1" ;;\nesac\necho "$(date -Is) refused: xdg-open $*" >> "%s"\nexit 1\n' \
+        "$DEMO/log/guard.log" > "$DEMO/guard/xdg-open"
+    chmod 755 "$DEMO/guard/xdg-open"
+}
+
+# Runs a command with only the demo environment, in user, mount and network
+# namespaces of its own (`inside` sets them up). If they can't be made,
+# nothing runs.
+in_demo() {
+    local -a env
+    mapfile -t env < <(demo_env)
+    unshare --map-current-user --keep-caps --mount --net true 2>/dev/null \
+        || die "can't make the demo's namespaces (unshare --net --mount), so it won't start"
+    exec env -i "${env[@]}" unshare --map-current-user --keep-caps --mount --net -- "$SELF" --inside "$@"
+}
+
+# In the new namespaces (only they change): hide what could reach the network
+# or your session, let the display through, then drop the capabilities that
+# allowed it and run the command.
+inside() {
+    local hide uid
+    uid="$(id -u)"
+    # systemd-resolved (and nscd) would look names up for anyone who asks.
+    for hide in /run/systemd/resolve /run/nscd /run/dbus; do
+        [ -d "$hide" ] && mount -t tmpfs -o size=64k,mode=755 courier-demo-hidden "$hide"
+    done
+    mkdir -p "$XDG_RUNTIME_DIR"
+    if [ -n "${COURIER_DEMO_WAYLAND:-}" ] && [ -S "$COURIER_DEMO_WAYLAND" ]; then
+        : > "$XDG_RUNTIME_DIR/wayland-0"
+        mount --bind "$COURIER_DEMO_WAYLAND" "$XDG_RUNTIME_DIR/wayland-0"
+    fi
+    [ -d "/run/user/$uid" ] && mount -t tmpfs -o size=64k,mode=700 courier-demo-hidden "/run/user/$uid"
+    for hide in "${REAL_DIRS[@]}"; do
+        [ -d "$hide" ] && mount -t tmpfs -o size=64k,mode=700 courier-demo-hidden "$hide"
+    done
+    unset COURIER_DEMO_WAYLAND
+    exec setpriv --inh-caps=-all --ambient-caps=-all --bounding-set=-all -- "$@"
+}
+
+ready() {
+    [ -f "$APP/engine/courier_sync.py" ] || die "no demo profile yet: run courier-demo --reset <a Junco checkout>"
+    grep -q 'COURIER_OFFLINE' "$APP/engine/courier_sync.py" \
+        || die "the demo's app copy has no offline switch (COURIER_OFFLINE); rebuild it: courier-demo --reset <checkout>"
+    [ -f "$DEMO/.courier-demo-profile" ] && [ -f "$DEMO/config/courier/accounts.json" ] \
+        || die "the demo profile isn't built: run courier-demo --reset"
+}
+
+case "${1:-}" in
+    --inside)
+        # Only ever run by in_demo, inside its namespaces.
+        [ "$#" -gt 1 ] && [ "${COURIER_OFFLINE:-}" = 1 ] || die "--inside is internal"
+        shift
+        inside "$@"
+        ;;
+    --env)
+        demo_env
+        ;;
+    --reset)
+        shift
+        source="$APP"
+        if [ "$#" -gt 0 ] && [ "${1#--}" = "$1" ]; then
+            source="$1"
+            shift
+        fi
+        [ "$#" -eq 0 ] || [ "$*" = --quick ] || die "--reset takes a checkout and --quick only"
+        source="$(realpath -m -- "$source")"
+        [ -f "$source/demo/make_demo.py" ] || die "$source isn't a Junco checkout with demo/make_demo.py"
+        grep -q 'COURIER_OFFLINE' "$source/engine/courier_sync.py" || die "$source has no offline switch (COURIER_OFFLINE)"
+        make_guard
+        # The colours of your desktop (Caelestia's scheme), read once here.
+        theme="${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/scheme.json"
+        in_demo python3 -I "$source/demo/make_demo.py" --profile "$DEMO" --app "$source" --theme "$theme" "$@"
+        ;;
+    --run)
+        shift
+        [ "$#" -gt 0 ] || die "--run needs a command"
+        ready
+        make_guard
+        in_demo "$@"
+        ;;
+    "" | mail)
+        ready
+        make_guard
+        in_demo /bin/sh -c 'qs ipc -p "$1" call courier show 2>/dev/null || exec qs -n -d -p "$1"' courier-demo "$APP/shell"
+        ;;
+    calendar)
+        ready
+        make_guard
+        in_demo "$APP/bin/calendar" "${@:2}"
+        ;;
+    -h | --help)
+        sed -n '2,/^set -euo/p' "$0" | sed '$d; s/^# \{0,1\}//'
+        ;;
+    *)
+        die "unknown option $1 (try --help)"
+        ;;
+esac

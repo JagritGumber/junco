@@ -18,36 +18,91 @@ searches every email.
 
 from __future__ import annotations
 
-import argparse
-import base64
 import collections
-import email
-import email.header
-import email.message
-import email.policy
-import email.utils
-import hashlib
-import html
-import html.parser
 import itertools
 import json
-import mimetypes
 import os
 import re
-import subprocess
 import sys
-import tempfile
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import courier_gmail as gmail  # noqa: E402
-import courier_html  # noqa: E402
-import courier_later as later  # noqa: E402
 import courier_sync as sync  # noqa: E402
-import courier_templates as templates  # noqa: E402
-import courier_views as views  # noqa: E402
+
+
+class _LazyModule:
+    """Defer heavy stdlib & engine module imports until first attribute access."""
+
+    def __init__(self, name: str) -> None:
+        object.__setattr__(self, "_name", name)
+        object.__setattr__(self, "_mod", None)
+
+    def _load(self):
+        mod = object.__getattribute__(self, "_mod")
+        if mod is None:
+            import importlib
+
+            mod = importlib.import_module(object.__getattribute__(self, "_name"))
+            object.__setattr__(self, "_mod", mod)
+        return mod
+
+    def __getattr__(self, attr: str):
+        mod = self._load()
+        try:
+            return getattr(mod, attr)
+        except AttributeError:
+            if hasattr(mod, "__path__"):
+                import importlib
+
+                return importlib.import_module(f"{object.__getattribute__(self, '_name')}.{attr}")
+            raise
+
+
+base64 = _LazyModule("base64")
+email = _LazyModule("email")
+hashlib = _LazyModule("hashlib")
+html = _LazyModule("html")
+mimetypes = _LazyModule("mimetypes")
+subprocess = _LazyModule("subprocess")
+
+_LAZY_ENGINE = {
+    "expiry": "courier_expiry",
+    "gmail": "courier_gmail",
+    "courier_html": "courier_html",
+    "later": "courier_later",
+    "templates": "courier_templates",
+    "views": "courier_views",
+}
+
+
+def _eng(alias: str):
+    mod = globals().get(alias)
+    if mod is None:
+        import importlib
+
+        mod = importlib.import_module(_LAZY_ENGINE[alias])
+        globals()[alias] = mod
+    return mod
+
+
+def __getattr__(name: str):
+    if name in _LAZY_ENGINE:
+        return _eng(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+# Pre-compiled regexes for hot message/conversation loops.
+RE_LOCAL_SPLIT = re.compile(r"[._+-]+")
+RE_WS_COLLAPSE = re.compile(r"[ \t]{2,}")
+RE_BLANK_LINES = re.compile(r"\n{3,}")
+RE_SUBJECT_PREFIX = re.compile(r"^(?:re|fwd?)\s*:\s*", re.IGNORECASE)
+RE_PLAIN_SUBJECT = re.compile(r"^((re|fwd?|aw|fw)\s*:\s*)+", re.IGNORECASE)
+
+_GMAIL_ACTIONS = ("archive", "delete", "inbox", "move", "spam", "trash", "unspam", "untrash")
+_LIST_FOLDERS = ("smart", "meetings", "dev", "college", "all", "starred", "sent", "snoozed", "reminders", "expiring", "archive")
+_RETENTION_PERIODS = ("1w", "1m", "6m", "1y", "5y")
+PREVIEW_CACHE_MAX = 2000
 
 # Newest messages read to build the conversation list.
 SCAN = 4000
@@ -76,6 +131,8 @@ def remember(name: str, data) -> None:
 def decode(value: str | None) -> str:
     if not value:
         return ""
+    if "=?" not in value:
+        return value
     try:
         return str(email.header.make_header(email.header.decode_header(value)))
     except (UnicodeError, LookupError, email.errors.HeaderParseError):
@@ -96,23 +153,23 @@ def base_domain(domain: str) -> str:
 
 def nice_name(address: str) -> str:
     """A readable name for a sender who sent none: the site for role boxes
-    ("contact@lumenlabs.example" -> "Lumenlabs"), else the mailbox
+    ("contact@wrappedemotionz.com" -> "Wrappedemotionz"), else the mailbox
     ("riya.kapoor@" -> "Riya Kapoor")."""
     local, _, domain = address.partition("@")
     if not domain:  # Already a domain (an updates sender).
         return address.split(".")[0].capitalize()
     if local in sync.ROLE_WORDS or sync.ROBOT_SENDER.search(local):
         return base_domain(domain).split(".")[0].capitalize()
-    return " ".join(part.capitalize() for part in re.split(r"[._+-]+", local) if part) or address
+    return " ".join(part.capitalize() for part in RE_LOCAL_SPLIT.split(local) if part) or address
 
 
 def quoted(text: str) -> str:
     return '"' + text.replace('"', "") + '"'
 
 
-def short_time(epoch: int) -> str:
+def short_time(epoch: int, today: date | None = None) -> str:
     moment = datetime.fromtimestamp(epoch)
-    today = date.today()
+    today = date.today() if today is None else today
     if moment.date() == today:
         return clock(moment)
     if moment.date() == today - timedelta(days=1):
@@ -124,9 +181,9 @@ def short_time(epoch: int) -> str:
     return moment.strftime("%d/%m/%y")
 
 
-def day_label(epoch: int) -> str:
+def day_label(epoch: int, today: date | None = None) -> str:
     moment = datetime.fromtimestamp(epoch)
-    today = date.today()
+    today = date.today() if today is None else today
     if moment.date() == today:
         return "Today"
     if moment.date() == today - timedelta(days=1):
@@ -138,10 +195,10 @@ def day_label(epoch: int) -> str:
     return f"{moment.day} {moment.strftime('%B %Y')}"
 
 
-def bucket(epoch: int) -> str:
+def bucket(epoch: int, today: date | None = None) -> str:
     """The list section an email sits in: Today, Yesterday or Earlier."""
     day = datetime.fromtimestamp(epoch).date()
-    today = date.today()
+    today = date.today() if today is None else today
     return "Today" if day == today else "Yesterday" if day == today - timedelta(days=1) else "Earlier"
 
 
@@ -160,47 +217,58 @@ def human_size(size: int) -> str:
 # Message text ------------------------------------------------------------------
 
 
-class _HtmlText(html.parser.HTMLParser):
-    """HTML mail as readable text; by default without the quoted history."""
+_HTML_TEXT_CLS = None
 
-    BLOCKS = {"p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "table", "section", "article"}
-    HIDDEN = {"script", "style", "head", "title"}
 
-    def __init__(self, keep_quotes: bool = False) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-        self.hidden = 0
-        self.quote_depth = 0
-        self.keep_quotes = keep_quotes
+def _get_html_text_cls():
+    global _HTML_TEXT_CLS
+    if _HTML_TEXT_CLS is None:
+        import html.parser as _html_parser
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        classes = dict(attrs).get("class") or ""
-        if not self.keep_quotes and (self.quote_depth or tag == "blockquote" or "gmail_quote" in classes):
-            self.quote_depth += 1 if tag not in {"br", "img", "hr", "meta", "link", "input"} else 0
-            return
-        if tag in self.HIDDEN:
-            self.hidden += 1
-        elif tag in self.BLOCKS:
-            self.parts.append("\n")
-        if tag == "li":
-            self.parts.append("• ")
+        class _HtmlText(_html_parser.HTMLParser):
+            """HTML mail as readable text; by default without the quoted history."""
 
-    def handle_endtag(self, tag: str) -> None:
-        if self.quote_depth:
-            self.quote_depth -= 1
-            return
-        if tag in self.HIDDEN and self.hidden:
-            self.hidden -= 1
-        elif tag in self.BLOCKS:
-            self.parts.append("\n")
+            BLOCKS = {"p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "table", "section", "article"}
+            HIDDEN = {"script", "style", "head", "title"}
 
-    def handle_data(self, data: str) -> None:
-        if not self.hidden and not self.quote_depth:
-            self.parts.append(data)
+            def __init__(self, keep_quotes: bool = False) -> None:
+                super().__init__(convert_charrefs=True)
+                self.parts: list[str] = []
+                self.hidden = 0
+                self.quote_depth = 0
+                self.keep_quotes = keep_quotes
+
+            def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+                classes = dict(attrs).get("class") or ""
+                if not self.keep_quotes and (self.quote_depth or tag == "blockquote" or "gmail_quote" in classes):
+                    self.quote_depth += 1 if tag not in {"br", "img", "hr", "meta", "link", "input"} else 0
+                    return
+                if tag in self.HIDDEN:
+                    self.hidden += 1
+                elif tag in self.BLOCKS:
+                    self.parts.append("\n")
+                if tag == "li":
+                    self.parts.append("• ")
+
+            def handle_endtag(self, tag: str) -> None:
+                if self.quote_depth:
+                    self.quote_depth -= 1
+                    return
+                if tag in self.HIDDEN and self.hidden:
+                    self.hidden -= 1
+                elif tag in self.BLOCKS:
+                    self.parts.append("\n")
+
+            def handle_data(self, data: str) -> None:
+                if not self.hidden and not self.quote_depth:
+                    self.parts.append(data)
+
+        _HTML_TEXT_CLS = _HtmlText
+    return _HTML_TEXT_CLS
 
 
 def html_to_text(markup: str, keep_quotes: bool = False) -> str:
-    parser = _HtmlText(keep_quotes)
+    parser = _get_html_text_cls()(keep_quotes)
     try:
         parser.feed(markup)
         parser.close()
@@ -221,15 +289,15 @@ def tidy(text: str, limit: int | None = BODY_LIMIT) -> str:
     lines = [line.rstrip() for line in text.split("\n") if not line.lstrip().startswith(">")]
     if "-- " in lines:
         lines = lines[: lines.index("-- ")]
-    text = "\n".join(re.sub(r"[ \t]{2,}", " ", line).strip() for line in lines)
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    text = "\n".join(RE_WS_COLLAPSE.sub(" ", line).strip() for line in lines)
+    text = RE_BLANK_LINES.sub("\n\n", text).strip()
     return text if limit is None or len(text) <= limit else text[:limit].rstrip() + " …"
 
 
 def tidy_whitespace(text: str) -> str:
     """Readable whole text: trimmed lines, no runs of blank lines."""
-    lines = [re.sub(r"[ \t]{2,}", " ", line).strip() for line in text.replace("\r\n", "\n").replace("\u00a0", " ").split("\n")]
-    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    lines = [RE_WS_COLLAPSE.sub(" ", line).strip() for line in text.replace("\r\n", "\n").replace("\u00a0", " ").split("\n")]
+    return RE_BLANK_LINES.sub("\n\n", "\n".join(lines)).strip()
 
 
 def read_message(path: str) -> tuple[str, list[dict]]:
@@ -287,11 +355,42 @@ def attachment_parts(message) -> list:
     ]
 
 
-def preview_of(path: str, fallback: str) -> str:
+def _load_preview_cache() -> dict[str, list]:
+    try:
+        raw = json.loads((cache_dir() / "previews.json").read_text())
+        return raw if isinstance(raw, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_preview_cache(cache: dict[str, list]) -> None:
+    if len(cache) > PREVIEW_CACHE_MAX:
+        # Keep the newest PREVIEW_CACHE_MAX entries (insertion-ordered dict).
+        items = list(cache.items())[-PREVIEW_CACHE_MAX:]
+        cache = dict(items)
+    remember("previews.json", cache)
+
+
+def preview_of(path: str, fallback: str, cache: dict[str, list] | None = None, dirty: list[bool] | None = None) -> str:
+    if cache is not None and path:
+        try:
+            st = os.stat(path)
+            sig_mtime, sig_size = st.st_mtime_ns, st.st_size
+            cached = cache.get(path)
+            if cached is not None and len(cached) == 3 and cached[0] == sig_mtime and cached[1] == sig_size:
+                return (cached[2] or fallback)[:160]
+        except OSError:
+            sig_mtime = sig_size = -1
+    else:
+        sig_mtime = sig_size = -1
     body, attachments = read_message(path)
     line = next((line for line in body.split("\n") if line.strip()), "")
     if not line and attachments:
         line = f"📎 {attachments[0]['name']}"
+    if cache is not None and sig_mtime >= 0:
+        cache[path] = [sig_mtime, sig_size, line[:160]]
+        if dirty is not None:
+            dirty[0] = True
     return (line or fallback)[:160]
 
 
@@ -335,13 +434,14 @@ def account_of(tags: set[str]) -> str:
     return next((tag.split("/", 1)[1] for tag in tags if tag.startswith("account/")), "")
 
 
-def conversation_key(index: Index, message, lane: str) -> tuple[str, str, str] | None:
-    """(conversation id, display name, address) for one message."""
+def _conversation_key_with_mine(index: Index, message, lane: str) -> tuple[str, str, str, bool] | None:
+    """(conversation id, display name, address, is_mine) for one message."""
     name, sender = address_of(header_or_empty(message, "from"))
+    mine = sender in index.me
     if lane == "newsletters":
-        return "n:all", name or sender, sender
+        return "n:all", name or sender, sender, mine
     if lane == "people":
-        if sender in index.me:
+        if mine:
             try:
                 to = message.header("to")
             except LookupError:
@@ -351,33 +451,44 @@ def conversation_key(index: Index, message, lane: str) -> tuple[str, str, str] |
                 return None
             name, sender = others[0]
             name = name.strip().strip('"')
-        return f"p:{sender}", name, sender
-    if sender in index.me:
+        return f"p:{sender}", name, sender, mine
+    if mine:
         return None  # Your unsubscribe requests and other mail to robots.
     domain = base_domain(sender.rpartition("@")[2])
-    return f"u:{domain}", name, domain
+    return f"u:{domain}", name, domain, False
+
+
+def conversation_key(index: Index, message, lane: str) -> tuple[str, str, str] | None:
+    """(conversation id, display name, address) for one message."""
+    res = _conversation_key_with_mine(index, message, lane)
+    return None if res is None else (res[0], res[1], res[2])
 
 
 def conversations(index: Index) -> list[dict]:
     found: dict[str, dict] = {}
     names: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     newsletter_senders: list[str] = []
+    newsletter_seen: set[str] = set()
+    active_expiries = _eng("expiry").active_expiries_map()
+    today = date.today()
     for scanned, message in enumerate(index.newest_first("*")):
         if scanned >= SCAN:
             break
         tags = set(message.tags)
         lane = lane_of(tags)
-        key = conversation_key(index, message, lane)
+        key = _conversation_key_with_mine(index, message, lane)
         if key is None:
             continue
-        conversation_id, name, address = key
+        conversation_id, name, address, is_mine = key
         if name:
             names[conversation_id][name] += 1
-        if lane == "newsletters" and name and name not in newsletter_senders:
+        if lane == "newsletters" and name and name not in newsletter_seen:
+            newsletter_seen.add(name)
             newsletter_senders.append(name)
         entry = found.get(conversation_id)
         if entry is None:
             domain = address.rpartition("@")[2] or address
+            epoch = int(message.date)
             entry = found[conversation_id] = {
                 "id": conversation_id,
                 "kind": "person" if lane == "people" else "lane",
@@ -385,15 +496,20 @@ def conversations(index: Index) -> list[dict]:
                 "account": account_of(tags),
                 "name": name or address,
                 "address": address,
-                "epoch": int(message.date),
-                "time": short_time(int(message.date)),
+                "epoch": epoch,
+                "time": short_time(epoch, today=today),
                 "unread": 0,
                 "logo": LOGOS.get(domain, ""),
                 "icon": "newspaper" if lane == "newsletters" else "",
+                "expiry": None,
                 "_latest": str(message.path),
                 "_subject": header_or_empty(message, "subject"),
-                "_mine": address_of(header_or_empty(message, "from"))[1] in index.me,
+                "_mine": is_mine,
             }
+        if entry["expiry"] is None and active_expiries:
+            msg_expiry = active_expiries.get(message.threadid) or active_expiries.get(message.messageid)
+            if msg_expiry is not None:
+                entry["expiry"] = msg_expiry
         if "unread" in tags:
             entry["unread"] += 1
         if "inbox" in tags:
@@ -405,23 +521,36 @@ def conversations(index: Index) -> list[dict]:
     import courier_avatars
 
     pictures = courier_avatars.load_index()
+    preview_cache = _load_preview_cache()
+    preview_dirty = [False]
     for entry in ordered:
         entry["avatar"] = courier_avatars.picture_for(entry["id"], pictures)
+        raw_subject = entry["_subject"].strip()
+        clean_subj = RE_SUBJECT_PREFIX.sub("", raw_subject).strip() or raw_subject
         if entry["lane"] == "people":
-            text = preview_of(entry["_latest"], entry["_subject"])
+            text = preview_of(entry["_latest"], entry["_subject"], preview_cache, preview_dirty)
             entry["preview"] = f"You: {text}" if entry["_mine"] else text
+            entry["subject"] = clean_subj
+            entry["snippet"] = entry["preview"]
             entry["name"] = names[entry["id"]].most_common(1)[0][0] if names[entry["id"]] else nice_name(entry["address"])
         elif entry["lane"] == "updates":
             entry["preview"] = entry["_subject"]
+            entry["subject"] = raw_subject
+            body_snippet = preview_of(entry["_latest"], "", preview_cache, preview_dirty)
+            entry["snippet"] = body_snippet if body_snippet and body_snippet != raw_subject else ""
             entry["name"] = names[entry["id"]].most_common(1)[0][0] if names[entry["id"]] else nice_name(entry["address"])
         else:
             entry["name"] = "Newsletters"
             shown = newsletter_senders[:3]
             more = len(newsletter_senders) - len(shown)
             entry["preview"] = ", ".join(shown) + (f" and {more} more" if more > 0 else "")
+            entry["subject"] = f"{entry['unread']} new issues" if entry["unread"] > 0 else f"{len(newsletter_senders)} senders"
+            entry["snippet"] = entry["preview"]
             entry["address"] = f"{len(newsletter_senders)} senders"
         for private in ("_latest", "_subject", "_mine", "_inbox"):
             entry.pop(private, None)
+    if preview_dirty[0]:
+        _save_preview_cache(preview_cache)
     return ordered
 
 
@@ -514,43 +643,83 @@ def thread(index: Index, conversation_id: str) -> list[dict]:
     except index.notmuch.NotmuchError:
         raise SystemExit("courier-mail: couldn't search for that") from None
     pictures = courier_avatars.load_index()
+    active_expiries = _eng("expiry").active_expiries_map()
+    today = date.today()
+    is_person = conversation_id.startswith("p:")
+    preview_cache = None if is_person else _load_preview_cache()
+    preview_dirty = [False]
     items = []
     previous_subject = None
     for message in reversed(messages):
         epoch = int(message.date)
         subject = header_or_empty(message, "subject")
         sender_name, sender = address_of(header_or_empty(message, "from"))
-        base = {"id": message.messageid, "day": day_label(epoch), "time": clock(datetime.fromtimestamp(epoch))}
-        if not conversation_id.startswith("p:"):
+        msg_expiry = (active_expiries.get(message.threadid) or active_expiries.get(message.messageid)) if active_expiries else None
+        base = {"id": message.messageid, "threadId": message.threadid, "expiry": msg_expiry, "day": day_label(epoch, today=today), "time": clock(datetime.fromtimestamp(epoch))}
+        if not is_person:
             tags = set(message.tags)
             label = sender_name or nice_name(sender)
             if sender in index.me:
                 # Your own email reads by who it went to.
                 to_name, to_address = address_of(header_or_empty(message, "to"))
                 sender, label = to_address or sender, f"To {to_name or nice_name(to_address)}" if to_address else "You"
+            msg_bucket = bucket(epoch, today=today)
             items.append(base | update_card(message, subject, sender_name or sender) | {
                 "sender": label,
                 "inbox": "inbox" in tags,
                 "avatar": courier_avatars.picture_for_key(f"d:{base_domain(sender.rpartition('@')[2])}", pictures),
-                "snippet": preview_of(str(message.path), ""),
+                "snippet": preview_of(str(message.path), "", preview_cache, preview_dirty),
                 "unread": "unread" in tags,
                 "starred": "flagged" in tags,
                 # Which of your accounts it came to; one sender can write to several.
                 "account": account_of(tags),
                 "epoch": epoch,
-                "bucket": bucket(epoch),
+                "bucket": msg_bucket,
                 # Older emails need their date, not just a time of day.
-                "time": base["time"] if bucket(epoch) != "Earlier" else short_time(epoch),
+                "time": base["time"] if msg_bucket != "Earlier" else short_time(epoch, today=today),
             })
             continue
         body, attachments = read_message(str(message.path))
-        plain_subject = re.sub(r"^((re|fwd?|aw)\s*:\s*)+", "", subject, flags=re.I).strip()
+        plain_subject = RE_PLAIN_SUBJECT.sub("", subject).strip()
         item = base | {"from": "me" if sender in index.me else "them", "body": body, "attachments": attachments}
         if plain_subject and plain_subject != previous_subject:
             item["subject"] = plain_subject
         previous_subject = plain_subject
         items.append(item)
+    if preview_cache is not None and preview_dirty[0]:
+        _save_preview_cache(preview_cache)
     return items
+
+
+def bootstrap(account: str = "", include_templates: bool = False) -> dict:
+    """Single-shot startup payload for Junco Mail: returns accounts, folders,
+    conversations, first conversation's messages, and (optionally) templates
+    in one Python process with a single notmuch Index open."""
+    accounts_list = list_accounts(fetch=False)
+    tmpl_list = _eng("templates").listing(account) if include_templates else []
+    views_mod = _eng("views")
+    index = Index()
+    index.scope = views_mod.account_query(account)
+    try:
+        folder_data = views_mod.folders(index, account)
+        convs = conversations(index)
+        if not account:
+            remember("conversations.json", convs)
+        first = next((c for c in convs if c["lane"] == "people"), convs[0] if convs else None)
+        selected_id = first["id"] if first else ""
+        first_messages = thread(index, selected_id) if selected_id else []
+        if selected_id and not account:
+            remember(f"threads/{hashlib.md5(selected_id.encode()).hexdigest()}.json", first_messages)
+    finally:
+        index.close()
+    return {
+        "accounts": accounts_list,
+        "folders": folder_data["folders"],
+        "conversations": convs,
+        "selectedId": selected_id,
+        "messages": first_messages,
+        "templates": tmpl_list,
+    }
 
 
 def theme_of(text: str):
@@ -659,7 +828,7 @@ def substantive(text: str, footer: int, rich) -> bool:
 
 
 # A text part mostly made of web addresses (social and job alerts' tracking
-# links) reads worse than its HTML: measured on a real mailbox, GitHub's
+# links) reads worse than its HTML: measured on Jagrit's mail, GitHub's
 # notices are 14% addresses (median, 55% at the 90th percentile), LinkedIn's,
 # Indeed's and Pinterest's 86-89%.
 MOSTLY_LINKS = 0.6
@@ -715,7 +884,7 @@ READER_CHOICES = {"colours": {"auto", "dark", "original"}, "plain": {"auto", "al
 
 
 def reader_prefs() -> dict:
-    return later.load("reader.json", {})
+    return _eng("later").load("reader.json", {})
 
 
 def set_reader_pref(sender: str, colours: str = "", plain: str = "") -> dict:
@@ -737,7 +906,7 @@ def set_reader_pref(sender: str, colours: str = "", plain: str = "") -> dict:
         prefs[sender] = entry
     else:
         prefs.pop(sender, None)
-    later.save("reader.json", prefs)
+    _eng("later").save("reader.json", prefs)
     return {"sender": sender, "colours": entry.get("colours", "auto"), "plain": entry.get("plain", "auto")}
 
 
@@ -796,8 +965,11 @@ def open_message(index: Index, message_id: str, theme=None) -> dict:
     moment = datetime.fromtimestamp(epoch)
     tags = set(message.tags)
     view = reading(parsed, tags, sender, theme)
+    msg_details = _eng("views").details(index, message, parsed)
     return view | {
         "id": message_id,
+        "threadId": message.threadid,
+        "expiry": msg_details.get("expiry"),
         "subject": header_or_empty(message, "subject") or "(no subject)",
         "fromName": name or nice_name(sender),
         "fromAddress": sender,
@@ -808,7 +980,7 @@ def open_message(index: Index, message_id: str, theme=None) -> dict:
         "body": new or full,
         "full": full if full != new else "",
         "hasOriginal": rich is not None,
-        "details": views.details(index, message, parsed),
+        "details": msg_details,
         # Fields you taught for this email's template (courier_templates).
         "fields": fields_card(index, message),
         "inbox": "inbox" in set(message.tags),
@@ -828,7 +1000,7 @@ def fields_card(index: Index, message) -> dict | None:
     """The fields read from this email, when its template was taught. A
     problem there never stops the email opening."""
     try:
-        return templates.fields_of(index.db, message)
+        return _eng("templates").fields_of(index.db, message)
     except Exception as problem:  # noqa: BLE001 - the email matters more than its fields
         print(f"courier-mail: fields: {problem}", file=sys.stderr)
         return None
@@ -838,11 +1010,12 @@ def rendered_view(parsed, plain, rich, theme=None, colours: str = "auto") -> tup
     """The email's designed version, and whether it came from Markdown: its
     HTML part, or for a plain-text email written in Markdown, that text
     rendered; in the theme's colours when courier_html.designed() says so."""
+    html_mod = _eng("courier_html")
     if rich is not None:
-        return courier_html.designed(parsed, part_text(rich), theme, colours), False
+        return html_mod.designed(parsed, part_text(rich), theme, colours), False
     text = part_text(plain) if plain is not None else ""
-    if text and courier_html.looks_like_markdown(text):
-        return courier_html.designed(parsed, courier_html.markdown_html(text), theme, colours), True
+    if text and html_mod.looks_like_markdown(text):
+        return html_mod.designed(parsed, html_mod.markdown_html(text), theme, colours), True
     return None, False
 
 
@@ -886,7 +1059,7 @@ def show_original(index: Index, message_id: str) -> dict:
         text = part_text(body) if body is not None else ""
         markup = f"<pre style='white-space:pre-wrap;font:15px sans-serif'>{html.escape(text)}</pre>"
     head = f'<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="{ORIGINAL_POLICY}">'
-    folder = courier_html.private_dir("originals")
+    folder = _eng("courier_html").private_dir("originals")
     path = folder / (hashlib.sha1(message_id.encode()).hexdigest()[:16] + ".html")
     sync.write_private(path, head + markup)
     return {"path": str(path)}
@@ -1028,7 +1201,7 @@ def mark_read(conversation_id: str, account: str = "") -> int:
                 raise
             time.sleep(0.25)
             continue
-        index.scope = views.account_query(account)
+        index.scope = _eng("views").account_query(account)
         try:
             changed = 0
             shown = [m.messageid for m in itertools.islice(index.newest_first(query), THREAD_LIMIT)]
@@ -1076,6 +1249,7 @@ RETAG = {
     "archive": ((), ("inbox",)),
     "inbox": (("inbox",), ()),
     "trash": (("trash",), ()),
+    "delete": (("trash",), ()),
     "untrash": (("inbox",), ("trash",)),
     "spam": (("spam",), ()),
     "unspam": (("inbox",), ("spam",)),
@@ -1113,7 +1287,7 @@ def conversation_ids(conversation_id: str, account: str = "") -> list[str]:
     """Every inbox email of a conversation (of one account, when one is
     shown), for archiving it whole."""
     index = Index()
-    index.scope = views.account_query(account)
+    index.scope = _eng("views").account_query(account)
     try:
         query = f"({conversation_query(conversation_id)}) and tag:inbox"
         return [message.messageid for message in index.newest_first(query)]
@@ -1124,7 +1298,9 @@ def conversation_ids(conversation_id: str, account: str = "") -> list[str]:
 def act(action: str, message_ids: list[str], label: str = "") -> dict:
     """Archive, delete, mark as spam or move to a label in Gmail itself, or
     undo that."""
-    if action not in gmail.ACTIONS:
+    gmail_mod = _eng("gmail")
+    views_mod = _eng("views")
+    if action not in gmail_mod.ACTIONS:
         raise MailError(f"Unknown action {action!r}.")
     index = Index()
     # Rows for the saved Trash, from this PC's copy before it goes.
@@ -1143,7 +1319,7 @@ def act(action: str, message_ids: list[str], label: str = "") -> dict:
                 if action == "trash":
                     name, sender = email.utils.parseaddr(header_or_empty(message, "from"))
                     trashed.append({"id": message_id, "title": name or sender, "subtitle": header_or_empty(message, "subject") or "(no subject)",
-                                    "time": views.row_time(int(message.date)), "epoch": int(message.date), "account": owner})
+                                    "time": views_mod.row_time(int(message.date)), "epoch": int(message.date), "account": owner})
             except LookupError:
                 # Already gone from this PC (deleted, then synced): ask every account.
                 for account in accounts:
@@ -1154,8 +1330,8 @@ def act(action: str, message_ids: list[str], label: str = "") -> dict:
     try:
         for account in accounts:
             if by_account.get(account["id"]):
-                done += gmail.apply(account, action, by_account[account["id"]], label=label)
-    except (gmail.GmailError, sync.SignedOut, sync.SyncError) as error:
+                done += gmail_mod.apply(account, action, by_account[account["id"]], label=label)
+    except (gmail_mod.GmailError, sync.SignedOut, sync.SyncError) as error:
         message = f"Sign in again: courier-auth add {error.args[0]}" if isinstance(error, sync.SignedOut) else str(error)
         raise MailError(message) from None
 
@@ -1217,7 +1393,8 @@ def draft(index: Index, mode: str, message_id: str) -> dict:
     from_person = address_of(header_or_empty(message, "from"))
     to = addresses([header_or_empty(message, "to")])
     cc = addresses([header_or_empty(message, "cc")])
-    mine = lambda person: views.plain_address(person[1]) in index.me  # noqa: E731
+    views_mod = _eng("views")
+    mine = lambda person: views_mod.plain_address(person[1]) in index.me  # noqa: E731
     if mode == "forward":
         return {"mode": mode, "id": message_id, "account": account["id"], "to": [], "cc": [], "subject": f"Fwd: {subject}" if subject else "Fwd:",
                 "attachments": [decode(part.get_filename()) for part in attachment_parts(parsed)]}
@@ -1362,14 +1539,16 @@ def first_account() -> dict:
 def storage() -> dict:
     """Each account's Gmail storage use (shared with Drive and Photos),
     checked at most every half hour."""
-    cached = later.load("storage.json", {})
+    later_mod = _eng("later")
+    cached = later_mod.load("storage.json", {})
     # Fresh for half an hour, unless an account was added or removed since.
     same_accounts = {a.get("account") for a in cached.get("accounts", [])} == {a["id"] for a in sync.load_accounts()}
     if time.time() - cached.get("checked", 0) < 30 * 60 and "accounts" in cached and same_accounts:
         return cached
+    gmail_mod = _eng("gmail")
     found = []
     for account in sync.load_accounts():
-        imap = gmail.connect(account)
+        imap = gmail_mod.connect(account)
         try:
             _, data = imap.getquotaroot("INBOX")
         finally:
@@ -1379,7 +1558,7 @@ def storage() -> dict:
         if quota:
             found.append({"account": account["id"], "email": account["email"], "used": int(quota.group(1)) * 1024, "limit": int(quota.group(2)) * 1024})
     result = {"accounts": found, "checked": time.time()}
-    later.save("storage.json", result)
+    later_mod.save("storage.json", result)
     return result
 
 
@@ -1392,15 +1571,16 @@ def account_named(account_id: str) -> dict:
 
 def gmail_labels(account_id: str = "") -> list[str]:
     """One account's own Gmail labels, asked for at most hourly."""
+    later_mod = _eng("later")
     account = account_named(account_id)
-    cached = later.load("labels.json", {})
+    cached = later_mod.load("labels.json", {})
     entry = cached.get(account["email"], {}) if isinstance(cached.get(account["email"]), dict) else {}
     if time.time() - entry.get("checked", 0) < 60 * 60:
         return entry["labels"]
-    found = gmail.labels(account)
+    found = _eng("gmail").labels(account)
     cached = {key: value for key, value in cached.items() if isinstance(value, dict)}
     cached[account["email"]] = {"labels": found, "checked": time.time()}
-    later.save("labels.json", cached)
+    later_mod.save("labels.json", cached)
     return found
 
 
@@ -1433,7 +1613,8 @@ def cached_trash() -> dict:
         saved = json.loads(trash_cache_path().read_text())
     except (OSError, ValueError):
         return {"rows": [], "cached": False}
-    rows = [row | {"time": views.row_time(row["epoch"])} for row in saved.get("rows", [])]
+    views_mod = _eng("views")
+    rows = [row | {"time": views_mod.row_time(row["epoch"])} for row in saved.get("rows", [])]
     return {"rows": rows, "cached": True, "checked": saved.get("checked", 0)}
 
 
@@ -1449,12 +1630,14 @@ def remember_trash(added: list[dict] = (), removed: list[str] = ()) -> None:
 
 
 def trash_rows(account: dict, limit: int) -> list[dict]:
-    imap = gmail.connect(account)
+    gmail_mod = _eng("gmail")
+    views_mod = _eng("views")
+    imap = gmail_mod.connect(account)
     try:
-        folders = gmail.folders_for(imap, account)
+        folders = gmail_mod.folders_for(imap, account)
         # SELECT already says how many emails there are, so the newest are
         # fetched by position without a SEARCH round trip (~0.3 s each).
-        _, data = imap.select(gmail.quote(folders.get("\\Trash", "[Gmail]/Trash")), readonly=True)
+        _, data = imap.select(gmail_mod.quote(folders.get("\\Trash", "[Gmail]/Trash")), readonly=True)
         count = int(data[0] or 0)
         if not count:
             return []
@@ -1474,7 +1657,7 @@ def trash_rows(account: dict, limit: int) -> list[dict]:
             "id": str(headers.get("Message-ID", "")).strip().strip("<>"),
             "title": name or sender,
             "subtitle": str(headers.get("Subject", "")) or "(no subject)",
-            "time": views.row_time(epoch),
+            "time": views_mod.row_time(epoch),
             "epoch": epoch,
             "account": account["id"],
         })
@@ -1484,14 +1667,15 @@ def trash_rows(account: dict, limit: int) -> list[dict]:
 def trash_message(message_id: str, account_id: str = "") -> dict:
     """One email from Gmail's Trash, for the reader. It's read from Gmail,
     since deleted mail leaves this PC on the next sync."""
+    gmail_mod = _eng("gmail")
     for account in sync.load_accounts():
         if account_id and account["id"] != account_id:
             continue
-        imap = gmail.connect(account)
+        imap = gmail_mod.connect(account)
         try:
-            folders = gmail.folders_for(imap, account)
-            imap.select(gmail.quote(folders.get("\\Trash", "[Gmail]/Trash")), readonly=True)
-            uids = gmail.find_uids(imap, [message_id])
+            folders = gmail_mod.folders_for(imap, account)
+            imap.select(gmail_mod.quote(folders.get("\\Trash", "[Gmail]/Trash")), readonly=True)
+            uids = gmail_mod.find_uids(imap, [message_id])
             if not uids:
                 continue
             _, data = imap.uid("FETCH", uids[0], "(INTERNALDATE BODY.PEEK[])")
@@ -1666,8 +1850,9 @@ def set_account_picture(account_id: str, source: str, crop: tuple[int, int, int]
     try:
         # Only the picture types the chooser offers; anything else Pillow
         # reads (an icon, PostScript it would hand to Ghostscript) isn't tried.
-        with courier_html.pixel_limit(PICTURE_FILE_PIXELS), \
-                Image.open(source, formats=courier_html.PICTURE_FORMATS) as image:
+        html_mod = _eng("courier_html")
+        with html_mod.pixel_limit(PICTURE_FILE_PIXELS), \
+                Image.open(source, formats=html_mod.PICTURE_FORMATS) as image:
             full_width = image.width
             square = max(1, min(crop[2] if crop else min(image.size), *image.size))
             image.draft(None, (image.width * 160 // square + 1, image.height * 160 // square + 1))
@@ -1770,7 +1955,7 @@ def preview(index: Index, message_id: str, number: int) -> dict:
     kind = preview_kind(data)
     if kind is None:
         raise MailError("Junco only previews pictures, PDFs and text. Save it to open it yourself.")
-    target = views.preview_path(preview_name(decode(part.get_filename()) or "attachment", kind))
+    target = _eng("views").preview_path(preview_name(decode(part.get_filename()) or "attachment", kind))
     # A fresh file, never written through anything left at that name.
     target.unlink(missing_ok=True)
     descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -1790,8 +1975,16 @@ def subject_of(message_id: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    raw_argv = sys.argv[1:] if argv is None else list(argv)
+    if raw_argv and raw_argv[0] == "expiry":
+        return _eng("expiry").run_cli(raw_argv[1:], prog="courier-mail expiry")
+    import argparse
+
     parser = argparse.ArgumentParser(prog="courier-mail", description="Junco's mail, as JSON.")
     commands = parser.add_subparsers(dest="command", required=True)
+    boot = commands.add_parser("bootstrap", help="single-shot startup payload for Junco Mail")
+    boot.add_argument("--account", default="")
+    boot.add_argument("--include-templates", action="store_true")
     commands.add_parser("accounts").add_argument(
         "--fetch", action="store_true", help="first look up any account's own picture (Google photo, Gravatar) not looked up yet")
     # --account: only that account's mail; every account's when left out.
@@ -1835,7 +2028,7 @@ def main(argv: list[str] | None = None) -> int:
     sender.add_argument("--body")
     sender.add_argument("--dry-run", action="store_true", help="print the message instead of sending it")
     actor = commands.add_parser("act", help="archive, inbox, trash, untrash, spam or unspam emails in Gmail")
-    actor.add_argument("action", choices=sorted(gmail.ACTIONS))
+    actor.add_argument("action", choices=_GMAIL_ACTIONS)
     actor.add_argument("ids", nargs="*")
     actor.add_argument("--conversation", help="every inbox email of this conversation (archive only)")
     actor.add_argument("--label", default="", help="the label to move them to (move)")
@@ -1858,7 +2051,7 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("contacts", help="addresses to suggest when writing")
     commands.add_parser("folders", help="the sidebar's folders and their counts").add_argument("--account", default="")
     lister = commands.add_parser("list", help="one folder's rows, by day")
-    lister.add_argument("folder", choices=[f for f in views.FOLDERS if f not in {"scheduled", "trash"}])
+    lister.add_argument("folder", choices=_LIST_FOLDERS)
     lister.add_argument("--search", default="")
     lister.add_argument("--account", default="", help="only this account's mail")
     commands.add_parser("storage", help="Gmail storage used")
@@ -1878,10 +2071,11 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("send-now", help="send a scheduled email now").add_argument("file")
     keeper = commands.add_parser("retention", help="delete an email after a while; an empty period keeps it")
     keeper.add_argument("id")
-    keeper.add_argument("period", choices=["", *later.PERIODS])
+    keeper.add_argument("period", choices=["", *_RETENTION_PERIODS])
     commands.add_parser("rules", help="automation rules with what each would touch now")
     commands.add_parser("rule-save", help="add or change a rule (JSON)").add_argument("json")
     commands.add_parser("rule-delete").add_argument("id")
+    commands.add_parser("expiry", help="auto-expiry rules and per-thread scheduled deletion")
     commands.add_parser("tick", help="do what's due: snoozes, reminders, scheduled sends, retention, rules")
     trash = commands.add_parser("trash", help="the newest emails in Gmail's Trash")
     trash.add_argument("--account", default="")
@@ -1900,15 +2094,17 @@ def main(argv: list[str] | None = None) -> int:
     except EmptyMessage as error:
         print(json.dumps({"error": str(error), "empty": True}))
         return 1
-    except (MailError, later.LaterError, templates.TemplateError) as error:
-        print(json.dumps({"error": str(error)}))
-        return 1
-    except (gmail.GmailError, sync.SyncError) as error:
-        print(json.dumps({"error": str(error)}))
-        return 1
     except sync.SignedOut as error:
         print(json.dumps({"error": f"Sign in again: courier-auth add {error.args[0]}"}))
         return 1
+    except (MailError, sync.SyncError) as error:
+        print(json.dumps({"error": str(error)}))
+        return 1
+    except Exception as error:
+        if type(error).__name__ in {"LaterError", "TemplateError", "GmailError"}:
+            print(json.dumps({"error": str(error)}))
+            return 1
+        raise
 
 
 def teach_command(args) -> dict:
@@ -1923,23 +2119,26 @@ def teach_command(args) -> dict:
             raise MailError("The panel sent something Junco can't read.") from None
         if not isinstance(payload, dict):
             raise MailError("The panel sent something Junco can't read.")
+    tmpl_mod = _eng("templates")
     index = Index()
     try:
         if args.command == "teach-start":
-            return templates.start(index.db, args.id, args.surface)
+            return tmpl_mod.start(index.db, args.id, args.surface)
         if args.command == "teach-select":
-            return templates.select(index.db, args.id, payload)
+            return tmpl_mod.select(index.db, args.id, payload)
         if args.command == "teach-preview":
-            return templates.preview(index.db, args.id, payload)
+            return tmpl_mod.preview(index.db, args.id, payload)
         if args.command == "teach-save":
-            return templates.save(index.db, args.id, payload)
-        return templates.table(index.db, args.template)
+            return tmpl_mod.save(index.db, args.id, payload)
+        return tmpl_mod.table(index.db, args.template)
     finally:
         index.close()
 
 
 def run_command(args) -> int:
-    if args.command == "accounts":
+    if args.command == "bootstrap":
+        result = bootstrap(args.account, args.include_templates)
+    elif args.command == "accounts":
         result = list_accounts(args.fetch)
     elif args.command == "account-picture":
         if not args.clear and not args.path:
@@ -1952,9 +2151,9 @@ def run_command(args) -> int:
     elif args.command in {"teach-start", "teach-select", "teach-preview", "teach-save", "template-table"}:
         result = teach_command(args)
     elif args.command == "template-delete":
-        result = templates.delete_template(args.template)
+        result = _eng("templates").delete_template(args.template)
     elif args.command == "templates":
-        result = {"templates": templates.listing(args.account)}
+        result = {"templates": _eng("templates").listing(args.account)}
     elif args.command in {"message", "original", "attachment"}:
         index = Index()
         try:
@@ -1997,15 +2196,15 @@ def run_command(args) -> int:
         finally:
             index.close()
         if args.command == "compose":
-            result = later.schedule(account_id, message, args.at) if args.at and not args.dry_run else deliver(account_id, message, args.dry_run)
+            result = _eng("later").schedule(account_id, message, args.at) if args.at and not args.dry_run else deliver(account_id, message, args.dry_run)
     elif args.command in {"folders", "list", "task", "preview", "rules"}:
         index = Index()
         try:
             if args.command == "folders":
-                result = views.folders(index, args.account)
+                result = _eng("views").folders(index, args.account)
             elif args.command == "list":
                 try:
-                    result = views.smart_list(index, args.folder, args.search, account=args.account)
+                    result = _eng("views").smart_list(index, args.folder, args.search, account=args.account)
                 except index.notmuch.NotmuchError:
                     raise MailError("Couldn't search for that.") from None
             elif args.command == "task":
@@ -2013,7 +2212,8 @@ def run_command(args) -> int:
             elif args.command == "preview":
                 result = preview(index, args.id, args.number)
             else:
-                result = {"rules": [dict(rule, text=later.describe(rule), matches=later.rule_count(index, rule)) for rule in later.rules()]}
+                later_mod = _eng("later")
+                result = {"rules": [dict(rule, text=later_mod.describe(rule), matches=later_mod.rule_count(index, rule)) for rule in later_mod.rules()]}
         finally:
             index.close()
     elif args.command == "storage":
@@ -2028,41 +2228,43 @@ def run_command(args) -> int:
             owner = ""
         finally:
             index.close()
-        result = {"labels": gmail.labels_of(account_named(owner), args.id)}
+        result = {"labels": _eng("gmail").labels_of(account_named(owner), args.id)}
     elif args.command == "snooze":
-        result = later.snooze(lambda action, ids, label="": act(action, ids, label), args.ids, args.until, subject_of(args.ids[0]))
+        result = _eng("later").snooze(lambda action, ids, label="": act(action, ids, label), args.ids, args.until, subject_of(args.ids[0]))
     elif args.command == "unsnooze":
-        result = later.unsnooze(lambda action, ids, label="": act(action, ids, label), args.ids)
+        result = _eng("later").unsnooze(lambda action, ids, label="": act(action, ids, label), args.ids)
     elif args.command == "remind":
-        result = later.remind(args.id, args.at, subject_of(args.id))
+        result = _eng("later").remind(args.id, args.at, subject_of(args.id))
     elif args.command == "unremind":
-        result = later.unremind(args.id)
+        result = _eng("later").unremind(args.id)
     elif args.command == "scheduled":
-        result = {"items": later.scheduled()}
+        result = {"items": _eng("later").scheduled()}
     elif args.command == "later":
+        later_mod = _eng("later")
         result = {
-            "reminders": sorted(later.reminders(), key=lambda item: item["at"]),
-            "snoozed": sorted(later.snoozed(), key=lambda item: item["until"]),
-            "scheduled": later.scheduled(),
+            "reminders": sorted(later_mod.reminders(), key=lambda item: item["at"]),
+            "snoozed": sorted(later_mod.snoozed(), key=lambda item: item["until"]),
+            "scheduled": later_mod.scheduled(),
         }
     elif args.command == "unschedule":
-        result = later.unschedule(args.file)
+        result = _eng("later").unschedule(args.file)
     elif args.command == "send-now":
-        result = later.send_now(args.file)
+        result = _eng("later").send_now(args.file)
         start_sync()
     elif args.command == "retention":
-        result = later.set_retention(args.id, args.period, subject_of(args.id))
+        result = _eng("later").set_retention(args.id, args.period, subject_of(args.id))
     elif args.command == "rule-save":
-        result = later.save_rule(json.loads(args.json))
+        later_mod = _eng("later")
+        result = later_mod.save_rule(json.loads(args.json))
         index = Index()
         try:
-            result = dict(result, text=later.describe(result), matches=later.rule_count(index, result))
+            result = dict(result, text=later_mod.describe(result), matches=later_mod.rule_count(index, result))
         finally:
             index.close()
     elif args.command == "rule-delete":
-        result = later.delete_rule(args.id)
+        result = _eng("later").delete_rule(args.id)
     elif args.command == "tick":
-        result = later.tick(lambda action, ids, label="": act(action, ids, label), Index)
+        result = _eng("later").tick(lambda action, ids, label="": act(action, ids, label), Index)
     elif args.command == "trash":
         result = cached_trash() if args.cached else {"rows": trash_list(args.account)}
     elif args.command == "reader-pref":
@@ -2073,7 +2275,7 @@ def run_command(args) -> int:
         result = add_account(args.name)
     else:
         index = Index()
-        index.scope = views.account_query(args.account)
+        index.scope = _eng("views").account_query(args.account)
         try:
             # The startup caches hold every account's view only.
             if args.command == "conversations":

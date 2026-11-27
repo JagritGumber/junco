@@ -77,6 +77,9 @@ Item {
     visible: Inbox.composing && draft !== null
     z: 95
 
+    Component.onCompleted: if (visible)
+        load()
+
     onVisibleChanged: if (visible)
         load()
 
@@ -106,7 +109,7 @@ Item {
     // The scrim: a click outside closes, keeping the draft.
     Rectangle {
         anchors.fill: parent
-        radius: 28
+        radius: Theme.paneRadius
         color: Theme.alpha("#000000", 0.45)
 
         MouseArea {
@@ -121,10 +124,12 @@ Item {
         id: card
 
         anchors.centerIn: parent
-        width: Math.min(780, parent.width - 48)
-        height: Math.min(parent.height - 48, 760)
-        radius: 28
+        width: Math.min(720, parent.width - 32)
+        height: Math.min(parent.height - 32, 680)
+        radius: 16
         color: Theme.m3popup
+        border.width: 1
+        border.color: Theme.glassPopupBorder
 
         MouseArea {
             anchors.fill: parent
@@ -132,7 +137,7 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 24
+            anchors.margins: 16
             spacing: 4
 
             RowLayout {
@@ -143,7 +148,7 @@ Item {
                     Layout.fillWidth: true
                     text: ({ new: "New email", reply: "Reply", replyall: "Reply all", forward: "Forward" })[root.mode] ?? "New email"
                     font.pixelSize: 22
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 // Which account sends it, when there's more than one: each
@@ -191,7 +196,7 @@ Item {
                     visible: !root.showCopies
                     text: "Cc  Bcc"
                     color: Theme.m3primary
-                    font.weight: Font.Medium
+                    weight: Font.Medium
 
                     MouseArea {
                         anchors.fill: parent
@@ -255,7 +260,8 @@ Item {
                 selectedTextColor: Theme.m3onPrimary
                 font.family: Theme.sans
                 font.pixelSize: 15
-                font.weight: Font.Medium
+                font.weight: Font.Normal
+                font.variableAxes: ({ "wght": Theme.weightMedium })
                 clip: true
                 onTextChanged: root.keep("subject", text)
                 Keys.onReturnPressed: body.forceActiveFocus()
@@ -410,7 +416,7 @@ Item {
                                 text: file.modelData.split("/").pop()
                                 color: Theme.m3onSecondaryContainer
                                 font.pixelSize: 13
-                                font.weight: Font.Medium
+                                weight: Font.Medium
                             }
 
                             IconButton {
@@ -456,7 +462,7 @@ Item {
                         Layout.fillWidth: true
                         text: "This email has no text."
                         color: Theme.m3onSecondaryContainer
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     Pill {

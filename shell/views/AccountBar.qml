@@ -3,18 +3,13 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// The foot of the sidebar: your accounts as circles. The one shown is big;
-// the small ones switch to another account (or All, every account together,
-// drawn as one circle split between their pictures); + adds one. Each wears
-// its own picture (its Google photo or Gravatar) unless you chose another.
-// Hovering a circle a moment, or clicking the big one, shows its card
-// (AccountCard): name, address, storage as a bar, Change picture. Right-click
-// opens the same actions as a menu. A first download shows as a ring and a
-// progress line.
+// The foot of the sidebar: accounts as circles (full row when expanded,
+// single active circle in compact rail mode — hover or click opens AccountCard).
 ColumnLayout {
     id: root
 
-    // The account shown: "" is All, unless there is only one account.
+    property bool compact: false
+
     readonly property string current: Inbox.account !== "" ? Inbox.account : Inbox.accounts.length === 1 ? Inbox.accounts[0].id : ""
     readonly property var others: {
         if (Inbox.accounts.length < 2)
@@ -24,7 +19,6 @@ ColumnLayout {
     }
     readonly property var downloading: Inbox.accounts.filter(a => Inbox.progressOf(a.id) >= 0)
 
-    // Right-click: the card's actions as a menu (its storage bar is on the card).
     function menuFor(id: string, item: Item): void {
         Inbox.accountCard?.close();
         if (id === "") {
@@ -35,11 +29,10 @@ ColumnLayout {
         Inbox.windowMenu.show(item, [{ icon: "alternate_email", label: info?.email ?? id, run: () => {} }, { separator: true }, ...Inbox.pictureActions(id)]);
     }
 
-    spacing: 6
+    spacing: 4
 
-    // A first download, so new mail arriving bit by bit isn't a mystery.
     Repeater {
-        model: root.downloading
+        model: root.compact ? [] : root.downloading
 
         delegate: ColumnLayout {
             id: download
@@ -48,31 +41,30 @@ ColumnLayout {
             readonly property var entry: Inbox.syncStatus[modelData.id] ?? ({})
 
             Layout.fillWidth: true
-            Layout.leftMargin: 6
-            Layout.rightMargin: 6
-            spacing: 5
+            Layout.leftMargin: 4
+            Layout.rightMargin: 4
+            spacing: 4
 
-            // preferredWidth 0: long text wraps or elides instead of widening
-            // the sidebar.
             Label {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: `Downloading ${download.modelData.email}`
+                color: Theme.sheetInk
                 elide: Text.ElideRight
-                font.pixelSize: 12
-                font.weight: Font.Medium
+                font.pixelSize: 11
+                weight: Font.Medium
             }
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: 4
-                radius: 2
-                color: Theme.m3surfaceContainerHighest
+                implicitHeight: 3
+                radius: 1.5
+                color: Theme.sheetControl
 
                 Rectangle {
                     width: parent.width * Math.max(0.02, Inbox.progressOf(download.modelData.id))
                     height: parent.height
-                    radius: 2
+                    radius: 1.5
                     color: Theme.m3primary
                 }
             }
@@ -80,26 +72,41 @@ ColumnLayout {
             Label {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
-                text: `${(download.entry.have ?? 0).toLocaleString()} of ${(download.entry.expected ?? 0).toLocaleString()} emails. They show up as they arrive.`
+                text: `${(download.entry.have ?? 0).toLocaleString()} of ${(download.entry.expected ?? 0).toLocaleString()} emails.`
                 wrapMode: Text.Wrap
-                color: Theme.m3onSurfaceVariant
-                font.pixelSize: 11
+                color: Theme.sheetInkVariant
+                font.pixelSize: 10
             }
         }
     }
 
-    // Wraps onto another line when there are many accounts. Each small
-    // circle and + sits in a slot as tall as the big circle, so a line stays
-    // centred.
+    // Compact rail: single active circle centered.
+    Item {
+        Layout.fillWidth: true
+        implicitHeight: compactCircle.implicitHeight
+        visible: root.compact
+
+        AccountCircle {
+            id: compactCircle
+
+            anchors.centerIn: parent
+            account: root.current
+            size: 32
+            onClicked: mouse => mouse.button === Qt.RightButton ? root.menuFor(root.current, compactCircle) : Inbox.accountCard?.showNow(compactCircle, root.current)
+        }
+    }
+
+    // Expanded sidebar: compact row of account circles + add button.
     Flow {
         Layout.fillWidth: true
+        visible: !root.compact
         spacing: 2
 
         AccountCircle {
             id: big
 
             account: root.current
-            size: 44
+            size: 34
             onClicked: mouse => mouse.button === Qt.RightButton ? root.menuFor(root.current, big) : Inbox.accountCard?.showNow(big, root.current)
         }
 
@@ -119,7 +126,7 @@ ColumnLayout {
 
                     anchors.centerIn: parent
                     account: slot.modelData
-                    size: 30
+                    size: 24
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton) {
                             root.menuFor(slot.modelData, small);
@@ -132,27 +139,26 @@ ColumnLayout {
             }
         }
 
-        // + : add an account.
         Item {
-            width: 38
+            width: 30
             height: big.implicitHeight
 
             Rectangle {
                 id: addButton
 
                 anchors.centerIn: parent
-                width: 30
-                height: 30
-                radius: 15
-                color: add.containsMouse ? Theme.alpha(Theme.m3onSurface, 0.1) : "transparent"
-                border.width: 1.5
-                border.color: Theme.alpha(Theme.m3onSurface, 0.3)
+                width: 24
+                height: 24
+                radius: 12
+                color: add.containsMouse ? Theme.sheetControlHover : Theme.sheetControl
+                border.width: 1
+                border.color: Theme.sheetRim
 
                 Icon {
                     anchors.centerIn: parent
                     name: "add"
-                    size: 18
-                    color: Theme.m3onSurfaceVariant
+                    size: 15
+                    color: Theme.sheetInk
                 }
             }
 

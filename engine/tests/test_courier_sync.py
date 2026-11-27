@@ -98,7 +98,7 @@ class CourierSyncTest(unittest.TestCase):
     def test_a_draft_is_never_sent_mail(self) -> None:
         # Gmail keeps a draft in All Mail too, with only its \\Draft label;
         # the copy in Drafts is what says it is one.
-        draft = mail("draft@me", f"Me <{ME}>", "Re: Viva", "In-Reply-To: <viva@university>\n")
+        draft = mail("draft@me", f"Me <{ME}>", "Re: Viva", "In-Reply-To: <viva@ignou>\n")
         self.deliver("personal/all", "1", draft, "S")
         copy = self.deliver("personal/drafts", "1", draft, "S")
         sync.index(ACCOUNTS)
@@ -162,7 +162,7 @@ class CourierSyncTest(unittest.TestCase):
         self.assertEqual(self.tags("aarav@x"), {"people", "unread", "account/personal"})
 
     def test_college_and_meeting_categories(self) -> None:
-        self.deliver("personal/all", "1", mail("fee@university", "University <office@university.ac.in>", "Semester fee receipt"))
+        self.deliver("personal/all", "1", mail("fee@ignou", "IGNOU <rcdelhi2@ignou.ac.in>", "Semester fee receipt"))
         invite = (
             "Message-ID: <invite@x>\nFrom: Aarav Mehta <aarav@northwind.studio>\nTo: someone@example.com\n"
             "Subject: Invitation: Design review\nDate: Sat, 21 Nov 2026 10:24:00 +0530\nMIME-Version: 1.0\n"
@@ -171,9 +171,9 @@ class CourierSyncTest(unittest.TestCase):
         ).encode()
         self.deliver("personal/all", "2", invite)
         sync.index(ACCOUNTS)
-        self.assertIn("college", self.tags("fee@university"))
+        self.assertIn("college", self.tags("fee@ignou"))
         self.assertIn("meeting", self.tags("invite@x"))
-        self.assertNotIn("meeting", self.tags("fee@university"))
+        self.assertNotIn("meeting", self.tags("fee@ignou"))
 
     def test_reading_in_courier_sets_the_seen_flag_mbsync_pushes(self) -> None:
         path = self.deliver("personal/all", "1", mail("aarav@x", "aarav@northwind.studio", "Hi"))

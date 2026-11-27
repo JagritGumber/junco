@@ -65,7 +65,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 28
+        radius: Theme.paneRadius
         color: Theme.alpha("#000000", 0.45)
 
         // A click outside closes it, except mid sign-in: coming back from the
@@ -80,10 +80,12 @@ Item {
 
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(480, parent.width - 48)
-        height: form.implicitHeight + 48
-        radius: 28
+        width: Math.min(460, parent.width - 32)
+        height: form.implicitHeight + 36
+        radius: 16
         color: Theme.m3popup
+        border.width: 1
+        border.color: Theme.glassPopupBorder
 
         MouseArea {
             anchors.fill: parent
@@ -95,7 +97,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 24
+            anchors.margins: 18
             spacing: 16
 
             RowLayout {
@@ -105,7 +107,7 @@ Item {
                     Layout.fillWidth: true
                     text: root.stage === "done" ? "Account added" : "Add an account"
                     font.pixelSize: 22
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 IconButton {
@@ -135,7 +137,7 @@ Item {
 
                 Label {
                     text: "A short name for it"
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 FormField {
@@ -159,7 +161,7 @@ Item {
                     color: Theme.m3primary
 
                     RotationAnimation on rotation {
-                        running: root.stage === "waiting"
+                        running: root.visible && root.stage === "waiting"
                         from: 0
                         to: 360
                         duration: 900

@@ -46,7 +46,7 @@ Rectangle {
                 text: root.card?.template?.name ?? ""
                 elide: Text.ElideRight
                 font.pixelSize: 14
-                font.weight: Font.Medium
+                weight: Font.Medium
             }
 
             Pill {

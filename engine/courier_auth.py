@@ -44,6 +44,10 @@ MAIL_SCOPE = "https://mail.google.com/"
 # Read-only: Courier copies Google events locally and reminds you; events you
 # create live on this PC. Widening it later means signing in again.
 CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
+# Asked for only with add --calendar-write: answering invitations from the
+# notification dock (courier_calendar.respond) changes your response on an
+# event, which the read-only permission can't.
+CALENDAR_WRITE_SCOPE = "https://www.googleapis.com/auth/calendar.events"
 SCOPES = ["openid", "email", MAIL_SCOPE, CALENDAR_SCOPE]
 # Google's consent screen lets you untick individual permissions.
 REQUIRED_SCOPES = [MAIL_SCOPE, CALENDAR_SCOPE]
@@ -180,7 +184,7 @@ def open_browser(url: str) -> None:
     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def sign_in(client: dict, login_hint: str | None) -> dict:
+def sign_in(client: dict, login_hint: str | None, scopes: list[str] | None = None) -> dict:
     """Runs Google's loopback flow with PKCE and returns the token response."""
     verifier = secrets.token_urlsafe(64)
     state = secrets.token_urlsafe(24)
@@ -220,7 +224,7 @@ def sign_in(client: dict, login_hint: str | None) -> dict:
         "client_id": client["client_id"],
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": " ".join(SCOPES),
+        "scope": " ".join(scopes or SCOPES),
         "code_challenge": pkce_challenge(verifier),
         "code_challenge_method": "S256",
         "state": state,
@@ -268,7 +272,8 @@ def id_token_email(id_token: str) -> str:
 
 
 def cache_access(account: str, tokens: dict) -> None:
-    entry = {"token": tokens["access_token"], "expires": int(time.time()) + int(tokens.get("expires_in", 0))}
+    entry = {"token": tokens["access_token"], "expires": int(time.time()) + int(tokens.get("expires_in", 0)),
+             "scope": tokens.get("scope", "")}
     keyring_set("access", account, json.dumps(entry), label=f"Junco: Google access token ({account})")
 
 
@@ -308,9 +313,9 @@ def on_signin_expired(account: str) -> None:
     Sync runs in the background every few minutes, so stderr alone goes
     unseen, and a desktop notification on every run would nag.
     """
-    # TODO: decide how Courier tells you: notify once, notify every run, or
-    # stay quiet and let the app show a banner. For now it only writes to
-    # stderr.
+    # TODO(Jagrit): pick how Courier tells you. The choice is yours (see the
+    # chat): notify once, notify every run, or stay quiet and let the app
+    # show a banner. This default only writes to stderr.
     print(
         f"courier-auth: Google no longer accepts the saved sign-in for '{account}'. "
         f"Run: courier-auth add {account}",
@@ -334,11 +339,11 @@ def cmd_setup(path: str) -> None:
     print(f"Saved the Google client to the keyring. You can delete {path} now.")
 
 
-def cmd_add(account: str, login_hint: str | None) -> None:
+def cmd_add(account: str, login_hint: str | None, calendar_write: bool = False) -> None:
     if not ACCOUNT_ID.match(account):
         raise UsageError("Account names are short and lowercase, like 'personal' or 'work'.")
     client = load_client()
-    tokens = sign_in(client, login_hint)
+    tokens = sign_in(client, login_hint, SCOPES + [CALENDAR_WRITE_SCOPE] if calendar_write else None)
 
     granted = set(tokens.get("scope", "").split())
     missing = [scope for scope in REQUIRED_SCOPES if scope not in granted]
@@ -388,6 +393,8 @@ def main(argv: list[str] | None = None) -> int:
     add = commands.add_parser("add", help="sign in a Google account")
     add.add_argument("account")
     add.add_argument("--email", help="preselect this Google account")
+    add.add_argument("--calendar-write", action="store_true",
+                     help="also let Junco answer invitations (Accept, Maybe, Decline in the notification dock)")
     commands.add_parser("token", help="print a fresh access token").add_argument("account")
     commands.add_parser("list", help="show signed-in accounts")
     commands.add_parser("remove", help="sign out and revoke").add_argument("account")
@@ -397,7 +404,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "setup":
             cmd_setup(args.client_json)
         elif args.command == "add":
-            cmd_add(args.account, args.email)
+            cmd_add(args.account, args.email, args.calendar_write)
         elif args.command == "token":
             print(access_token(args.account))
         elif args.command == "list":

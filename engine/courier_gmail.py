@@ -23,6 +23,8 @@ ACTIONS = {
     "archive": ("\\All", ("store", "-X-GM-LABELS", "(\\Inbox)")),
     "inbox": ("\\All", ("store", "+X-GM-LABELS", "(\\Inbox)")),
     "trash": ("\\All", ("move", "\\Trash")),
+    # Explicit opt-in permanent delete: move to Trash, then mark \Deleted + EXPUNGE.
+    "delete": ("\\All", ("expunge", "\\Trash")),
     "untrash": ("\\Trash", ("move", "INBOX")),
     "spam": ("\\All", ("move", "\\Junk")),
     "unspam": ("\\Junk", ("move", "INBOX")),
@@ -99,7 +101,7 @@ def folders_for(imap, account: dict, fresh: bool = False) -> dict[str, str]:
 # Message-ID characters. The sender writes it, and whitespace, quotes, a
 # backslash, brackets, braces, a colon or "|" could turn "rfc822msgid:<id>"
 # into a wider search ("a)OR(in:inbox") whose every match the action would
-# then archive, delete or report. (All 14,070 IDs in a real mailbox fit, on
+# then archive, delete or report. (All 14,070 IDs in Jagrit's mail fit, on
 # 2026-11-23.)
 SEARCHABLE_ID = re.compile(r"[A-Za-z0-9.!#$%&*+/=?^_~@-]+")
 
@@ -207,6 +209,17 @@ def apply(account: dict, action: str, message_ids: list[str], imap=None, label: 
             typ, _ = imap.uid("STORE", uid_set, "+X-GM-LABELS", f"({quote(label)})")
             if typ == "OK":
                 typ, _ = imap.uid("STORE", uid_set, "-X-GM-LABELS", "(\\Inbox)")
+        elif kind == "expunge":
+            target = folders.get(rest[0], rest[0])
+            typ, _ = imap.uid("MOVE", uid_set, quote(target))
+            if typ == "OK":
+                typ, _ = imap.select(quote(target))
+                if typ == "OK":
+                    trash_uids = find_uids(imap, message_ids)
+                    if trash_uids:
+                        typ, _ = imap.uid("STORE", ",".join(trash_uids), "+FLAGS.SILENT", "(\\Deleted)")
+                        if typ == "OK":
+                            typ, _ = imap.expunge()
         else:
             target = folders.get(rest[0], rest[0])
             typ, _ = imap.uid("MOVE", uid_set, quote(target))

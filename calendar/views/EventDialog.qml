@@ -69,6 +69,18 @@ Item {
         open();
     }
 
+    function createPrefilled(titleText: string, onDay: string, startMin: int, endMin: int): void {
+        reset();
+        eventId = "";
+        day = onDay || Calendar.selected || Calendar.todayDay;
+        title.text = (titleText ?? "").trim();
+        const now = new Date();
+        startMinutes = startMin >= 0 ? startMin : day === Calendar.todayDay ? Math.min(23, now.getHours() + 1) * 60 : 9 * 60;
+        endMinutes = endMin > startMinutes ? endMin : startMinutes + 60;
+        open();
+        title.cursorPosition = title.text.length;
+    }
+
     function timeOf(stamp: string): int {
         const match = /T(\d\d):(\d\d)/.exec(stamp);
         return match ? Number(match[1]) * 60 + Number(match[2]) : 0;
@@ -160,7 +172,7 @@ Item {
     // The scrim: a click outside closes, like Esc.
     Rectangle {
         anchors.fill: parent
-        radius: 28
+        radius: Theme.paneRadius
         color: Theme.alpha("#000000", 0.45)
 
         MouseArea {
@@ -181,10 +193,12 @@ Item {
         id: card
 
         anchors.centerIn: parent
-        width: Math.min(540, parent.width - 48)
-        height: form.implicitHeight + 48
-        radius: 28
+        width: Math.min(500, parent.width - 32)
+        height: form.implicitHeight + 32
+        radius: 16
         color: Theme.m3popup
+        border.width: 1
+        border.color: Theme.glassPopupBorder
 
         MouseArea {
             anchors.fill: parent
@@ -197,7 +211,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 24
+            anchors.margins: 16
             spacing: 16
 
             RowLayout {
@@ -207,7 +221,7 @@ Item {
                     Layout.fillWidth: true
                     text: root.eventId === "" ? "New event" : "Edit event"
                     font.pixelSize: 22
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 IconButton {
@@ -397,7 +411,7 @@ Item {
                                     text: choice.modelData.name
                                     color: choice.chosen ? Theme.m3onSecondaryContainer : Theme.m3onSurfaceVariant
                                     font.pixelSize: 13
-                                    font.weight: Font.Medium
+                                    weight: Font.Medium
                                 }
                             }
 

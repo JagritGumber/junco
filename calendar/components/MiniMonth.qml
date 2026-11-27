@@ -3,17 +3,19 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// A month, Monday first. Given a selected day it follows it, fills it, rings
-// today, and reports clicks; without one, today is the filled circle.
+// Compact mini-month picker (saves ~74 px vertical in CalendarSidebar).
 ColumnLayout {
     id: root
 
     property date date: new Date()
-    // Months away from today's month; the arrows move it.
     property int shift: 0
-    // "YYYY-MM-DD" to mark and follow, or "" to only show today.
     property string selected: ""
     property bool longNames: false
+    // Ink and the picked-day fill: navy on cards and popups (the defaults);
+    // CalendarSidebar passes the sheet's light ink.
+    property color ink: Theme.m3onSurface
+    property color inkVariant: Theme.m3onSurfaceVariant
+    property color pickedFill: Theme.glassActive
 
     signal picked(string day)
 
@@ -33,27 +35,31 @@ ColumnLayout {
     onSelectedChanged: follow()
     Component.onCompleted: follow()
 
-    spacing: 8
+    spacing: 4
 
     RowLayout {
         Label {
             Layout.fillWidth: true
+            Layout.leftMargin: 2
             text: Qt.formatDate(root.shown, "MMMM yyyy")
-            font.pixelSize: 15
-            font.weight: Font.Medium
+            color: root.ink
+            font.pixelSize: 13
+            weight: Font.Medium
         }
 
         IconButton {
             icon: "chevron_left"
             tip: "Previous month"
-            size: 32
+            size: 24
+            iconColor: root.inkVariant
             onClicked: root.shift--
         }
 
         IconButton {
             icon: "chevron_right"
             tip: "Next month"
-            size: 32
+            size: 24
+            iconColor: root.inkVariant
             onClicked: root.shift++
         }
     }
@@ -61,7 +67,7 @@ ColumnLayout {
     GridLayout {
         Layout.fillWidth: true
         columns: 7
-        rowSpacing: 2
+        rowSpacing: 1
         columnSpacing: 0
 
         Repeater {
@@ -74,14 +80,12 @@ ColumnLayout {
                 Layout.preferredWidth: 1
                 horizontalAlignment: Text.AlignHCenter
                 text: modelData
-                color: Theme.m3onSurfaceVariant
-                font.pixelSize: root.longNames ? 12 : 11
-                font.weight: Font.Medium
+                color: root.inkVariant
+                font.pixelSize: 11
+                weight: Font.Normal
             }
         }
 
-        // Six weeks of cells whatever the month, so the sidebar below never
-        // moves when the month changes; cells outside the month stay empty.
         Repeater {
             model: 42
 
@@ -93,29 +97,29 @@ ColumnLayout {
                 readonly property bool inMonth: day > 0 && day <= root.days
                 readonly property string key: `${root.year}-${String(root.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
                 readonly property bool today: key === Calendar.todayDay
-                // Beside the inbox today is the filled circle; on the Calendar
-                // page the picked day is, and today keeps a ring.
                 readonly property bool picked: root.selected === "" ? today : key === root.selected
 
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                implicitHeight: 34
+                implicitHeight: 24
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 30
-                    height: 30
-                    radius: 15
+                    width: 22
+                    height: 22
+                    radius: 11
                     visible: cell.inMonth && (cell.picked || cell.today || area.containsMouse)
-                    color: cell.picked ? Theme.m3primary : "transparent"
-                    border.width: cell.today && !cell.picked ? 1.5 : 0
+                    // Glass: today is a filled pink accent dot, the picked day a
+                    // clear-glass fill; no rings. Solid mode keeps the ring.
+                    color: Theme.glass ? (cell.today ? Theme.accentFill : cell.picked ? root.pickedFill : "transparent") : (cell.picked ? Theme.m3primary : "transparent")
+                    border.width: !Theme.glass && cell.today && !cell.picked ? 1.5 : 0
                     border.color: Theme.m3primary
 
                     Rectangle {
                         anchors.fill: parent
                         radius: parent.radius
                         visible: area.containsMouse && !cell.picked
-                        color: Theme.alpha(Theme.m3onSurface, 0.08)
+                        color: Theme.glassControlHover
                     }
                 }
 
@@ -123,9 +127,9 @@ ColumnLayout {
                     anchors.centerIn: parent
                     visible: cell.inMonth
                     text: cell.day
-                    color: cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : Theme.m3onSurface
-                    font.pixelSize: 13
-                    font.weight: cell.picked || cell.today ? Font.DemiBold : Font.Normal
+                    color: Theme.glass ? (cell.today ? Theme.accentFillInk : root.ink) : (cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : Theme.m3onSurface)
+                    font.pixelSize: 11
+                    weight: cell.picked || cell.today ? Font.Medium : Font.Normal
                 }
 
                 MouseArea {

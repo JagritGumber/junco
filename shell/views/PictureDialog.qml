@@ -108,7 +108,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 28
+        radius: Theme.paneRadius
         color: Theme.alpha("#000000", 0.45)
 
         MouseArea {
@@ -123,8 +123,10 @@ Item {
         anchors.centerIn: parent
         width: root.view + 48
         height: form.implicitHeight + 48
-        radius: 28
+        radius: 16
         color: Theme.m3popup
+        border.width: 1
+        border.color: Theme.glassPopupBorder
 
         MouseArea {
             anchors.fill: parent
@@ -150,7 +152,7 @@ Item {
                         Layout.fillWidth: true
                         text: "Account picture"
                         font.pixelSize: 22
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     Label {

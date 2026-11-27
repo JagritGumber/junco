@@ -3,17 +3,15 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// The month as a grid of weeks, Monday first, with the days either side of
-// it dimmed. A click picks a day; a double click starts an event on it.
+// Month grid with crisp frosted lines and compact day headers (+78 px more
+// vertical event space across 6 weeks).
 Item {
     id: root
 
-    // The Calendar page, for creating and editing events.
     required property var page
 
     readonly property int rows: Calendar.monthRows
     readonly property string month: Calendar.selected.slice(0, 7)
-    // Day -> its events, multi-day events on every day they cover.
     readonly property var byDay: {
         const days = {};
         for (const event of Calendar.shownEvents) {
@@ -30,7 +28,7 @@ Item {
         id: weekdays
 
         width: parent.width
-        height: 44
+        height: 26
 
         Repeater {
             model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -44,8 +42,8 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 text: modelData
                 color: Theme.m3onSurfaceVariant
-                font.pixelSize: 14
-                font.weight: Font.Medium
+                font.pixelSize: 12
+                weight: Font.Normal
             }
         }
     }
@@ -61,7 +59,6 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
 
-        // Lines between weeks and days.
         Repeater {
             model: root.rows
 
@@ -71,7 +68,7 @@ Item {
                 y: Math.round(index * grid.cellHeight)
                 width: grid.width
                 height: 1
-                color: Theme.alpha(Theme.m3outlineVariant, 0.55)
+                color: Theme.glassGrid
             }
         }
 
@@ -84,7 +81,7 @@ Item {
                 x: Math.round((index + 1) * grid.cellWidth)
                 width: 1
                 height: grid.height
-                color: Theme.alpha(Theme.m3outlineVariant, 0.55)
+                color: Theme.glassGrid
             }
         }
 
@@ -101,11 +98,9 @@ Item {
                 readonly property bool picked: day === Calendar.selected
                 readonly property var events: root.byDay[day] ?? []
 
-                // Two-line chips while they fit, then one-line chips, then
-                // as many as fit and "+N more".
-                readonly property real room: height - 46
-                readonly property int fitsTall: Math.max(0, Math.floor((room + 4) / 50))
-                readonly property int fitsShort: Math.max(0, Math.floor((room + 3) / 27))
+                readonly property real room: height - 34
+                readonly property int fitsTall: Math.max(0, Math.floor((room + 3) / 40))
+                readonly property int fitsShort: Math.max(0, Math.floor((room + 2) / 23))
                 readonly property bool tall: events.length <= fitsTall
                 readonly property int shownCount: tall || events.length <= fitsShort ? events.length : Math.max(0, fitsShort - 1)
 
@@ -125,44 +120,47 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    anchors.margins: 3
-                    radius: 14
+                    anchors.margins: 2
+                    radius: 10
                     visible: cell.picked || area.containsMouse
-                    color: cell.picked ? Theme.alpha(Theme.m3primary, 0.14) : Theme.alpha(Theme.m3onSurface, 0.04)
-                    border.width: cell.picked ? 1.5 : 0
-                    border.color: Theme.alpha(Theme.m3primary, 0.75)
+                    color: cell.picked ? Theme.glassActive : Theme.glassHover
+                    border.width: !Theme.glass && cell.picked ? 1 : 0
+                    border.color: Theme.glassActiveBorder
                 }
 
                 Rectangle {
-                    x: 8
-                    y: 8
-                    width: 30
-                    height: 30
-                    radius: 15
+                    x: 6
+                    y: 5
+                    width: 24
+                    height: 24
+                    radius: 12
                     visible: cell.picked || cell.today
-                    color: cell.picked ? Theme.m3primary : "transparent"
-                    border.width: cell.today && !cell.picked ? 1.5 : 0
+                    // Glass: today is a filled pink accent dot; the picked day's
+                    // cell is already a clear-glass card, so its number only
+                    // gets a lighter glass dot. No rings.
+                    color: Theme.glass ? (cell.today ? Theme.accentFill : Theme.glassControlHover) : (cell.picked ? Theme.m3primary : "transparent")
+                    border.width: !Theme.glass && cell.today && !cell.picked ? 1.5 : 0
                     border.color: Theme.m3primary
                 }
 
                 Label {
-                    x: cell.picked || cell.today ? 8 : 16
-                    y: 8
-                    width: 30
-                    height: 30
+                    x: cell.picked || cell.today ? 6 : 10
+                    y: 5
+                    width: 24
+                    height: 24
                     horizontalAlignment: cell.picked || cell.today ? Text.AlignHCenter : Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                     text: Number(cell.day.slice(8))
-                    color: cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : cell.inMonth ? Theme.m3onSurface : Theme.alpha(Theme.m3onSurfaceVariant, 0.6)
-                    font.pixelSize: 16
-                    font.weight: cell.picked || cell.today ? Font.DemiBold : Font.Normal
+                    color: Theme.glass ? (cell.today ? Theme.accentFillInk : cell.inMonth ? Theme.m3onSurface : Theme.alpha(Theme.m3onSurfaceVariant, 0.6)) : (cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : cell.inMonth ? Theme.m3onSurface : Theme.alpha(Theme.m3onSurfaceVariant, 0.55))
+                    font.pixelSize: 13
+                    weight: cell.picked || cell.today ? Font.Medium : Font.Normal
                 }
 
                 Column {
-                    x: 8
-                    y: 44
-                    width: parent.width - 16
-                    spacing: cell.tall ? 4 : 3
+                    x: 5
+                    y: 31
+                    width: parent.width - 10
+                    spacing: cell.tall ? 3 : 2
 
                     Repeater {
                         model: cell.events.slice(0, cell.shownCount)
@@ -182,11 +180,11 @@ Item {
 
                     Label {
                         visible: cell.shownCount < cell.events.length
-                        leftPadding: 6
+                        leftPadding: 5
                         text: `+${cell.events.length - cell.shownCount} more`
                         color: Theme.m3onSurfaceVariant
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
+                        font.pixelSize: 11
+                        weight: Font.Normal
 
                         MouseArea {
                             anchors.fill: parent

@@ -6,9 +6,9 @@ Rectangle {
 
     property string icon
     property bool filled: false
-    property color fillColor: Theme.m3primaryContainer
-    property color iconColor: filled ? Theme.m3onPrimaryContainer : Theme.m3onSurfaceVariant
-    property int size: 40
+    property color fillColor: Theme.glassActive
+    property color iconColor: filled ? Theme.m3onSurface : Theme.m3onSurfaceVariant
+    property int size: 32
     property real cornerRadius: size / 2
     property bool outlined: false
     property string tip: ""
@@ -20,15 +20,15 @@ Rectangle {
     implicitWidth: size
     implicitHeight: size
     radius: cornerRadius
-    border.width: outlined ? 1 : 0
-    border.color: Theme.m3outlineVariant
-    color: filled ? (area.pressed ? Qt.darker(fillColor, 1.1) : fillColor) : (area.containsMouse ? Theme.alpha(Theme.m3onSurface, area.pressed ? 0.12 : 0.08) : "transparent")
+    border.width: outlined || (filled && Theme.glass && fillColor !== Theme.pill) ? 1 : 0
+    border.color: outlined ? Theme.glassBorder : Theme.glassBorderSubtle
+    color: filled ? (area.pressed ? Qt.darker(fillColor, 1.1) : fillColor) : (area.containsMouse ? (area.pressed ? Theme.alpha(Theme.m3onSurface, 0.16) : Theme.glassControlHover) : "transparent")
 
     Icon {
         anchors.centerIn: parent
         name: root.icon
         color: root.iconColor
-        size: Math.round(root.size * 0.52)
+        size: Math.round(root.size * 0.56)
         fill: root.iconFill
     }
 
@@ -41,7 +41,6 @@ Rectangle {
         onClicked: root.clicked()
     }
 
-    // Its tip after a moment's hover, built only while hovered.
     Loader {
         active: area.containsMouse && root.tip !== ""
         sourceComponent: Tooltip {

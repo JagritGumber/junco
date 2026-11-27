@@ -118,7 +118,7 @@ Item {
                         text: root.nameOf(chip.modelData)
                         color: Theme.m3onSecondaryContainer
                         font.pixelSize: 13
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     IconButton {
@@ -220,7 +220,7 @@ Item {
                             width: parent.width
                             text: suggestion.modelData.name || suggestion.modelData.address
                             elide: Text.ElideRight
-                            font.weight: Font.Medium
+                            weight: Font.Medium
                         }
 
                         Label {

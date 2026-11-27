@@ -3,39 +3,32 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// The open conversation: a person as a chat with a reply box, or a sender's
-// updates and the newsletters as an email list. An email opened from it shows
-// in MailReader, in this pane's place.
-Rectangle {
+// The open conversation: compact frosted-glass header, denser chat bubbles or
+// lane list, and slim reply composer.
+GlassPane {
     id: root
 
     readonly property var conversation: Inbox.selected
-    // Nothing to show yet: still loading, or the load failed.
     readonly property bool waiting: Inbox.messages.length === 0 && (Inbox.threadLoading || Inbox.threadFailed)
-    // Updates and newsletters read as an email list; people as a chat.
     readonly property bool lane: conversation !== null && conversation.kind !== "person"
     property bool searching: false
 
     onConversationChanged: searching = false
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
-        spacing: 14
+        spacing: 12
 
-        // The header. While emails are picked, the selection's own bar takes
-        // its place (Material's contextual top bar), so nothing covers the
-        // list; with nothing picked it is exactly the header it always was.
+        // Calm header (swaps smoothly to SelectionBar when picking rows).
         Item {
             id: header
 
-            readonly property bool selecting: root.lane && laneView.pickedIds.length > 0
+            readonly property var activeLaneView: laneViewLoader.item
+            readonly property bool selecting: root.lane && (activeLaneView?.pickedIds?.length ?? 0) > 0
 
             Layout.fillWidth: true
-            implicitHeight: normal.implicitHeight
+            implicitHeight: Math.max(44, normal.implicitHeight)
 
             RowLayout {
                 id: normal
@@ -43,14 +36,14 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 14
+                spacing: 12
                 enabled: !header.selecting
                 opacity: header.selecting ? 0 : 1
                 visible: opacity > 0
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 150
+                        duration: 130
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -61,23 +54,21 @@ Rectangle {
                     logo: root.conversation?.logo ?? ""
                     accentLogo: root.conversation?.logo === "linear"
                     image: root.conversation?.avatar ?? ""
-                    size: 50
+                    size: 38
                 }
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: 2
 
                     Label {
                         Layout.fillWidth: true
                         text: root.conversation?.name ?? ""
                         elide: Text.ElideRight
-                        font.pixelSize: 20
-                        font.weight: Font.Medium
+                        font.pixelSize: 17
+                        weight: Font.DemiBold
                     }
 
-                    // Plain positioning, not a layout: the address takes its own
-                    // width, shortened only when the tag needs the room.
                     Item {
                         Layout.fillWidth: true
                         implicitHeight: Math.max(address.implicitHeight, tag.implicitHeight)
@@ -86,18 +77,18 @@ Rectangle {
                             id: address
 
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.min(implicitWidth, parent.width - (tag.visible ? tag.width + 8 : 0))
+                            width: Math.min(implicitWidth, parent.width - (tag.visible ? tag.width + 6 : 0))
                             text: root.conversation?.address ?? ""
                             elide: Text.ElideRight
                             color: Theme.m3onSurfaceVariant
-                            font.pixelSize: 13
+                            font.pixelSize: 12
                         }
 
                         AccountTag {
                             id: tag
 
                             anchors.left: address.right
-                            anchors.leftMargin: 8
+                            anchors.leftMargin: 6
                             anchors.verticalCenter: parent.verticalCenter
                             visible: account !== ""
                             account: root.conversation?.account ?? ""
@@ -109,36 +100,46 @@ Rectangle {
                     visible: root.lane
                     icon: "search"
                     tip: "Search this list"
+                    size: 30
                     filled: root.searching
                     onClicked: {
                         root.searching = !root.searching;
-                        if (!root.searching)
-                            laneView.query = "";
+                        if (!root.searching && header.activeLaneView)
+                            header.activeLaneView.query = "";
                     }
                 }
 
                 IconButton {
                     visible: root.lane
-                    icon: laneView.pickedIds.length > 0 ? "check_box" : "select_check_box"
-                    tip: laneView.pickedIds.length > 0 ? "Clear selection" : "Select all"
-                    filled: laneView.pickedIds.length > 0
-                    onClicked: laneView.pickedIds.length > 0 ? laneView.picked = {} : laneView.pickAll()
+                    icon: (header.activeLaneView?.pickedIds?.length ?? 0) > 0 ? "check_box" : "select_check_box"
+                    tip: (header.activeLaneView?.pickedIds?.length ?? 0) > 0 ? "Clear selection" : "Select all"
+                    size: 30
+                    filled: (header.activeLaneView?.pickedIds?.length ?? 0) > 0
+                    onClicked: {
+                        if (!header.activeLaneView)
+                            return;
+                        if (header.activeLaneView.pickedIds.length > 0)
+                            header.activeLaneView.picked = {};
+                        else
+                            header.activeLaneView.pickAll();
+                    }
                 }
 
                 IconButton {
                     visible: root.lane
                     icon: "sort"
-                    tip: laneView.oldestFirst ? "Oldest first (click for newest)" : "Newest first (click for oldest)"
-                    filled: laneView.oldestFirst
-                    onClicked: laneView.oldestFirst = !laneView.oldestFirst
+                    tip: (header.activeLaneView?.oldestFirst ?? false) ? "Oldest first (click for newest)" : "Newest first (click for oldest)"
+                    size: 30
+                    filled: header.activeLaneView?.oldestFirst ?? false
+                    onClicked: if (header.activeLaneView)
+                        header.activeLaneView.oldestFirst = !header.activeLaneView.oldestFirst
                 }
 
-                // Archiving a conversation archives its inbox emails in Gmail; it
-                // comes back when someone writes again.
                 IconButton {
                     visible: Inbox.isConversation(Inbox.selectedId)
                     icon: "archive"
                     tip: "Archive conversation"
+                    size: 30
                     onClicked: Inbox.archiveConversation(Inbox.selectedId)
                 }
             }
@@ -149,9 +150,9 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                height: Math.max(48, parent.height)
-                count: laneView.pickedIds.length
-                total: laneView.rows.length
+                height: Math.max(38, parent.height)
+                count: header.activeLaneView?.pickedIds?.length ?? 0
+                total: header.activeLaneView?.rows?.length ?? 0
                 context: root.conversation?.name ?? ""
                 actions: [
                     { action: "archive", icon: "archive", label: "Archive", primary: true },
@@ -163,21 +164,22 @@ Rectangle {
                 opacity: header.selecting ? 1 : 0
                 visible: opacity > 0
                 onTriggered: action => {
+                    if (!header.activeLaneView)
+                        return;
                     if (action === "clear")
-                        laneView.picked = {};
+                        header.activeLaneView.picked = {};
                     else if (action === "select-all")
-                        laneView.pickAll();
+                        header.activeLaneView.pickAll();
                     else
-                        laneView.act(action);
+                        header.activeLaneView.act(action);
                 }
 
-                // In with a short drop from above, out the same way.
                 transform: Translate {
-                    y: header.selecting ? 0 : -8
+                    y: header.selecting ? 0 : -6
 
                     Behavior on y {
                         NumberAnimation {
-                            duration: 150
+                            duration: 130
                             easing.type: Easing.OutCubic
                         }
                     }
@@ -185,49 +187,60 @@ Rectangle {
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 150
+                        duration: 130
                         easing.type: Easing.OutCubic
                     }
                 }
             }
         }
 
+        // Crisp 1 px glass separator below header.
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 1
+            color: Theme.glassDivider
+        }
+
         Rectangle {
             Layout.fillWidth: true
             visible: root.lane && root.searching
-            implicitHeight: 44
-            radius: 22
-            color: Theme.m3surfaceContainerHigh
+            implicitHeight: 32
+            radius: Theme.controlRadius
+            color: Theme.glassControl
+            border.width: 1
+            border.color: laneSearch.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                spacing: 10
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 8
 
                 Icon {
                     name: "search"
+                    size: 16
                 }
 
                 TextInput {
                     id: laneSearch
 
                     renderType: Text.NativeRendering
-
                     Layout.fillWidth: true
                     color: Theme.m3onSurface
                     font.family: Theme.sans
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                     clip: true
                     focus: root.searching
-                    text: laneView.query
-                    onTextChanged: laneView.query = text
+                    text: header.activeLaneView?.query ?? ""
+                    onTextChanged: if (header.activeLaneView)
+                        header.activeLaneView.query = text
 
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: laneSearch.text === ""
                         text: `Search ${root.conversation?.name ?? ""}`
                         color: Theme.m3onSurfaceVariant
+                        font.pixelSize: 12
                     }
                 }
             }
@@ -240,9 +253,11 @@ Rectangle {
             Layout.fillHeight: true
             visible: !root.waiting && !root.lane
             clip: true
-            spacing: 12
+            cacheBuffer: 400
+            spacing: 10
+            topMargin: 8
+            bottomMargin: 10
             boundsBehavior: Flickable.StopAtBounds
-            // Only chats build bubbles; a lane's emails belong to LaneView.
             model: root.lane ? [] : Inbox.messages
             onCountChanged: Qt.callLater(positionViewAtEnd)
             onModelChanged: Qt.callLater(positionViewAtEnd)
@@ -257,12 +272,14 @@ Rectangle {
             }
         }
 
-        LaneView {
-            id: laneView
+        Loader {
+            id: laneViewLoader
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+            active: root.lane
             visible: !root.waiting && root.lane
+            source: "LaneView.qml"
         }
 
         Item {
@@ -272,38 +289,22 @@ Rectangle {
 
             Column {
                 anchors.centerIn: parent
-                spacing: 14
+                spacing: 10
 
                 Label {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Inbox.threadFailed ? "Couldn't load this conversation." : "Loading…"
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                 }
 
-                Rectangle {
+                Pill {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: Inbox.threadFailed
-                    implicitWidth: retry.implicitWidth + 32
-                    implicitHeight: 36
-                    radius: 18
-                    color: Theme.m3primary
-
-                    Label {
-                        id: retry
-
-                        anchors.centerIn: parent
-                        text: "Try again"
-                        color: Theme.m3onPrimary
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: Inbox.open(Inbox.selectedId)
-                    }
+                    style: "filled"
+                    text: "Try again"
+                    size: 32
+                    onClicked: Inbox.open(Inbox.selectedId)
                 }
             }
         }

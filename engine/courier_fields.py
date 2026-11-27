@@ -9,6 +9,7 @@ words it always says) are landmarks, and a field is found by its place
 among them.
 
 Offline and read-only: this reads the email it is handed and nothing else.
+docs/teach-fields.md has the design and the measurements on real mail.
 
 - sanitize() gives the email's HTML as the reader draws it (courier_html's
   cleaner, without fetching images), and Page parses it into a small tree of
@@ -611,7 +612,7 @@ def anchor_variants(contexts: list[str], side: str, most: int = 4) -> list[tuple
     (punctuation and numbers kept); and runs of non-space characters, as
     their shape or as anything, for text beside the value that is itself
     another field ("@someone[bot] pushed"). Not yet: some words literal and
-    some loose ("(<any level> severity)")."""
+    some loose ("(<any level> severity)"); see docs/teach-fields.md."""
     variants: dict[str, float] = {"": 0}
     if all(not context.strip() for context in contexts):
         variants["^" if side == "left" else "$"] = 6

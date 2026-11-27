@@ -28,21 +28,21 @@ Rectangle {
         return "description";
     }
 
-    implicitHeight: 66
-    radius: 18
-    color: Theme.m3surfaceContainer
+    implicitHeight: 50
+    radius: Theme.cardRadius
+    color: Theme.glassCard
     border.width: 1
-    border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
+    border.color: Theme.glassBorderSubtle
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 10
-        spacing: 14
+        anchors.leftMargin: 12
+        anchors.rightMargin: 8
+        spacing: 10
 
         Icon {
             name: root.kind
-            size: 26
+            size: 22
             color: Theme.m3onSurface
         }
 
@@ -55,7 +55,7 @@ Rectangle {
                 text: root.file.name
                 elide: Text.ElideMiddle
                 font.pixelSize: 14
-                font.weight: Font.Medium
+                weight: Font.Medium
             }
 
             Label {

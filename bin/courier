@@ -1,4 +1,15 @@
 #!/bin/sh
-# Opens Courier: shows the running window if there is one, otherwise starts it.
-shell="$(dirname "$(readlink -f "$0")")/../shell"
+# Opens Junco Mail (shows the running window if there is one, otherwise starts it),
+# or delegates CLI subcommands:
+#   courier cal ...     -> engine/courier_calendar.py (e.g. `courier cal next --json`)
+#   courier expiry ...  -> engine/courier_expiry.py
+root="$(dirname "$(readlink -f "$0")")/.."
+if [ "${1:-}" = "cal" ]; then
+    shift
+    exec "$root/engine/courier_calendar.py" "$@"
+elif [ "${1:-}" = "expiry" ]; then
+    shift
+    exec python3 "$root/engine/courier_expiry.py" "$@"
+fi
+shell="$root/shell"
 qs ipc -p "$shell" call courier show 2>/dev/null || exec qs -n -d -p "$shell"

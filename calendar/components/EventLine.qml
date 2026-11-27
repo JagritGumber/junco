@@ -2,9 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.services
 
-// One event as a compact card: optionally its date ("Mon / 14 Dec"), a bar in
-// its calendar's colour, the title, and when. Coming up, the agenda and search
-// results use it; a click goes to that day.
+// Compact frosted-glass event row for Coming Up, Agenda, and search results.
 Rectangle {
     id: root
 
@@ -13,9 +11,11 @@ Rectangle {
 
     signal clicked
 
-    implicitHeight: Math.max(64, body.implicitHeight + 24)
-    radius: 18
-    color: area.containsMouse ? Theme.m3surfaceContainerHigh : Theme.m3surfaceContainer
+    implicitHeight: Math.max(52, body.implicitHeight + 20)
+    radius: 13
+    color: area.containsMouse ? Theme.glassCardHover : Theme.glassCard
+    border.width: 1
+    border.color: Theme.glassBorderSubtle
 
     MouseArea {
         id: area
@@ -28,14 +28,14 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: root.showDate ? 12 : 14
-        anchors.rightMargin: 14
-        anchors.topMargin: 12
-        anchors.bottomMargin: 12
-        spacing: 14
+        anchors.leftMargin: root.showDate ? 10 : 12
+        anchors.rightMargin: 12
+        anchors.topMargin: 10
+        anchors.bottomMargin: 10
+        spacing: 10
 
         ColumnLayout {
-            Layout.preferredWidth: 58
+            Layout.preferredWidth: 46
             visible: root.showDate
             spacing: 0
 
@@ -43,21 +43,21 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: Calendar.format(root.event.startDay, "ddd")
                 color: Theme.m3onSurfaceVariant
-                font.pixelSize: 13
+                font.pixelSize: 11
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: Calendar.format(root.event.startDay, "d MMM")
-                font.pixelSize: 15
-                font.weight: Font.Medium
+                font.pixelSize: 12
+                weight: Font.Medium
             }
         }
 
         Rectangle {
             Layout.fillHeight: true
-            implicitWidth: 4
-            radius: 2
+            implicitWidth: 3
+            radius: 1.5
             color: root.event.color || Theme.m3primary
         }
 
@@ -65,22 +65,22 @@ Rectangle {
             id: body
 
             Layout.fillWidth: true
-            spacing: 4
+            spacing: 2
 
             Label {
                 Layout.fillWidth: true
                 text: root.event.title
                 elide: Text.ElideRight
-                font.pixelSize: 15
-                font.weight: Font.Medium
+                font.pixelSize: 13
+                weight: Font.Medium
             }
 
             RowLayout {
-                spacing: 6
+                spacing: 4
 
                 Icon {
                     name: root.event.allDay ? "calendar_today" : "schedule"
-                    size: 16
+                    size: 13
                 }
 
                 Label {
@@ -88,7 +88,7 @@ Rectangle {
                     text: [root.event.time, root.event.where].filter(part => part).join("  ·  ")
                     elide: Text.ElideRight
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 13
+                    font.pixelSize: 11
                 }
             }
         }

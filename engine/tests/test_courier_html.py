@@ -202,6 +202,17 @@ class DesignedEmailTest(unittest.TestCase):
         self.assertNotIn("url(", out.lower())
         self.assertIn('<p style="background:none">y</p>', out)
 
+    def test_heavy_font_weights_clamp_to_600(self) -> None:
+        out = self.render(
+            '<style>.lead{font-weight:bold;color:#111} .heavy{font-weight: 800 !important}</style>'
+            '<p class="lead" style="font-weight:700">Hello</p><span style="font-weight: bold">World</span>'
+        )["html"]
+        self.assertIn("font-weight:600", out)
+        self.assertIn("font-weight:600 !important", out)
+        self.assertNotIn("font-weight:bold", out.lower())
+        self.assertNotIn("font-weight:700", out.lower())
+        self.assertNotIn("font-weight: 800", out.lower())
+
     def test_empty_html_has_nothing_to_show(self) -> None:
         self.assertIsNone(self.render("<div> &nbsp; </div><script>x</script>"))
 

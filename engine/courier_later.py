@@ -357,4 +357,30 @@ def tick(act, open_index, now: float | None = None) -> dict:
             except Exception as error:
                 report["problems"].append(f"rule {describe(rule)}: {error}")
         save("rules.json", {"rules": rules(), "lastRun": now})
+
+    # Auto-expiry sweep (SQLite-backed): runs at most hourly when idle via a
+    # single indexed query; zero work when expiry.db doesn't exist yet.
+    try:
+        import courier_expiry as expiry
+
+        db_path = expiry.default_db_path()
+        if db_path.exists():
+            conn = expiry.open_db(db_path)
+            try:
+                sweep = expiry.sweep_due(
+                    conn,
+                    lambda action, ids: act(action, ids),
+                    open_index=open_index,
+                    dry_run=False,
+                    now=now,
+                    force=False,
+                    min_interval_seconds=RULE_EVERY,
+                )
+                report["expired"] = sweep["executed_count"]
+                report["problems"].extend(f"expiry: {p}" for p in sweep["problems"])
+            finally:
+                conn.close()
+    except Exception as error:  # noqa: BLE001
+        report["problems"].append(f"expiry: {error}")
+
     return report

@@ -7,7 +7,7 @@ import qs.components
 // just selected and a name for it (or a suggestion: Repo, PR, Title…), the
 // fields so far with their value here, and the template's other emails read
 // with them as you go. Nothing is kept until Save.
-Rectangle {
+GlassPane {
     id: root
 
     readonly property var draft: Inbox.teachDraft
@@ -45,13 +45,10 @@ Rectangle {
         return (draft?.fields ?? []).map(f => row.values[f.name] === undefined ? `${f.name} —` : `${f.name} ${valueText(row.values[f.name])}`).join("  ·  ");
     }
 
-    radius: 26
-    color: Theme.m3surfaceContainerLow
-
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 12
+        anchors.margins: 12
+        spacing: 8
 
         RowLayout {
             Layout.fillWidth: true
@@ -67,7 +64,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Teach fields"
                 font.pixelSize: 20
-                font.weight: Font.Medium
+                weight: Font.Medium
             }
 
             IconButton {
@@ -127,7 +124,7 @@ Rectangle {
                             text: root.pick ? (root.pick.subject ? "Selected in the subject" : "Selected") : "Select text in the email or its subject"
                             color: Theme.m3onSurfaceVariant
                             font.pixelSize: 12
-                            font.weight: Font.Medium
+                            weight: Font.Medium
                         }
 
                         Rectangle {
@@ -272,7 +269,7 @@ Rectangle {
                     text: "Fields"
                     color: Theme.m3onSurfaceVariant
                     font.pixelSize: 12
-                    font.weight: Font.Medium
+                    weight: Font.Medium
                 }
 
                 Repeater {
@@ -308,7 +305,7 @@ Rectangle {
                                     visible: !fieldRow.renaming
                                     text: fieldRow.modelData.name
                                     font.pixelSize: 14
-                                    font.weight: Font.Medium
+                                    weight: Font.Medium
                                 }
 
                                 FormField {
@@ -400,7 +397,7 @@ Rectangle {
                         text: root.names.length > 0 ? `On ${(root.preview?.rows ?? []).length} emails like this one` : `${(root.preview?.rows ?? []).length} emails like this one`
                         color: Theme.m3onSurfaceVariant
                         font.pixelSize: 12
-                        font.weight: Font.Medium
+                        weight: Font.Medium
                     }
 
                     Label {
@@ -452,7 +449,7 @@ Rectangle {
                                     text: previewRow.modelData.subject
                                     elide: Text.ElideRight
                                     font.pixelSize: 13
-                                    font.weight: previewRow.current ? Font.DemiBold : Font.Normal
+                                    weight: previewRow.current ? Font.Medium : Font.Normal
                                 }
 
                                 Label {
