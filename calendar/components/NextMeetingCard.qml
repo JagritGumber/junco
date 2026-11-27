@@ -24,8 +24,8 @@ Rectangle {
     readonly property color badgeBg: live ? Theme.m3tertiaryContainer : Theme.m3primaryContainer
     readonly property color badgeInk: live ? Theme.m3onTertiaryContainer : Theme.m3onPrimaryContainer
 
-    implicitHeight: content.implicitHeight + 26
-    radius: 14
+    implicitHeight: content.implicitHeight + 32
+    radius: Theme.rowRadius
     color: Theme.glassControl
     border.width: Theme.glass ? 0 : 1
     border.color: Theme.glassBorderSubtle
@@ -33,7 +33,9 @@ Rectangle {
     GlassEdge {
         visible: Theme.glass
         radius: root.radius
+        fade: 11
         side: false
+        light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.19 : 0.22)
     }
 
     ColumnLayout {
@@ -42,10 +44,10 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: 14
-        anchors.rightMargin: 12
-        anchors.topMargin: 13
-        spacing: 9
+        anchors.leftMargin: 16
+        anchors.rightMargin: 14
+        anchors.topMargin: 16
+        spacing: 12
 
         // Calendar dot + name on the left; live/upcoming countdown badge on the right
         RowLayout {
@@ -99,10 +101,11 @@ Rectangle {
 
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
+                        tabular: true
                         text: root.countdown
                         color: root.badgeInk
                         font.pixelSize: 11
-                        weight: Font.Medium
+                        weight: Font.DemiBold
                     }
                 }
             }
@@ -115,19 +118,19 @@ Rectangle {
             wrapMode: Text.Wrap
             maximumLineCount: 2
             elide: Text.ElideRight
-            font.pixelSize: 15
-            weight: Font.Medium
-            lineHeight: 1.15
+            font.pixelSize: 16
+            weight: Font.DemiBold
+            lineHeight: 1.2
         }
 
         // Time range & location / attendee count
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 4
+            spacing: 6
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 6
+                spacing: 8
 
                 Icon {
                     name: "schedule"
@@ -137,6 +140,7 @@ Rectangle {
 
                 Label {
                     Layout.fillWidth: true
+                    tabular: true
                     text: root.event.time ?? ""
                     elide: Text.ElideRight
                     color: Theme.m3onSurfaceVariant
@@ -147,7 +151,7 @@ Rectangle {
             RowLayout {
                 Layout.fillWidth: true
                 visible: root.details !== ""
-                spacing: 6
+                spacing: 8
 
                 Icon {
                     name: (root.event.video ?? "") !== "" ? "videocam" : "location_on"
@@ -168,15 +172,15 @@ Rectangle {
         // Quick actions: one-click Join + one-click Add prep + More
         RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 2
-            spacing: 6
+            Layout.topMargin: 4
+            spacing: 8
 
             Pill {
                 visible: (root.event.video ?? "") !== ""
                 style: "filled"
                 icon: "videocam"
                 text: "Join"
-                size: 30
+                size: 32
                 fontSize: 12
                 onClicked: root.join(root.event.video)
             }
@@ -185,7 +189,7 @@ Rectangle {
                 style: "tonal"
                 icon: "checklist"
                 text: "Add prep"
-                size: 30
+                size: 32
                 fontSize: 12
                 tip: "Add a prep actionable for this meeting"
                 onClicked: root.addPrep()

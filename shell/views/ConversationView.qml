@@ -17,8 +17,11 @@ GlassPane {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 20
-        spacing: 12
+        anchors.leftMargin: root.width >= 600 ? 26 : 18
+        anchors.rightMargin: root.width >= 600 ? 26 : 18
+        anchors.topMargin: 20
+        anchors.bottomMargin: 20
+        spacing: 14
 
         // Calm header (swaps smoothly to SelectionBar when picking rows).
         Item {
@@ -28,7 +31,7 @@ GlassPane {
             readonly property bool selecting: root.lane && (activeLaneView?.pickedIds?.length ?? 0) > 0
 
             Layout.fillWidth: true
-            implicitHeight: Math.max(44, normal.implicitHeight)
+            implicitHeight: Math.max(50, normal.implicitHeight)
 
             RowLayout {
                 id: normal
@@ -36,14 +39,14 @@ GlassPane {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 12
+                spacing: 16
                 enabled: !header.selecting
                 opacity: header.selecting ? 0 : 1
                 visible: opacity > 0
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 130
+                        duration: Theme.animFast
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -54,18 +57,18 @@ GlassPane {
                     logo: root.conversation?.logo ?? ""
                     accentLogo: root.conversation?.logo === "linear"
                     image: root.conversation?.avatar ?? ""
-                    size: 38
+                    size: 44
                 }
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: 3
 
                     Label {
                         Layout.fillWidth: true
                         text: root.conversation?.name ?? ""
                         elide: Text.ElideRight
-                        font.pixelSize: 17
+                        font.pixelSize: 18
                         weight: Font.DemiBold
                     }
 
@@ -204,16 +207,16 @@ GlassPane {
         Rectangle {
             Layout.fillWidth: true
             visible: root.lane && root.searching
-            implicitHeight: 32
+            implicitHeight: 38
             radius: Theme.controlRadius
-            color: Theme.glassControl
-            border.width: 1
+            color: laneSearch.activeFocus ? Theme.glassControlHover : Theme.glassControl
+            border.width: Theme.glass ? 0 : 1
             border.color: laneSearch.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
                 spacing: 8
 
                 Icon {
@@ -254,9 +257,9 @@ GlassPane {
             visible: !root.waiting && !root.lane
             clip: true
             cacheBuffer: 400
-            spacing: 10
-            topMargin: 8
-            bottomMargin: 10
+            spacing: 14
+            topMargin: 12
+            bottomMargin: 14
             boundsBehavior: Flickable.StopAtBounds
             model: root.lane ? [] : Inbox.messages
             onCountChanged: Qt.callLater(positionViewAtEnd)

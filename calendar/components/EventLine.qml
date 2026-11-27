@@ -11,10 +11,10 @@ Rectangle {
 
     signal clicked
 
-    implicitHeight: Math.max(52, body.implicitHeight + 20)
-    radius: 13
+    implicitHeight: Math.max(58, body.implicitHeight + 24)
+    radius: Theme.cardRadius
     color: area.containsMouse ? Theme.glassCardHover : Theme.glassCard
-    border.width: 1
+    border.width: Theme.glass ? 0 : 1
     border.color: Theme.glassBorderSubtle
 
     MouseArea {
@@ -28,11 +28,11 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: root.showDate ? 10 : 12
-        anchors.rightMargin: 12
-        anchors.topMargin: 10
-        anchors.bottomMargin: 10
-        spacing: 10
+        anchors.leftMargin: root.showDate ? 12 : 14
+        anchors.rightMargin: 14
+        anchors.topMargin: 12
+        anchors.bottomMargin: 12
+        spacing: 12
 
         ColumnLayout {
             Layout.preferredWidth: 46

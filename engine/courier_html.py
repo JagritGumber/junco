@@ -383,9 +383,8 @@ def image_size(path: Path) -> tuple[int, int] | None:
 
 
 LINE_HEIGHT = re.compile(r"line-height\s*:\s*([^;}]+)", re.I)
-# Rubik[wght].ttf (OS/2 usWeightClass=300) triggers Qt 6 synthetic double-bolding
-# at CSS weight >= 700 / bold. Clamping heavy weights to 600 selects Rubik's crisp
-# SemiBold instance cleanly without changing markup structure.
+# Clamp heavy CSS weights (>= 700 / bold) to 600 so Qt 6 RichText renders crisp
+# Adwaita Sans (Inter) SemiBold without synthetic double-bolding or heavy bloat.
 HEAVY_WEIGHT = re.compile(r"font-weight\s*:\s*(?:bold|bolder|[789]\d\d)(\s*!important)?", re.I)
 
 

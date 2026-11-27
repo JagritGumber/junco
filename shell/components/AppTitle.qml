@@ -40,6 +40,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.text
         font.pixelSize: root.fontSize
+        font.letterSpacing: -0.35
         weight: Font.DemiBold
     }
 }

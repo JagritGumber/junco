@@ -37,14 +37,14 @@ ShellRoot {
         // Manual toggle (Ctrl+\ or sidebar button) plus automatic compact icon
         // rail below 1200 px so half-screen tiles (~950x1040) keep a wide chat/reader.
         property bool userCollapsedSidebar: false
-        property int savedSidebarWidth: 204
+        property int savedSidebarWidth: 216
         property int savedListWidth: 0
         readonly property bool compactSidebar: userCollapsedSidebar || width < 1200
-        readonly property int defaultListWidth: width >= 1500 ? 356 : width >= 1150 ? 310 : 284
+        readonly property int defaultListWidth: width >= 1500 ? 412 : width >= 1150 ? 344 : 308
         readonly property int maxSidebarWidth: Math.max(160, Math.min(300, Math.floor(width * 0.26)))
         readonly property int sidebarWidth: compactSidebar ? 56 : Math.max(160, Math.min(maxSidebarWidth, savedSidebarWidth))
-        readonly property int maxListWidth: Math.max(240, Math.min(520, width - sidebarWidth - 2 * Theme.cardInset - 2 * Theme.paneGap - 360))
-        readonly property int listWidth: Math.max(240, Math.min(maxListWidth, savedListWidth > 0 ? savedListWidth : defaultListWidth))
+        readonly property int maxListWidth: Math.max(260, Math.min(520, width - sidebarWidth - 2 * Theme.cardInset - 2 * Theme.paneGap - 360))
+        readonly property int listWidth: Math.max(260, Math.min(maxListWidth, savedListWidth > 0 ? savedListWidth : defaultListWidth))
 
         function saveLayout(): void {
             layoutFile.setText(JSON.stringify({
@@ -274,7 +274,7 @@ ShellRoot {
                 onResized: next => window.savedSidebarWidth = Math.max(160, Math.min(window.maxSidebarWidth, next))
                 onResizeFinished: window.saveLayout()
                 onResetRequested: {
-                    window.savedSidebarWidth = 204;
+                    window.savedSidebarWidth = 216;
                     window.saveLayout();
                 }
             }

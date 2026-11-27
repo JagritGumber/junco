@@ -3,38 +3,60 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// The inbox as conversations, Beeper-style: dense, scannable frosted-glass
-// thread list maximizing vertical count on 15" 16:9 displays.
+// The inbox as conversations: calm, airy frosted-glass thread list with a
+// single-row flagship filter bar, generous horizontal tab spacing, concentric
+// inset selected cards, and collapsible inline search (Ctrl+F or filter menu).
 GlassPane {
     id: root
 
     fill: Theme.glassList
 
+    property bool searching: false
+    readonly property bool searchShown: searching || Inbox.query !== ""
+    readonly property int headerPadX: width >= 340 ? 16 : 12
+    readonly property int tabGap: width >= 380 ? 22 : width >= 330 ? 16 : 10
+    readonly property int cardInsetX: width >= 340 ? 11 : 8
+
+    Shortcut {
+        sequence: "Ctrl+F"
+        enabled: root.visible && !Inbox.paletteOpen && !Inbox.composing && !Inbox.settingsOpen
+        onActivated: {
+            root.searching = true;
+            search.forceActiveFocus();
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 14
+        anchors.topMargin: 12
+        anchors.bottomMargin: 8
         spacing: 10
 
-        // Calm header: Inbox · N unread + filter button.
+        // Calm single-row Filter Header Bar (50 px visual header zone with top margin).
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: 4
-            Layout.rightMargin: 2
+            Layout.preferredHeight: 38
+            Layout.leftMargin: root.headerPadX
+            Layout.rightMargin: root.headerPadX
             spacing: 8
 
-            Label {
-                text: Inbox.lane === "newsletters" ? "Newsletters" : "Inbox"
-                font.pixelSize: 17
-                weight: Font.DemiBold
-            }
+            Row {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: root.tabGap
 
-            Label {
-                readonly property int unreadTotal: Inbox.unreadIn(Inbox.lane)
+                Repeater {
+                    model: Inbox.lanes.filter(lane => lane.chip)
 
-                visible: unreadTotal > 0
-                text: `·  ${unreadTotal} unread`
-                color: Theme.m3onSurfaceVariant
-                font.pixelSize: 12
+                    delegate: Chip {
+                        required property var modelData
+
+                        tabStyle: true
+                        text: modelData.label
+                        count: Inbox.unreadIn(modelData.id)
+                        selected: Inbox.lane === modelData.id
+                        onClicked: Inbox.lane = modelData.id
+                    }
+                }
             }
 
             Item {
@@ -45,37 +67,59 @@ GlassPane {
                 id: filterButton
 
                 icon: "tune"
-                tip: "Filter & refresh"
-                size: 28
-                filled: Inbox.lane === "newsletters"
+                tip: "Filter, search & refresh"
+                size: 32
+                iconSize: 19
+                filled: Inbox.lane === "newsletters" || root.searchShown
                 fillColor: Theme.glassActive
-                iconColor: Inbox.lane === "newsletters" ? Theme.m3primary : Theme.m3onSurfaceVariant
+                iconColor: Inbox.lane === "newsletters" || root.searchShown ? Theme.m3primary : Theme.m3onSurfaceVariant
                 onClicked: menu.show(filterButton, [
-                    { icon: "newspaper", label: "Newsletters", checked: Inbox.lane === "newsletters", run: () => Inbox.lane = Inbox.lane === "newsletters" ? "all" : "newsletters" },
+                    {
+                        icon: "search",
+                        label: root.searchShown ? "Hide search" : "Search inbox…",
+                        run: () => {
+                            if (root.searchShown) {
+                                root.searching = false;
+                                search.text = "";
+                            } else {
+                                root.searching = true;
+                                search.forceActiveFocus();
+                            }
+                        }
+                    },
+                    {
+                        icon: "newspaper",
+                        label: "Newsletters",
+                        checked: Inbox.lane === "newsletters",
+                        run: () => Inbox.lane = Inbox.lane === "newsletters" ? "all" : "newsletters"
+                    },
                     { separator: true },
                     { icon: "refresh", label: "Refresh", run: () => Inbox.refresh() }
                 ])
             }
         }
 
-        // Calm frosted-glass search field.
+        // Collapsible frosted-glass search field (opened via Ctrl+F or filter menu).
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 36
-            radius: 12
-            color: Theme.glassControl
-            border.width: 1
-            border.color: search.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glass ? Theme.glassBorder : Theme.glassBorderSubtle
+            Layout.leftMargin: root.headerPadX
+            Layout.rightMargin: root.headerPadX
+            visible: root.searchShown
+            implicitHeight: 38
+            radius: Theme.controlRadius
+            color: search.activeFocus ? Theme.glassControlHover : Theme.glassControl
+            border.width: Theme.glass ? 0 : 1
+            border.color: search.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12
-                anchors.rightMargin: 6
+                anchors.rightMargin: 8
                 spacing: 8
 
                 Icon {
                     name: "search"
-                    size: 16
+                    size: 17
                     color: Theme.m3onSurfaceVariant
                 }
 
@@ -94,9 +138,13 @@ GlassPane {
                     onAccepted: {
                         const words = text;
                         text = "";
+                        root.searching = false;
                         Inbox.searchEverything(words);
                     }
-                    Keys.onEscapePressed: text = ""
+                    Keys.onEscapePressed: {
+                        text = "";
+                        root.searching = false;
+                    }
 
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
@@ -108,35 +156,14 @@ GlassPane {
                 }
 
                 IconButton {
-                    visible: search.text !== ""
                     icon: "close"
-                    tip: "Clear"
-                    size: 24
-                    onClicked: search.text = ""
+                    tip: "Close search"
+                    size: 26
+                    onClicked: {
+                        search.text = "";
+                        root.searching = false;
+                    }
                 }
-            }
-        }
-
-        // Compact lane filter chips.
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 5
-
-            Repeater {
-                model: Inbox.lanes.filter(lane => lane.chip)
-
-                delegate: Chip {
-                    required property var modelData
-
-                    text: modelData.label
-                    count: Inbox.unreadIn(modelData.id)
-                    selected: Inbox.lane === modelData.id
-                    onClicked: Inbox.lane = modelData.id
-                }
-            }
-
-            Item {
-                Layout.fillWidth: true
             }
         }
 
@@ -150,25 +177,35 @@ GlassPane {
                 width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
-                lineHeight: 1.2
+                lineHeight: 1.25
                 text: Inbox.query.trim() !== "" ? "No conversation matches.\nPress Enter to search every email." : Inbox.conversations.length === 0 ? "Loading…" : "Nothing here."
                 color: Theme.m3onSurfaceVariant
                 font.pixelSize: 13
             }
 
             ListView {
+                id: listView
+
                 anchors.fill: parent
+                anchors.leftMargin: root.cardInsetX
+                anchors.rightMargin: root.cardInsetX
                 clip: true
-                cacheBuffer: 320
+                cacheBuffer: 360
                 spacing: 4
+                topMargin: 2
+                bottomMargin: 6
                 model: Inbox.visibleConversations
                 boundsBehavior: Flickable.StopAtBounds
 
                 delegate: ConversationRow {
                     required property var modelData
+                    required property int index
 
-                    width: ListView.view.width
+                    width: listView.width
                     conversation: modelData
+                    isLast: index === listView.count - 1
+                    nextSelected: index + 1 < Inbox.visibleConversations.length
+                        && Inbox.visibleConversations[index + 1].id === Inbox.selectedId
                 }
             }
         }

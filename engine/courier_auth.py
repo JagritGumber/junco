@@ -206,7 +206,7 @@ def sign_in(client: dict, login_hint: str | None, scopes: list[str] | None = Non
         def reply(self, status: int, message: str) -> None:
             body = (
                 "<!doctype html><meta charset=utf-8><title>Junco</title>"
-                f'<p style="font:18px Rubik,sans-serif;margin:4em auto;max-width:28em">{message}</p>'
+                f'<p style="font:18px \'Adwaita Sans\',sans-serif;margin:4em auto;max-width:28em">{message}</p>'
             ).encode()
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")

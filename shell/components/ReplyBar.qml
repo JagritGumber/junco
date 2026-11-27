@@ -89,17 +89,32 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        implicitHeight: Math.max(42, input.implicitHeight + 18)
-        radius: 13
-        color: Theme.glassControl
-        border.width: 1
+        implicitHeight: Math.max(48, input.implicitHeight + 24)
+        radius: Theme.rowRadius
+        color: input.activeFocus ? Theme.glassControlHover : Theme.glassControl
+        border.width: Theme.glass ? 0 : 1
         border.color: input.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorder
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Theme.animFast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        GlassEdge {
+            visible: Theme.glass
+            radius: Theme.rowRadius
+            fade: 9
+            side: false
+            light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.18 : 0.24)
+        }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            spacing: 4
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 6
 
             IconButton {
                 icon: "add"

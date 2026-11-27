@@ -98,7 +98,7 @@ Item {
                     context.fillStyle = tint;
                     context.fillRect(x, y, w, h);
                     const name = account.label || account.email || account.id;
-                    letter(name.charAt(0).toUpperCase(), x, y, w, h, Qt.color(tint).hslLightness > 0.55 ? "#1b1b1f" : "#ffffff");
+                    letter(name.charAt(0).toUpperCase(), x, y, w, h, Theme.pickInk(tint));
                 }
                 context.restore();
             });

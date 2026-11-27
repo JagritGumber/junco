@@ -2,15 +2,25 @@ import QtQuick
 import QtQuick.Layouts
 import qs.services
 
-// One compact row of the mail list (54 px base height, down from 76 px).
+// One calm, spacious row in a folder's mail list (harmonized with ConversationRow):
+// concentric inset rounded card (15 px radius), 44 px circular avatar, generous
+// 16 px avatar-to-text gap, clean typographic hierarchy, and 2-anchor right column.
 Item {
     id: root
 
     required property var row
+    property bool showDivider: false
+
     readonly property bool selected: Inbox.selectedRow === row.id
-    readonly property bool unread: row.unread > 0
+    readonly property bool unread: (row.unread ?? 0) > 0
+    readonly property bool starred: Boolean(row.starred)
     readonly property bool folded: row.kind === "group" && row.count > 1
     readonly property bool open: Inbox.expanded[row.id] === true
+    readonly property bool isSpecialAction: row.kind === "trash" || row.kind === "scheduled" || (Inbox.folder === "expiring" && (row.expiry ?? null) !== null)
+    readonly property int innerPadX: width >= 310 ? 16 : 12
+    readonly property int avatarSize: width >= 310 ? 44 : 40
+    readonly property int avatarGap: width >= 310 ? 16 : 12
+    readonly property int rightBuffer: width >= 310 ? 14 : 10
     readonly property var tile: ({
             meeting: [Theme.m3primaryContainer, Theme.m3onPrimaryContainer],
             dev: [Theme.m3tertiaryContainer, Theme.m3onTertiaryContainer],
@@ -21,18 +31,31 @@ Item {
 
     signal clicked
 
-    implicitHeight: Math.max(68, content.implicitHeight + 22)
+    implicitHeight: Math.max(88, content.implicitHeight + 32)
 
     Rectangle {
         id: wash
 
         anchors.fill: parent
-        anchors.topMargin: 2
-        anchors.bottomMargin: 2
-        radius: 14
+        radius: Theme.rowRadius
         color: root.selected ? Theme.glassSelectedRow : (area.containsMouse ? Theme.glassHover : "transparent")
         border.width: !Theme.glass && root.selected ? 1 : 0
         border.color: Theme.glassActiveBorder
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Theme.animFast
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        GlassEdge {
+            visible: Theme.glass && root.selected
+            radius: wash.radius
+            fade: 10
+            side: false
+            light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.22 : 0.34)
+        }
     }
 
     MouseArea {
@@ -49,101 +72,72 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 13
-        anchors.rightMargin: 13
-        spacing: 12
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: root.innerPadX
+        anchors.rightMargin: root.innerPadX
+        anchors.topMargin: 15
+        anchors.bottomMargin: 15
+        spacing: 0
         z: 1
 
         Item {
             Layout.alignment: Qt.AlignVCenter
-            implicitWidth: 36
-            implicitHeight: 36
+            implicitWidth: root.avatarSize
+            implicitHeight: root.avatarSize
 
             Avatar {
                 anchors.fill: parent
                 visible: (root.row.avatar ?? "") !== "" || (root.row.icon ?? "") === ""
                 name: root.row.title
                 image: root.row.avatar ?? ""
-                size: 36
+                size: root.avatarSize
             }
 
             Rectangle {
                 anchors.fill: parent
                 visible: (root.row.avatar ?? "") === "" && (root.row.icon ?? "") !== ""
-                radius: 18
+                radius: root.avatarSize / 2
                 color: root.tile[0]
 
                 Icon {
                     anchors.centerIn: parent
                     name: root.row.icon ?? ""
-                    size: 18
+                    size: Math.round(root.avatarSize * 0.46)
                     color: root.tile[1]
                 }
             }
         }
 
+        Item {
+            Layout.preferredWidth: root.avatarGap
+            Layout.fillHeight: true
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 3
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
 
-            RowLayout {
+            Label {
                 Layout.fillWidth: true
-                spacing: 6
-
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: titleRow.implicitHeight
-
-                    Row {
-                        id: titleRow
-
-                        width: parent.width
-                        spacing: 6
-
-                        Label {
-                            width: Math.min(implicitWidth, Math.max(0, parent.width - (root.unread ? 12 : 0)))
-                            text: root.row.title
-                            elide: Text.ElideRight
-                            font.pixelSize: 13
-                            weight: root.unread ? Font.Medium : Font.Normal
-                        }
-
-                        Rectangle {
-                            visible: root.unread
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: Theme.complementDot
-                        }
-                    }
-                }
-
-                Icon {
-                    visible: root.row.starred ?? false
-                    name: "star"
-                    fill: 1
-                    size: 14
-                    color: Theme.m3tertiary
-                }
-
-                Label {
-                    text: root.row.time
-                    color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 11
-                    weight: Font.Normal
-                }
+                text: root.row.title
+                elide: Text.ElideRight
+                color: Theme.m3onSurface
+                font.pixelSize: 15
+                weight: Font.DemiBold
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 5
+                Layout.topMargin: 4
+                spacing: 6
 
                 Icon {
                     visible: root.row.attachment ?? false
                     name: "attach_file"
-                    size: 13
+                    size: 14
+                    color: Theme.m3onSurfaceVariant
                 }
 
                 Label {
@@ -151,14 +145,15 @@ Item {
                     text: root.row.subtitle
                     elide: Text.ElideRight
                     color: root.unread ? Theme.m3onSurface : Theme.m3onSurfaceVariant
-                    font.pixelSize: 12
+                    font.pixelSize: 13
+                    weight: root.unread ? Font.Medium : Font.Normal
                 }
 
                 Rectangle {
                     visible: root.folded
-                    implicitWidth: foldRow.implicitWidth + 10
-                    implicitHeight: 18
-                    radius: 9
+                    implicitWidth: foldRow.implicitWidth + 12
+                    implicitHeight: 20
+                    radius: 10
                     color: Theme.glassControl
 
                     Row {
@@ -186,7 +181,7 @@ Item {
 
             Flow {
                 Layout.fillWidth: true
-                Layout.topMargin: 3
+                Layout.topMargin: 5
                 visible: (!Theme.glass && (root.row.chips ?? []).length > 0) || (root.row.expiry ?? null) !== null
                 spacing: 6
 
@@ -223,38 +218,116 @@ Item {
             }
         }
 
-        Pill {
-            visible: root.row.kind === "trash"
-            text: "Restore"
-            icon: "restore_from_trash"
-            size: 28
-            fontSize: 11
-            onClicked: Inbox.act("untrash", [root.row.open])
+        Item {
+            Layout.preferredWidth: root.rightBuffer
+            Layout.fillHeight: true
         }
 
-        Pill {
-            visible: root.row.kind === "scheduled"
-            text: "Send now"
-            icon: "send"
-            size: 28
-            fontSize: 11
-            onClicked: Inbox.sendScheduledNow(root.row.file)
+        // Standard 2-anchor right column (timestamp + unread dot top-right, star bottom-right).
+        ColumnLayout {
+            visible: !root.isSpecialAction
+            Layout.fillHeight: true
+            spacing: 0
+
+            Row {
+                Layout.alignment: Qt.AlignRight | Qt.AlignTop
+                Layout.topMargin: 1
+                spacing: 8
+
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    tabular: true
+                    text: root.row.time
+                    color: Theme.m3onSurfaceVariant
+                    opacity: root.unread ? 0.95 : 0.82
+                    font.pixelSize: 12
+                    weight: root.unread ? Font.Medium : Font.Normal
+                }
+
+                Rectangle {
+                    visible: root.unread
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.complementDot
+                }
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+
+            IconButton {
+                Layout.alignment: Qt.AlignRight | Qt.AlignBottom
+                Layout.bottomMargin: -4
+                Layout.rightMargin: -4
+                icon: "star"
+                filled: false
+                iconFill: root.starred ? 1 : 0
+                iconColor: root.starred ? Theme.m3tertiary : Theme.alpha(Theme.m3onSurfaceVariant, 0.72)
+                tip: root.starred ? "Unstar" : "Star"
+                size: 28
+                iconSize: 18
+                onClicked: {
+                    const targetId = root.row.open || (root.row.ids && root.row.ids.length > 0 ? root.row.ids[0] : "");
+                    if (targetId !== "")
+                        Inbox.mark(root.starred ? "unstar" : "star", [targetId]);
+                }
+            }
         }
 
-        IconButton {
-            visible: Inbox.folder === "expiring" && (root.row.expiry ?? null) !== null
-            icon: "close"
-            tip: "Cancel scheduled deletion"
-            size: 28
-            onClicked: Inbox.cancelExpiry(root.row.expiry.thread_id || root.row.threadId || root.row.open, null)
-        }
+        Row {
+            visible: root.isSpecialAction
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 6
 
-        IconButton {
-            visible: root.row.kind === "scheduled"
-            icon: "close"
-            tip: "Cancel this scheduled email"
-            size: 28
-            onClicked: Inbox.cancelScheduled(root.row.file)
+            Pill {
+                visible: root.row.kind === "trash"
+                text: "Restore"
+                icon: "restore_from_trash"
+                size: 30
+                fontSize: 11
+                onClicked: Inbox.act("untrash", [root.row.open])
+            }
+
+            Pill {
+                visible: root.row.kind === "scheduled"
+                text: "Send now"
+                icon: "send"
+                size: 30
+                fontSize: 11
+                onClicked: Inbox.sendScheduledNow(root.row.file)
+            }
+
+            IconButton {
+                visible: Inbox.folder === "expiring" && (root.row.expiry ?? null) !== null
+                icon: "close"
+                tip: "Cancel scheduled deletion"
+                size: 30
+                onClicked: Inbox.cancelExpiry(root.row.expiry.thread_id || root.row.threadId || root.row.open, null)
+            }
+
+            IconButton {
+                visible: root.row.kind === "scheduled"
+                icon: "close"
+                tip: "Cancel this scheduled email"
+                size: 30
+                onClicked: Inbox.cancelScheduled(root.row.file)
+            }
         }
+    }
+
+    // Whisper-faint inset divider aligned with text column, hidden above/below selected row.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: root.innerPadX + root.avatarSize + root.avatarGap
+        anchors.rightMargin: root.innerPadX
+        y: parent.height + 1.5
+        height: 1
+        visible: root.showDivider && !root.selected && !area.containsMouse
+        color: Theme.glassDivider
+        opacity: 0.55
     }
 }

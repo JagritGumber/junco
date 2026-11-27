@@ -28,10 +28,10 @@ Item {
         id: weekdays
 
         width: parent.width
-        height: 26
+        height: 28
 
         Repeater {
-            model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            model: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
             delegate: Label {
                 required property string modelData
@@ -42,8 +42,10 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 text: modelData
                 color: Theme.m3onSurfaceVariant
-                font.pixelSize: 12
-                weight: Font.Normal
+                opacity: 0.80
+                font.pixelSize: 10
+                font.letterSpacing: 0.45
+                weight: Font.DemiBold
             }
         }
     }
@@ -126,16 +128,23 @@ Item {
                     color: cell.picked ? Theme.glassActive : Theme.glassHover
                     border.width: !Theme.glass && cell.picked ? 1 : 0
                     border.color: Theme.glassActiveBorder
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.animFast
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
 
                 Rectangle {
                     x: 6
                     y: 5
-                    width: 24
-                    height: 24
-                    radius: 12
+                    width: 26
+                    height: 26
+                    radius: 13
                     visible: cell.picked || cell.today
-                    // Glass: today is a filled pink accent dot; the picked day's
+                    // Glass: today is a filled accent dot; the picked day's
                     // cell is already a clear-glass card, so its number only
                     // gets a lighter glass dot. No rings.
                     color: Theme.glass ? (cell.today ? Theme.accentFill : Theme.glassControlHover) : (cell.picked ? Theme.m3primary : "transparent")
@@ -146,14 +155,15 @@ Item {
                 Label {
                     x: cell.picked || cell.today ? 6 : 10
                     y: 5
-                    width: 24
-                    height: 24
+                    width: 26
+                    height: 26
                     horizontalAlignment: cell.picked || cell.today ? Text.AlignHCenter : Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
+                    tabular: true
                     text: Number(cell.day.slice(8))
                     color: Theme.glass ? (cell.today ? Theme.accentFillInk : cell.inMonth ? Theme.m3onSurface : Theme.alpha(Theme.m3onSurfaceVariant, 0.6)) : (cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : cell.inMonth ? Theme.m3onSurface : Theme.alpha(Theme.m3onSurfaceVariant, 0.55))
                     font.pixelSize: 13
-                    weight: cell.picked || cell.today ? Font.Medium : Font.Normal
+                    weight: cell.picked || cell.today ? Font.DemiBold : Font.Normal
                 }
 
                 Column {

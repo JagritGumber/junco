@@ -27,13 +27,23 @@ Rectangle {
     radius: size / 2
     color: logo !== "" ? (accentLogo ? Theme.m3primaryContainer : Theme.m3surfaceContainerHighest) : isLane ? Theme.m3secondaryContainer : [Theme.m3primaryContainer, Theme.m3tertiaryContainer, Theme.m3secondaryContainer][tone]
 
+    // Delicate top specular sheen on circular monogram / brand discs.
+    GlassEdge {
+        visible: Theme.glass && avatarPhoto.status !== Image.Ready
+        radius: root.radius
+        fade: 9
+        side: false
+        light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.22 : 0.28)
+    }
+
     Label {
         anchors.centerIn: parent
         visible: !root.isLane
         text: root.name.split(" ").filter(w => w.length > 0).map(w => w[0]).slice(0, 2).join("").toUpperCase()
         color: root.ink
-        font.pixelSize: Math.round(root.size * 0.38)
-        weight: Font.Medium
+        font.pixelSize: Math.round(root.size * 0.37)
+        font.letterSpacing: -0.3
+        weight: Font.DemiBold
     }
 
     Icon {
@@ -61,6 +71,8 @@ Rectangle {
     // The sender's own picture (courier-avatars stores it already round, on
     // a white disc), covering the initials once it has loaded.
     Image {
+        id: avatarPhoto
+
         anchors.fill: parent
         visible: status === Image.Ready
         source: root.image === "" || root.logo !== "" ? "" : `file://${root.image}`

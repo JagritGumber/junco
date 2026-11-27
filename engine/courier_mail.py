@@ -499,6 +499,8 @@ def conversations(index: Index) -> list[dict]:
                 "epoch": epoch,
                 "time": short_time(epoch, today=today),
                 "unread": 0,
+                "starred": False,
+                "latestId": message.messageid,
                 "logo": LOGOS.get(domain, ""),
                 "icon": "newspaper" if lane == "newsletters" else "",
                 "expiry": None,
@@ -512,6 +514,8 @@ def conversations(index: Index) -> list[dict]:
                 entry["expiry"] = msg_expiry
         if "unread" in tags:
             entry["unread"] += 1
+        if "flagged" in tags:
+            entry["starred"] = True
         if "inbox" in tags:
             entry["_inbox"] = True
 

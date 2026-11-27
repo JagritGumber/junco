@@ -13,7 +13,24 @@ Item {
     readonly property bool isCarryOver: Boolean(modelData.carryOver) && !isDone
     readonly property bool hasMeetingLink: (modelData.eventUid ?? "") !== ""
 
-    implicitHeight: Math.max(36, row.implicitHeight + 10)
+    implicitHeight: Math.max(44, row.implicitHeight + 16)
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.leftMargin: 6
+        anchors.rightMargin: 6
+        anchors.topMargin: 1
+        anchors.bottomMargin: 1
+        radius: 10
+        color: hover.hovered ? Theme.glassHover : "transparent"
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Theme.animFast
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
 
     RowLayout {
         id: row
@@ -21,9 +38,9 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 10
-        anchors.rightMargin: 6
-        spacing: 10
+        anchors.leftMargin: 14
+        anchors.rightMargin: 10
+        spacing: 12
 
         CheckBox {
             Layout.alignment: Qt.AlignTop
@@ -34,7 +51,7 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 3
+            spacing: 4
 
             Label {
                 Layout.fillWidth: true

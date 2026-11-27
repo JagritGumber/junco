@@ -12,18 +12,16 @@ Rectangle {
     property string text
     property string icon: ""
     property string style: "tonal"
-    property int size: 34
+    property int size: 36
     property int fontSize: 13
     property string tip: ""
     property string hint: ""
 
     signal clicked
 
-    readonly property bool glassFilled: style === "filled" && Theme.lightGlass
-
     readonly property color ink: style === "filled" ? Theme.pillInk : style === "text" ? Theme.m3primary : Theme.m3onSurface
 
-    implicitWidth: row.implicitWidth + (icon === "" ? 24 : 20)
+    implicitWidth: row.implicitWidth + (icon === "" ? 28 : 24)
     implicitHeight: size
     radius: size / 2
     color: {
@@ -36,8 +34,23 @@ Rectangle {
             return Theme.glass ? (area.containsMouse ? Theme.glassControlHover : Theme.glassControl) : (area.containsMouse ? Theme.glassHover : Theme.alpha(Theme.m3onSurface, 0.03));
         return hover ? Theme.alpha(Theme.m3primary, hover) : "transparent";
     }
-    border.width: style === "outlined" || (style === "tonal" && Theme.glass) || glassFilled ? 1 : 0
-    border.color: style === "outlined" || glassFilled || (style === "tonal" && Theme.glass) ? Theme.glassBorder : Theme.glassBorderSubtle
+    border.width: !Theme.glass && style === "outlined" ? 1 : 0
+    border.color: style === "outlined" ? Theme.glassBorder : Theme.glassBorderSubtle
+
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    GlassEdge {
+        visible: Theme.glass && root.style === "filled"
+        radius: root.radius
+        fade: 9
+        side: false
+        light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.16 : 0.28)
+    }
 
     Row {
         id: row
@@ -46,13 +59,13 @@ Rectangle {
         anchors.left: hintRow.visible ? parent.left : undefined
         anchors.leftMargin: 14
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
+        spacing: 7
 
         Icon {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.icon !== ""
             name: root.icon
-            size: Math.round(root.size * 0.52)
+            size: Math.round(root.size * 0.50)
             color: root.ink
         }
 
@@ -61,7 +74,7 @@ Rectangle {
             text: root.text
             color: root.ink
             font.pixelSize: root.fontSize
-            weight: style === "filled" ? Font.Medium : Font.Normal
+            weight: style === "filled" ? Font.DemiBold : Font.Medium
         }
     }
 

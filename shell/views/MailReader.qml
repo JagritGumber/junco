@@ -30,14 +30,12 @@ GlassPane {
     readonly property Item designedView: designedText
     property string lastSelected: "body"
 
-    // Rubik[wght].ttf (OS/2 usWeightClass=300) triggers Qt 6's synthetic
-    // double-bolding at weight >= 700 (<b>, <strong>, <h1>..<h6>, <th>,
-    // font-weight: bold). Driving RichText bold tags at font-weight: 600
-    // selects Rubik's crisp SemiBold instance cleanly in both light and dark.
+    // Drive RichText markup with crisp Adwaita Sans (Inter) and clamp bold tags
+    // to SemiBold (600) so HTML & plain-text messages read cleanly without bloat.
     function crispRichText(markup: string): string {
         if (!markup)
             return "";
-        const rule = "<style>b,strong,h1,h2,h3,h4,h5,h6,th{font-weight:600;}</style>";
+        const rule = "<style>body,p,div,td,li{font-family:'Adwaita Sans',sans-serif;}b,strong,h1,h2,h3,h4,h5,h6,th{font-weight:600;}</style>";
         if (/<head\b[^>]*>/i.test(markup))
             return markup.replace(/<head\b[^>]*>/i, match => match + rule);
         return rule + markup;
@@ -113,20 +111,23 @@ GlassPane {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 22
+        anchors.leftMargin: root.width >= 600 ? 28 : 20
+        anchors.rightMargin: root.width >= 600 ? 28 : 20
+        anchors.topMargin: 22
+        anchors.bottomMargin: 22
         visible: root.mail !== null
-        spacing: 14
+        spacing: 16
 
-        // Calm mockup-style subject row (back button only when navigating from a conversation/history).
+        // Editorial subject headline (back button only when navigating from a conversation/history).
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: 12
 
             IconButton {
                 visible: Inbox.folder === "smart" || Inbox.history.length > 0
                 icon: "arrow_back"
                 tip: Inbox.history.length > 0 ? "Back to the email before" : "Back to the conversation (Esc)"
-                size: 30
+                size: 32
                 onClicked: Inbox.back()
             }
 
@@ -145,7 +146,8 @@ GlassPane {
                 selectionColor: Theme.m3primary
                 selectedTextColor: Theme.m3onPrimary
                 font.family: Theme.sans
-                font.pixelSize: 20
+                font.pixelSize: 22
+                font.letterSpacing: -0.45
                 font.weight: Font.Normal
                 font.variableAxes: ({ "wght": Theme.weightHeading })
                 onSelectedTextChanged: if (selectedText !== "") root.selectionChanged("subject")
@@ -165,37 +167,37 @@ GlassPane {
                 style: "filled"
                 icon: "restore_from_trash"
                 text: "Restore"
-                size: 32
+                size: 34
                 fontSize: 12
                 onClicked: Inbox.act("untrash", [root.mail.id])
             }
         }
 
-        // Calm sender header: Avatar + Name <address> / to me ▾ | time + star + reply + overflow menu.
+        // Calm sender header: Avatar + Name <address> / to me ▾ | tabular time + floating frosted action pill.
         RowLayout {
             Layout.fillWidth: true
-            spacing: 12
+            spacing: 16
 
             Avatar {
                 Layout.alignment: Qt.AlignVCenter
                 name: root.mail?.fromName ?? ""
                 image: root.mail?.avatar ?? ""
-                size: 38
+                size: 44
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 2
+                spacing: 3
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 6
+                    spacing: 8
 
                     Label {
                         text: root.mail?.fromName ?? ""
                         color: Theme.m3onSurface
-                        font.pixelSize: 14
-                        weight: Font.Medium
+                        font.pixelSize: 15
+                        weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
 
@@ -257,57 +259,81 @@ GlassPane {
 
             Label {
                 Layout.alignment: Qt.AlignVCenter
+                tabular: true
                 text: root.mail ? Inbox.whenText(root.mail.epoch) : ""
                 color: Theme.m3onSurfaceVariant
                 font.pixelSize: 12
             }
 
-            IconButton {
+            // Sleek floating frosted pill action bar (zero outlines, delicate top sheen).
+            Rectangle {
                 visible: !root.inTrash
-                icon: "star"
-                iconFill: (root.mail?.starred ?? false) ? 1 : 0
-                iconColor: (root.mail?.starred ?? false) ? Theme.m3tertiary : Theme.m3onSurfaceVariant
-                tip: (root.mail?.starred ?? false) ? "Unstar" : "Star"
-                size: 30
-                onClicked: Inbox.mark(root.mail.starred ? "unstar" : "star", [root.mail.id])
-            }
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: headerActions.implicitWidth + 8
+                implicitHeight: 36
+                radius: 18
+                color: Theme.glassControl
+                border.width: 0
 
-            IconButton {
-                visible: !root.inTrash
-                icon: "reply"
-                tip: "Reply"
-                size: 30
-                onClicked: Inbox.compose("reply", root.mail.id)
-            }
+                GlassEdge {
+                    visible: Theme.glass
+                    radius: 18
+                    fade: 8
+                    side: false
+                    light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.12 : 0.24)
+                }
 
-            IconButton {
-                id: moreButton
+                Row {
+                    id: headerActions
 
-                visible: !root.inTrash
-                icon: "more_vert"
-                tip: "More"
-                size: 30
-                onClicked: menu.show(moreButton, [
-                    { icon: root.inbox ? "archive" : "move_to_inbox", label: root.inbox ? "Archive" : "Move to Inbox", run: () => Inbox.act(root.inbox ? "archive" : "inbox", [root.mail.id]) },
-                    { icon: "mark_email_unread", label: "Mark unread", run: () => Inbox.mark("unread", [root.mail.id]) },
-                    { icon: "auto_delete", label: (root.mail?.expiry ?? null) !== null ? "Change scheduled delete…" : "Schedule delete…", run: () => root.openSchedulePopover(moreButton, root.mail) },
-                    { icon: "delete", label: "Delete", run: () => Inbox.act("trash", [root.mail.id]) },
-                    { separator: true },
-                    ...(root.mail.plain && root.mail.html && root.sender ? [root.mode === "plain"
-                        ? { icon: "web", label: "Show original", run: () => Inbox.setReaderPref(root.sender, "plain", "original") }
-                        : { icon: "notes", label: "Show plain text", run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.plainAuto ? "auto" : "always") }] : []),
-                    ...(root.mail.plain && root.sender ? [
-                        { icon: root.mail.prefs.plain === "always" ? "check_box" : "check_box_outline_blank", label: "Always plain text",
-                          run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.prefs.plain === "always" ? "auto" : "always") }] : []),
-                    ...(root.designed && root.sender ? [{ icon: root.themedView ? "light_mode" : "dark_mode", label: root.themedView ? "Original colours" : "Dark",
-                        run: () => Inbox.setReaderPref(root.sender, "colours", root.themedView ? "original" : "dark") }] : []),
-                    ...(root.mail.html && !root.mail.plain && root.mode !== "plain" ? [{ icon: root.designed ? "notes" : "web", label: root.designed ? "Show as plain text" : "Show designed version",
-                        run: () => root.override = root.designed ? "text" : "html" }] : []),
-                    { icon: "open_in_new", label: "Open in browser", run: () => Inbox.viewOriginal(root.mail.id) },
-                    ...(Inbox.developer ? [{ icon: "dataset", label: Inbox.teaching ? "Stop teaching fields" : "Teach fields", run: () => Inbox.teaching ? Inbox.stopTeaching() : Inbox.startTeaching() }] : []),
-                    { separator: true },
-                    { icon: "report", label: "Report spam", danger: true, run: () => Inbox.act("spam", [root.mail.id]) }
-                ])
+                    anchors.centerIn: parent
+                    spacing: 2
+
+                    IconButton {
+                        icon: "star"
+                        iconFill: (root.mail?.starred ?? false) ? 1 : 0
+                        iconColor: (root.mail?.starred ?? false) ? Theme.m3tertiary : Theme.m3onSurfaceVariant
+                        tip: (root.mail?.starred ?? false) ? "Unstar" : "Star"
+                        size: 30
+                        onClicked: Inbox.mark(root.mail.starred ? "unstar" : "star", [root.mail.id])
+                    }
+
+                    IconButton {
+                        icon: "reply"
+                        tip: "Reply"
+                        size: 30
+                        onClicked: Inbox.compose("reply", root.mail.id)
+                    }
+
+                    IconButton {
+                        id: moreButton
+
+                        icon: "more_vert"
+                        tip: "More"
+                        size: 30
+                        onClicked: menu.show(moreButton, [
+                            { icon: root.inbox ? "archive" : "move_to_inbox", label: root.inbox ? "Archive" : "Move to Inbox", run: () => Inbox.act(root.inbox ? "archive" : "inbox", [root.mail.id]) },
+                            { icon: "mark_email_unread", label: "Mark unread", run: () => Inbox.mark("unread", [root.mail.id]) },
+                            { icon: "auto_delete", label: (root.mail?.expiry ?? null) !== null ? "Change scheduled delete…" : "Schedule delete…", run: () => root.openSchedulePopover(moreButton, root.mail) },
+                            { icon: "delete", label: "Delete", run: () => Inbox.act("trash", [root.mail.id]) },
+                            { separator: true },
+                            ...(root.mail.plain && root.mail.html && root.sender ? [root.mode === "plain"
+                                ? { icon: "web", label: "Show original", run: () => Inbox.setReaderPref(root.sender, "plain", "original") }
+                                : { icon: "notes", label: "Show plain text", run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.plainAuto ? "auto" : "always") }] : []),
+                            ...(root.mail.plain && root.sender ? [
+                                { icon: root.mail.prefs.plain === "always" ? "check_box" : "check_box_outline_blank", label: "Always plain text",
+                                  run: () => Inbox.setReaderPref(root.sender, "plain", root.mail.prefs.plain === "always" ? "auto" : "always") }] : []),
+                            ...(root.designed && root.sender ? [{ icon: root.themedView ? "light_mode" : "dark_mode", label: root.themedView ? "Original colours" : "Dark",
+                                run: () => Inbox.setReaderPref(root.sender, "colours", root.themedView ? "original" : "dark") }] : []),
+                            ...(root.mail.html && !root.mail.plain && root.mode !== "plain" ? [{ icon: root.designed ? "notes" : "web", label: root.designed ? "Show as plain text" : "Show designed version",
+                                run: () => root.override = root.designed ? "text" : "html" }] : []),
+                            { icon: "open_in_new", label: "Open in browser", run: () => Inbox.viewOriginal(root.mail.id) },
+                            ...(Inbox.developer ? [{ icon: "dataset", label: Inbox.teaching ? "Stop teaching fields" : "Teach fields", run: () => Inbox.teaching ? Inbox.stopTeaching() : Inbox.startTeaching() }] : []),
+                            { separator: true },
+                            { icon: "report", label: "Report spam", danger: true, run: () => Inbox.act("spam", [root.mail.id]) }
+                        ])
+                    }
+                }
             }
         }
 
@@ -323,15 +349,16 @@ GlassPane {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            contentHeight: column.implicitHeight + 16
+            contentHeight: column.implicitHeight + 20
             boundsBehavior: Flickable.StopAtBounds
 
             ColumnLayout {
                 id: column
 
-                x: 2
-                width: Math.min(page.width - 4, 920)
-                spacing: 14
+                x: 0
+                y: 4
+                width: Math.min(page.width, 920)
+                spacing: 16
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -471,15 +498,15 @@ GlassPane {
                 }
 
                 Rectangle {
-                    readonly property int inset: root.themedView ? 0 : 14
+                    readonly property int inset: root.themedView ? 0 : 18
 
                     Layout.fillWidth: true
                     Layout.maximumWidth: 720
                     visible: root.designed
                     implicitHeight: designedText.implicitHeight + 2 * inset
-                    radius: 13
+                    radius: Theme.cardRadius
                     color: root.paper
-                    border.width: root.themedView && Theme.glass ? 1 : 0
+                    border.width: !Theme.glass && root.themedView ? 1 : 0
                     border.color: Theme.glassBubbleOtherBorder
                     clip: true
 
@@ -510,23 +537,21 @@ GlassPane {
                     }
                 }
 
-                // Plain and text bodies: on a lighter glass card of their own
-                // (level 3), nested in the reader card.
+                // Plain and text bodies: airy editorial glass card nested in the reader pane.
                 Rectangle {
-                    readonly property int inset: Theme.glass ? 14 : 0
+                    readonly property int inset: Theme.glass ? 22 : 0
 
                     Layout.fillWidth: true
                     Layout.maximumWidth: 820 + 2 * inset
                     visible: root.mode === "plain" || root.mode === "text"
                     implicitHeight: bodyColumn.implicitHeight + 2 * inset
-                    radius: 13
+                    radius: 16
                     color: Theme.glass ? Theme.glassCard : "transparent"
-                    border.width: Theme.glass ? 1 : 0
-                    border.color: Theme.glassBubbleOtherBorder
+                    border.width: 0
 
                     GlassEdge {
                         visible: Theme.glass
-                        radius: 13
+                        radius: 16
                         side: false
                     }
 
@@ -632,7 +657,7 @@ GlassPane {
                 }
 
                 RowLayout {
-                    Layout.topMargin: 6
+                    Layout.topMargin: 8
                     visible: !root.inTrash
                     spacing: 10
 
@@ -640,7 +665,7 @@ GlassPane {
                         style: "tonal"
                         icon: "reply"
                         text: "Reply"
-                        size: 34
+                        size: 36
                         fontSize: 13
                         onClicked: Inbox.compose("reply", root.mail.id)
                     }
@@ -649,7 +674,7 @@ GlassPane {
                         style: "tonal"
                         icon: "reply_all"
                         text: "Reply all"
-                        size: 34
+                        size: 36
                         fontSize: 13
                         onClicked: Inbox.compose("replyall", root.mail.id)
                     }
@@ -658,7 +683,7 @@ GlassPane {
                         style: "tonal"
                         icon: "forward"
                         text: "Forward"
-                        size: 34
+                        size: 36
                         fontSize: 13
                         onClicked: Inbox.compose("forward", root.mail.id)
                     }
@@ -668,7 +693,7 @@ GlassPane {
 
                         icon: "more_horiz"
                         tip: "More actions"
-                        size: 34
+                        size: 36
                         filled: true
                         fillColor: Theme.glassControl
                         iconColor: Theme.m3onSurface

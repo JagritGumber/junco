@@ -15,20 +15,20 @@ Column {
     readonly property real maxBubble: Math.min(width * 0.78, 660)
     readonly property bool openable: (message.id ?? "") !== ""
 
-    spacing: 6
+    spacing: 8
 
     Item {
         width: root.width
-        height: root.newDay ? 26 : 0
+        height: root.newDay ? 30 : 0
         visible: root.newDay
 
         Rectangle {
             anchors.centerIn: parent
-            implicitHeight: 20
-            implicitWidth: day.implicitWidth + 18
-            radius: 10
+            implicitHeight: 22
+            implicitWidth: day.implicitWidth + 20
+            radius: 11
             color: Theme.glassControl
-            border.width: 1
+            border.width: Theme.glass ? 0 : 1
             border.color: Theme.glassBorderSubtle
 
             Label {
@@ -36,9 +36,9 @@ Column {
 
                 anchors.centerIn: parent
                 text: root.message.day ?? ""
-                color: Theme.m3onSurfaceVariant
+                color: Theme.darkGlass ? Theme.alpha(Theme.m3onSurface, 0.86) : Theme.m3onSurfaceVariant
                 font.pixelSize: 11
-                weight: Font.Normal
+                weight: Font.Medium
             }
         }
     }
@@ -61,8 +61,8 @@ Column {
 
                 anchors.right: root.mine ? parent.right : undefined
                 anchors.left: root.mine ? undefined : parent.left
-                implicitWidth: Math.min(root.maxBubble, Math.max(content.implicitWidth, 92) + 32)
-                implicitHeight: content.implicitHeight + 24
+                implicitWidth: Math.min(root.maxBubble, Math.max(content.implicitWidth, 96) + 36)
+                implicitHeight: content.implicitHeight + 28
                 color: root.mine ? Theme.glassBubbleMine : Theme.glassBubbleOther
                 border.width: Theme.glass ? 0 : 1
                 border.color: root.mine ? Theme.glassBubbleMineBorder : Theme.glassBubbleOtherBorder
@@ -71,11 +71,13 @@ Column {
                 bottomLeftRadius: root.mine ? 16 : 6
                 bottomRightRadius: root.mine ? 6 : 16
 
-                // Glass: a faint top glow, no outline and no vertical stripe.
+                // Glass: crisp top catch-light, no outline and no vertical stripe.
                 GlassEdge {
                     visible: Theme.glass
                     radius: 16
+                    fade: 11
                     side: false
+                    light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.18 : 0.22)
                 }
 
                 MouseArea {
@@ -91,29 +93,29 @@ Column {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    anchors.topMargin: 12
-                    spacing: 5
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
+                    anchors.topMargin: 14
+                    spacing: 6
 
                     Label {
                         visible: !!root.message.subject
-                        Layout.maximumWidth: root.maxBubble - 32
+                        Layout.maximumWidth: root.maxBubble - 36
                         text: root.message.subject ?? ""
                         color: body.ink
                         font.pixelSize: 14
-                        weight: Font.Medium
+                        weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
 
                     Label {
-                        Layout.maximumWidth: root.maxBubble - 32
+                        Layout.maximumWidth: root.maxBubble - 36
                         Layout.fillWidth: true
                         text: {
                             const htmlBody = (root.message.body ?? "").trim() || (root.message.attachments ?? []).length > 0
                                 ? Inbox.linked(root.message.body, Theme.m3primary)
                                 : "<i>No text</i>";
-                            return `<style>b,strong{font-weight:600;}</style>${htmlBody}`;
+                            return `<style>body,p,div{font-family:'Adwaita Sans',sans-serif;}b,strong{font-weight:600;}</style>${htmlBody}`;
                         }
                         textFormat: Text.RichText
                         linkColor: Theme.m3primary
@@ -121,7 +123,7 @@ Column {
                         color: body.ink
                         wrapMode: Text.Wrap
                         font.pixelSize: 14
-                        lineHeight: 1.24
+                        lineHeight: 1.38
                     }
 
                     Repeater {
@@ -192,9 +194,10 @@ Column {
 
                         Label {
                             anchors.verticalCenter: parent.verticalCenter
+                            tabular: true
                             text: root.message.time
-                            color: Theme.alpha(body.ink, 0.62)
-                            font.pixelSize: 10
+                            color: Theme.alpha(body.ink, 0.65)
+                            font.pixelSize: 11
                         }
 
                         Icon {
@@ -224,11 +227,18 @@ Column {
             })[root.message.status] ?? [Theme.glassControl, Theme.m3onSurfaceVariant, "Update"]
 
             implicitWidth: Math.min(root.width, 740)
-            implicitHeight: 54
+            implicitHeight: 64
             radius: Theme.cardRadius
             color: open.containsMouse ? Theme.glassCardHover : Theme.glassCard
-            border.width: 1
+            border.width: Theme.glass ? 0 : 1
             border.color: Theme.glassBorderSubtle
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.animFast
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             MouseArea {
                 id: open
@@ -241,9 +251,9 @@ Column {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 12
-                spacing: 10
+                anchors.leftMargin: 14
+                anchors.rightMargin: 14
+                spacing: 12
 
                 Rectangle {
                     implicitWidth: 34

@@ -75,11 +75,11 @@ GlassPane {
             id: column
 
             width: parent.width
-            spacing: 14
+            spacing: 16
 
             AppTitle {
                 Layout.topMargin: 2
-                Layout.leftMargin: 3
+                Layout.leftMargin: 4
                 text: "Calendar"
                 icon: `file://${Quickshell.shellDir}/../assets/icons/courier-calendar-tab.svg`
                 iconSize: 22
@@ -92,15 +92,15 @@ GlassPane {
                 style: "filled"
                 icon: "add"
                 text: "Create event"
-                size: 38
+                size: 40
                 fontSize: 13
                 onClicked: root.page.createEvent(Calendar.selected, -1)
             }
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: month.implicitHeight + 20
-                radius: 13
+                implicitHeight: month.implicitHeight + 24
+                radius: Theme.cardRadius
                 color: Theme.glass ? Theme.sheetControl : Theme.glassCard
                 border.width: Theme.glass ? 0 : 1
                 border.color: Theme.glassBorderSubtle
@@ -111,7 +111,7 @@ GlassPane {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
+                    anchors.margins: 12
                     selected: Calendar.selected
                     longNames: false
                     ink: Theme.sheetInk
@@ -123,7 +123,7 @@ GlassPane {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 1
+                spacing: 4
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -140,7 +140,7 @@ GlassPane {
                     IconButton {
                         icon: "add"
                         tip: "New calendar on this PC"
-                        size: 26
+                        size: 28
                         filled: true
                         fillColor: Theme.sheetControl
                         iconColor: Theme.sheetInk
@@ -161,13 +161,13 @@ GlassPane {
                         required property var modelData
 
                         Layout.fillWidth: true
-                        spacing: 0
+                        spacing: 3
 
                         Label {
                             Layout.fillWidth: true
                             Layout.leftMargin: 4
-                            Layout.topMargin: 6
-                            Layout.bottomMargin: 2
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 3
                             text: group.modelData.title
                             elide: Text.ElideRight
                             color: Theme.sheetInkVariant
@@ -185,8 +185,8 @@ GlassPane {
                                 readonly property bool on: !Calendar.hidden[modelData.id]
 
                                 Layout.fillWidth: true
-                                implicitHeight: 34
-                                radius: 9
+                                implicitHeight: 38
+                                radius: 11
                                 color: rowArea.containsMouse ? Theme.sheetHover : "transparent"
 
                                 MouseArea {
@@ -200,9 +200,9 @@ GlassPane {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 6
-                                    anchors.rightMargin: 2
-                                    spacing: 9
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 4
+                                    spacing: 11
 
                                     CheckBox {
                                         checked: row.on
@@ -294,7 +294,7 @@ GlassPane {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 6
+                spacing: 8
 
                 Label {
                     Layout.leftMargin: 4
@@ -316,7 +316,7 @@ GlassPane {
                         Layout.fillWidth: true
                         Layout.leftMargin: 4
                         Layout.rightMargin: 4
-                        spacing: 8
+                        spacing: 10
 
                         Image {
                             Layout.preferredWidth: 22

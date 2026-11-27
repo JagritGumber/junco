@@ -14,8 +14,8 @@ Rectangle {
     implicitHeight: 28
     implicitWidth: row.implicitWidth + 5 + 11
     radius: height / 2
-    color: selected ? Theme.m3primary : (area.containsMouse ? Theme.glassControlHover : Theme.glassControl)
-    border.width: selected ? 0 : 1
+    color: selected ? Theme.pill : (area.containsMouse ? Theme.glassControlHover : Theme.glassControl)
+    border.width: Theme.glass ? 0 : (selected ? 0 : 1)
     border.color: Theme.glassBorderSubtle
 
     Row {
@@ -37,7 +37,7 @@ Rectangle {
         Label {
             anchors.verticalCenter: parent.verticalCenter
             text: root.info?.email ?? root.account
-            color: root.selected ? Theme.m3onPrimary : Theme.m3onSurfaceVariant
+            color: root.selected ? Theme.pillInk : Theme.m3onSurfaceVariant
             font.pixelSize: 12
             weight: root.selected ? Font.Medium : Font.Normal
         }

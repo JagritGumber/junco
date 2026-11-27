@@ -114,6 +114,12 @@ Item {
             overlayLoader.item.ensureVisible(currentIndex);
     }
 
+    function layoutMetrics(): var {
+        if (!overlayLoader.item)
+            return null;
+        return overlayLoader.item.layoutMetrics();
+    }
+
     visible: open || opacity > 0.001
     opacity: open ? 1.0 : 0.0
     z: 180
@@ -158,11 +164,23 @@ Item {
                 resultsList.positionViewAtIndex(idx, ListView.Contain);
             }
 
-            // Scrim: click outside dismisses and restores focus.
+            function layoutMetrics(): var {
+                return {
+                    cardHeight: Math.round(card.height),
+                    searchBarHeight: Math.round(searchBar.height),
+                    resultsAreaHeight: Math.round(resultsArea.height),
+                    resultsListHeight: Math.round(resultsList.height),
+                    resultsContentHeight: Math.round(resultsList.contentHeight),
+                    footerBarHeight: Math.round(footerBar.height),
+                    itemCount: root.items ? root.items.length : 0
+                };
+            }
+
+            // Scrim: gentle translucent backdrop; click outside dismisses and restores focus.
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.paneRadius
-                color: Theme.dark ? Theme.alpha("#000000", 0.36) : Theme.alpha("#0e1328", 0.20)
+                color: Theme.dark ? Theme.alpha("#000000", 0.34) : Theme.alpha("#0e1328", 0.18)
 
                 MouseArea {
                     anchors.fill: parent
@@ -178,22 +196,45 @@ Item {
                 onActivated: root.close(true)
             }
 
-            // Floating frosted-glass modal centered in upper-middle third.
+            // Floating translucent frosted-glass modal centered in upper-middle third.
             Rectangle {
                 id: card
 
-                readonly property int maxCardHeight: Math.max(200, Math.min(440, overlay.height - 48))
-                readonly property int chromeHeight: 54 + 1 + 1 + 34 + 12
+                readonly property int searchBarH: 58
+                readonly property int footerBarH: 40
+                readonly property int listVertPad: 16
+                readonly property int chromeHeight: searchBarH + 1 + 1 + footerBarH + listVertPad
+                readonly property int maxCardHeight: Math.max(260, Math.min(488, overlay.height - 48))
+                readonly property int maxListHeight: Math.max(120, Math.min(350, maxCardHeight - chromeHeight))
+                readonly property int estimatedContentHeight: {
+                    const list = root.items ?? [];
+                    if (list.length === 0)
+                        return 136;
+                    let total = 0;
+                    let prevGroup = null;
+                    for (let i = 0; i < list.length; i++) {
+                        const entry = list[i];
+                        const grp = entry.group ?? "";
+                        if (grp !== prevGroup) {
+                            total += 32;
+                            prevGroup = grp;
+                        }
+                        total += (entry.subtitle ?? "") !== "" ? 52 : 48;
+                        if (i > 0)
+                            total += 4;
+                    }
+                    return total + 8;
+                }
                 readonly property int desiredListHeight: root.items.length === 0
-                    ? 124
-                    : Math.min(maxCardHeight - chromeHeight, Math.max(64, resultsList.contentHeight + 6))
+                    ? 136
+                    : Math.min(maxListHeight, Math.max(120, Math.max(resultsList.contentHeight, estimatedContentHeight)))
 
-                width: Math.min(584, Math.max(320, overlay.width - 32))
+                width: Math.min(620, Math.max(320, overlay.width - 32))
                 height: Math.min(maxCardHeight, chromeHeight + desiredListHeight)
                 x: Math.round((overlay.width - width) / 2)
                 y: Math.max(24, Math.min(Math.round(overlay.height * 0.14), overlay.height - height - 24))
-                radius: 18
-                color: Theme.m3popupHigh
+                radius: 20
+                color: Theme.glassPalette
                 border.width: 0
 
                 transform: Translate {
@@ -241,23 +282,29 @@ Item {
                     anchors.fill: parent
                     spacing: 0
 
-                    // Top search bar
+                    // Top search bar (strict fixed height — never stretches in ColumnLayout)
                     RowLayout {
+                        id: searchBar
+
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 54
-                        Layout.leftMargin: 16
-                        Layout.rightMargin: 14
-                        spacing: 10
+                        Layout.fillHeight: false
+                        Layout.preferredHeight: card.searchBarH
+                        Layout.minimumHeight: card.searchBarH
+                        Layout.maximumHeight: card.searchBarH
+                        Layout.leftMargin: 18
+                        Layout.rightMargin: 16
+                        spacing: 12
 
                         Icon {
                             name: "search"
-                            size: 19
+                            size: 20
                             color: root.query.trim() !== "" ? Theme.m3primary : Theme.m3onSurfaceVariant
                         }
 
                         Item {
                             Layout.fillWidth: true
-                            Layout.fillHeight: true
+                            Layout.preferredHeight: card.searchBarH
+                            Layout.maximumHeight: card.searchBarH
 
                             TextInput {
                                 id: searchInput
@@ -269,7 +316,8 @@ Item {
                                 selectionColor: Theme.m3primary
                                 selectedTextColor: Theme.m3onPrimary
                                 font.family: Theme.sans
-                                font.pixelSize: 15
+                                font.pixelSize: 16
+                                font.letterSpacing: -0.2
                                 font.weight: Font.Normal
                                 clip: true
                                 text: root.query
@@ -384,23 +432,31 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 1
+                        Layout.fillHeight: false
+                        Layout.preferredHeight: 1
+                        Layout.minimumHeight: 1
+                        Layout.maximumHeight: 1
                         color: Theme.glassDivider
                     }
 
-                    // Results area
+                    // Results area (receives all flexible height)
                     Item {
+                        id: resultsArea
+
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.topMargin: 6
-                        Layout.bottomMargin: 6
+                        Layout.preferredHeight: card.desiredListHeight
+                        Layout.minimumHeight: 120
+                        Layout.topMargin: 8
+                        Layout.bottomMargin: 8
+                        clip: true
 
                         // Empty state
                         ColumnLayout {
                             anchors.centerIn: parent
                             width: parent.width - 48
                             visible: root.items.length === 0
-                            spacing: 6
+                            spacing: 8
 
                             Icon {
                                 Layout.alignment: Qt.AlignHCenter
@@ -425,7 +481,7 @@ Item {
                                 wrapMode: Text.Wrap
                                 text: root.emptyHint
                                 color: Theme.m3onSurfaceVariant
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
 
@@ -433,12 +489,12 @@ Item {
                             id: resultsList
 
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
                             visible: root.items.length > 0
                             clip: true
                             cacheBuffer: 240
-                            spacing: 2
+                            spacing: 4
                             boundsBehavior: Flickable.StopAtBounds
                             currentIndex: root.currentIndex
                             model: root.items
@@ -449,17 +505,18 @@ Item {
                                 required property string section
 
                                 width: resultsList.width
-                                height: 26
+                                height: 32
 
                                 Label {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 10
+                                    anchors.leftMargin: 12
                                     anchors.bottom: parent.bottom
-                                    anchors.bottomMargin: 4
-                                    text: section
-                                    color: Theme.alpha(Theme.m3onSurfaceVariant, 0.84)
-                                    font.pixelSize: 11
-                                    weight: Font.Medium
+                                    anchors.bottomMargin: 6
+                                    text: section.toUpperCase()
+                                    color: Theme.alpha(Theme.m3onSurfaceVariant, 0.72)
+                                    font.pixelSize: 10
+                                    font.letterSpacing: 0.55
+                                    weight: Font.DemiBold
                                 }
                             }
 
@@ -477,26 +534,41 @@ Item {
                                 readonly property string subtitleText: modelData.subtitle ?? ""
 
                                 width: resultsList.width
-                                height: subtitleText !== "" ? 50 : 40
-                                radius: 11
+                                height: subtitleText !== "" ? 52 : 48
+                                radius: 13
                                 border.width: 0
                                 color: isSelected
                                     ? Theme.glassSelectedRow
                                     : (rowArea.containsMouse ? Theme.glassHover : "transparent")
                                 opacity: isDisabled ? 0.58 : 1.0
 
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: Theme.animFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+
+                                GlassEdge {
+                                    visible: Theme.glass && rowItem.isSelected
+                                    radius: rowItem.radius
+                                    fade: 10
+                                    side: false
+                                    light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.22 : 0.30)
+                                }
+
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 10
-                                    anchors.rightMargin: 10
-                                    spacing: 10
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    spacing: 13
 
                                     // Leading icon chip (fill-step only, zero outline)
                                     Rectangle {
                                         Layout.alignment: Qt.AlignVCenter
-                                        implicitWidth: 30
-                                        implicitHeight: 30
-                                        radius: 9
+                                        implicitWidth: 34
+                                        implicitHeight: 34
+                                        radius: 10
                                         border.width: 0
                                         color: rowItem.badgeTone === "complement" && (rowItem.modelData.group === "Next up" || rowItem.modelData.group === "Smart command")
                                             ? Theme.m3tertiaryContainer
@@ -507,7 +579,7 @@ Item {
                                         Icon {
                                             anchors.centerIn: parent
                                             name: rowItem.modelData.icon || "chevron_right"
-                                            size: 17
+                                            size: 18
                                             color: rowItem.badgeTone === "complement" && (rowItem.modelData.group === "Next up" || rowItem.modelData.group === "Smart command")
                                                 ? Theme.m3onTertiaryContainer
                                                 : rowItem.isSelected
@@ -520,7 +592,7 @@ Item {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignVCenter
-                                        spacing: 1
+                                        spacing: 3
 
                                         Label {
                                             Layout.fillWidth: true
@@ -537,7 +609,7 @@ Item {
                                             text: rowItem.subtitleText
                                             elide: Text.ElideRight
                                             color: Theme.m3onSurfaceVariant
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             weight: Font.Normal
                                         }
                                     }
@@ -622,17 +694,25 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 1
+                        Layout.fillHeight: false
+                        Layout.preferredHeight: 1
+                        Layout.minimumHeight: 1
+                        Layout.maximumHeight: 1
                         color: Theme.glassDivider
                     }
 
-                    // Minimal bottom footer bar
+                    // Minimal bottom footer bar (strict fixed height)
                     RowLayout {
+                        id: footerBar
+
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 34
-                        Layout.leftMargin: 16
-                        Layout.rightMargin: 16
-                        spacing: 8
+                        Layout.fillHeight: false
+                        Layout.preferredHeight: card.footerBarH
+                        Layout.minimumHeight: card.footerBarH
+                        Layout.maximumHeight: card.footerBarH
+                        Layout.leftMargin: 18
+                        Layout.rightMargin: 18
+                        spacing: 12
 
                         Label {
                             Layout.fillWidth: true

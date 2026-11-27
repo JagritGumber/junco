@@ -11,18 +11,18 @@ Rectangle {
     readonly property bool local: account === "local"
     readonly property color tint: local ? Theme.m3onSurfaceVariant : Inbox.accountColor(account)
 
-    implicitHeight: 20
-    implicitWidth: row.implicitWidth + row.anchors.leftMargin + 7
+    implicitHeight: 22
+    implicitWidth: row.implicitWidth + row.anchors.leftMargin + 8
     radius: height / 2
     color: Theme.glassControl
-    border.width: 1
+    border.width: Theme.glass ? 0 : 1
     border.color: Theme.glassBorderSubtle
 
     Row {
         id: row
 
         anchors.left: parent.left
-        anchors.leftMargin: root.local ? 7 : 3
+        anchors.leftMargin: root.local ? 8 : 4
         anchors.verticalCenter: parent.verticalCenter
         spacing: 5
 
@@ -39,14 +39,14 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: !root.local
             account: root.local ? "" : root.account
-            size: 14
+            size: 15
             tip: ""
         }
 
         Label {
             anchors.verticalCenter: parent.verticalCenter
             text: root.local ? "This PC" : Inbox.accountLabel(root.account)
-            color: Theme.m3onSurfaceVariant
+            color: Theme.darkGlass ? Theme.alpha(Theme.m3onSurface, 0.90) : Theme.m3onSurfaceVariant
             font.pixelSize: 11
             weight: Font.Medium
         }

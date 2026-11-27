@@ -157,17 +157,17 @@ Item {
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 12
+                    spacing: 14
 
                     // Calm single-row frosted toolbar.
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 10
 
                         IconButton {
                             icon: root.sidebarShown ? "left_panel_close" : "left_panel_open"
                             tip: root.sidebarShown ? "Hide calendars sidebar" : "Show calendars sidebar"
-                            size: 32
+                            size: 34
                             filled: !root.sidebarShown
                             fillColor: Theme.glassControl
                             iconColor: Theme.m3onSurface
@@ -178,8 +178,8 @@ Item {
                             visible: !root.sidebarShown
                             icon: "add"
                             tip: "Create event"
-                            size: 32
-                            cornerRadius: 10
+                            size: 34
+                            cornerRadius: 11
                             filled: true
                             fillColor: Theme.pill
                             iconColor: Theme.pillInk
@@ -188,11 +188,11 @@ Item {
 
                         // Compact navigation cluster
                         Rectangle {
-                            implicitWidth: navRow.implicitWidth + 6
-                            implicitHeight: 32
-                            radius: 10
+                            implicitWidth: navRow.implicitWidth + 8
+                            implicitHeight: 34
+                            radius: Theme.controlRadius
                             color: Theme.glassControl
-                            border.width: 1
+                            border.width: Theme.glass ? 0 : 1
                             border.color: Theme.glassBorderSubtle
 
                             Row {
@@ -221,14 +221,14 @@ Item {
 
                         Pill {
                             text: "Today"
-                            size: 32
+                            size: 34
                             fontSize: 12
                             onClicked: Calendar.selected = Calendar.todayDay
                         }
 
                         Label {
                             Layout.fillWidth: true
-                            Layout.leftMargin: 6
+                            Layout.leftMargin: 8
                             text: {
                                 Calendar.selected;
                                 Calendar.view;
@@ -241,11 +241,11 @@ Item {
 
                         // Search every copied event; Esc or × closes it.
                         Rectangle {
-                            Layout.preferredWidth: root.searching ? 210 : 30
-                            implicitHeight: 30
-                            radius: 10
+                            Layout.preferredWidth: root.searching ? 216 : 34
+                            implicitHeight: 34
+                            radius: Theme.controlRadius
                             color: root.searching ? Theme.glassControl : (searchArea.containsMouse ? Theme.glassControlHover : "transparent")
-                            border.width: root.searching ? 1 : 0
+                            border.width: !Theme.glass && root.searching ? 1 : 0
                             border.color: search.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorderSubtle
 
                             Behavior on Layout.preferredWidth {
@@ -314,20 +314,20 @@ Item {
                             }
                         }
 
-                        // Compact frosted segmented switcher: Day | Week | Month | Agenda.
+                        // Calm frosted segmented switcher: Day | Week | Month | Agenda.
                         Rectangle {
-                            implicitWidth: views.implicitWidth + 6
-                            implicitHeight: 32
-                            radius: 10
+                            implicitWidth: views.implicitWidth + 8
+                            implicitHeight: 34
+                            radius: Theme.controlRadius
                             color: Theme.glassControl
-                            border.width: 1
+                            border.width: Theme.glass ? 0 : 1
                             border.color: Theme.glassBorderSubtle
 
                             Row {
                                 id: views
 
                                 anchors.centerIn: parent
-                                spacing: 2
+                                spacing: 3
 
                                 Repeater {
                                     model: [
@@ -343,10 +343,25 @@ Item {
                                         required property var modelData
                                         readonly property bool active: Calendar.view === modelData.id
 
-                                        width: segmentLabel.implicitWidth + 20
-                                        height: 26
-                                        radius: 8
+                                        width: segmentLabel.implicitWidth + 22
+                                        height: 28
+                                        radius: 9
                                         color: active ? Theme.pill : (segmentArea.containsMouse ? Theme.glassHover : "transparent")
+
+                                        Behavior on color {
+                                            ColorAnimation {
+                                                duration: Theme.animFast
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+
+                                        GlassEdge {
+                                            visible: Theme.glass && segment.active
+                                            radius: 9
+                                            fade: 7
+                                            side: false
+                                            light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.14 : 0.26)
+                                        }
 
                                         Label {
                                             id: segmentLabel
@@ -377,7 +392,7 @@ Item {
                         IconButton {
                             icon: root.dayShown ? "right_panel_close" : "right_panel_open"
                             tip: root.dayShown ? "Hide day panel" : "Show day panel"
-                            size: 30
+                            size: 34
                             filled: !root.dayShown
                             fillColor: Theme.glassControl
                             iconColor: Theme.m3onSurface
@@ -389,7 +404,7 @@ Item {
 
                             icon: "more_vert"
                             tip: "More"
-                            size: 30
+                            size: 34
                             filled: true
                             fillColor: Theme.glassControl
                             iconColor: Theme.m3onSurface

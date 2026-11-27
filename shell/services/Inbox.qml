@@ -603,6 +603,17 @@ Singleton {
                 else
                     message.starred = action === "star";
             }
+        if (action === "star" || action === "unstar") {
+            let convChanged = false;
+            for (const c of conversations) {
+                if (c.latestId && ids.includes(c.latestId)) {
+                    c.starred = action === "star";
+                    convChanged = true;
+                }
+            }
+            if (convChanged)
+                conversations = conversations.slice();
+        }
         if (listing)
             listing = Object.assign({}, listing);
         messages = messages.slice();
@@ -743,7 +754,7 @@ Singleton {
 
     function accountColor(id: string): color {
         const at = accounts.findIndex(a => a.id === id);
-        return [Theme.m3primary, Theme.m3tertiary, Theme.m3error, Theme.m3success][Math.max(0, at) % 4];
+        return Theme.accountTone(Math.max(0, at));
     }
 
     function accountArgs(): var {

@@ -49,9 +49,9 @@ Item {
             // From the name the app calls it by (the "Work" chip), not
             // the address, which may start with any letter.
             text: (root.info?.label || root.info?.email || root.account).charAt(0).toUpperCase()
-            color: Qt.color(root.tint).hslLightness > 0.55 ? "#1b1b1f" : "#ffffff"
+            color: Theme.pickInk(root.tint)
             font.pixelSize: Math.round(root.size * 0.45) + 1
-            weight: Font.Medium
+            weight: Font.DemiBold
         }
 
         // Saved already round by the engine (account-picture, courier-avatars).

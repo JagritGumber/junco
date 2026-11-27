@@ -44,7 +44,8 @@ ColumnLayout {
             text: Qt.formatDate(root.shown, "MMMM yyyy")
             color: root.ink
             font.pixelSize: 13
-            weight: Font.Medium
+            font.letterSpacing: -0.2
+            weight: Font.DemiBold
         }
 
         IconButton {
@@ -126,10 +127,11 @@ ColumnLayout {
                 Label {
                     anchors.centerIn: parent
                     visible: cell.inMonth
+                    tabular: true
                     text: cell.day
                     color: Theme.glass ? (cell.today ? Theme.accentFillInk : root.ink) : (cell.picked ? Theme.m3onPrimary : cell.today ? Theme.m3primary : Theme.m3onSurface)
                     font.pixelSize: 11
-                    weight: cell.picked || cell.today ? Font.Medium : Font.Normal
+                    weight: cell.picked || cell.today ? Font.DemiBold : Font.Normal
                 }
 
                 MouseArea {

@@ -20,17 +20,30 @@ Rectangle {
         Calendar.attendeeLabel(event)
     ].filter(part => part !== "").join(" · ")
 
-    implicitHeight: content.implicitHeight + 22
+    implicitHeight: content.implicitHeight + 28
     radius: Theme.cardRadius
-    color: Theme.glassCard
+    color: cardHover.hovered ? Theme.glassCardHover : Theme.glassCard
     border.width: Theme.glass ? 0 : 1
     border.color: Theme.glassBorderSubtle
     opacity: dimmed ? 0.68 : 1.0
 
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    HoverHandler {
+        id: cardHover
+    }
+
     GlassEdge {
         visible: Theme.glass
         radius: root.radius
+        fade: 10
         side: false
+        light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.17 : 0.22)
     }
 
     ColumnLayout {
@@ -39,14 +52,14 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: 12
-        anchors.rightMargin: 10
-        anchors.topMargin: 11
-        spacing: 8
+        anchors.leftMargin: 14
+        anchors.rightMargin: 12
+        anchors.topMargin: 14
+        spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 10
 
             Rectangle {
                 Layout.alignment: Qt.AlignTop
@@ -59,7 +72,7 @@ Rectangle {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 3
+                spacing: 4
 
                 Label {
                     Layout.fillWidth: true
@@ -67,12 +80,13 @@ Rectangle {
                     wrapMode: Text.Wrap
                     maximumLineCount: 2
                     elide: Text.ElideRight
-                    font.pixelSize: 13
+                    font.pixelSize: 14
                     weight: Font.Medium
                 }
 
                 Label {
                     Layout.fillWidth: true
+                    tabular: true
                     text: root.metaLine
                     elide: Text.ElideRight
                     color: Theme.m3onSurfaceVariant
@@ -93,16 +107,16 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: 16
+            Layout.leftMargin: 18
             visible: !root.dimmed
-            spacing: 6
+            spacing: 8
 
             Pill {
                 visible: (root.event.video ?? "") !== ""
                 style: "filled"
                 icon: "videocam"
                 text: "Join"
-                size: 28
+                size: 30
                 fontSize: 12
                 // The engine passes only validated web links; checked again here.
                 onClicked: if (/^https?:\/\//i.test(root.event.video ?? ""))
@@ -113,7 +127,7 @@ Rectangle {
                 style: "tonal"
                 icon: "checklist"
                 text: "Prep"
-                size: 28
+                size: 30
                 fontSize: 12
                 tip: "Add prep actionable"
                 onClicked: root.addPrep()

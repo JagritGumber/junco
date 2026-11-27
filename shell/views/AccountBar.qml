@@ -96,17 +96,17 @@ ColumnLayout {
         }
     }
 
-    // Expanded sidebar: compact row of account circles + add button.
+    // Expanded sidebar: calm row of account circles + add button.
     Flow {
         Layout.fillWidth: true
         visible: !root.compact
-        spacing: 2
+        spacing: 6
 
         AccountCircle {
             id: big
 
             account: root.current
-            size: 34
+            size: 36
             onClicked: mouse => mouse.button === Qt.RightButton ? root.menuFor(root.current, big) : Inbox.accountCard?.showNow(big, root.current)
         }
 
@@ -126,7 +126,7 @@ ColumnLayout {
 
                     anchors.centerIn: parent
                     account: slot.modelData
-                    size: 24
+                    size: 26
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton) {
                             root.menuFor(slot.modelData, small);
@@ -147,11 +147,11 @@ ColumnLayout {
                 id: addButton
 
                 anchors.centerIn: parent
-                width: 24
-                height: 24
-                radius: 12
+                width: 26
+                height: 26
+                radius: 13
                 color: add.containsMouse ? Theme.sheetControlHover : Theme.sheetControl
-                border.width: 1
+                border.width: Theme.glass ? 0 : 1
                 border.color: Theme.sheetRim
 
                 Icon {

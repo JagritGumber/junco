@@ -17,22 +17,37 @@ Rectangle {
 
     signal clicked
 
-    implicitHeight: compact ? 38 : 37
-    radius: compact ? 12 : 11
+    implicitHeight: compact ? 40 : 41
+    radius: 13
     color: active ? Theme.sheetActive : (area.containsMouse ? Theme.sheetHover : "transparent")
     border.width: 0
+
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    GlassEdge {
+        visible: Theme.glass && root.active
+        radius: root.radius
+        fade: 9
+        side: false
+        light: Theme.alpha(Theme.pureWhite, Theme.dark ? 0.22 : 0.16)
+    }
 
     // Expanded layout
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 10
-        spacing: 11
+        anchors.leftMargin: 13
+        anchors.rightMargin: 11
+        spacing: 13
         visible: !root.compact
 
         Icon {
             name: root.icon
-            size: 18
+            size: 19
             fill: root.active ? 1 : 0
             color: root.active ? Theme.sheetInk : Theme.sheetInkVariant
         }
@@ -43,20 +58,21 @@ Rectangle {
             elide: Text.ElideRight
             color: Theme.sheetInk
             font.pixelSize: 13
-            weight: root.active ? Font.Medium : Font.Normal
+            weight: root.active ? Font.DemiBold : Font.Normal
         }
 
         Rectangle {
             visible: root.count > 0
-            implicitWidth: Math.max(20, number.implicitWidth + 10)
-            implicitHeight: 18
-            radius: 9
+            implicitWidth: Math.max(22, number.implicitWidth + 12)
+            implicitHeight: 20
+            radius: 10
             color: root.active ? Theme.accentFill : Theme.sheetControl
 
             Label {
                 id: number
 
                 anchors.centerIn: parent
+                tabular: true
                 text: root.count > 999 ? "999+" : root.count
                 color: root.active ? Theme.accentFillInk : Theme.sheetInk
                 font.pixelSize: 11

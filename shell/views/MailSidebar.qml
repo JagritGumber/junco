@@ -23,15 +23,15 @@ GlassPane {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.compact ? 8 : 13
-        spacing: root.compact ? 7 : 6
+        anchors.margins: root.compact ? 8 : 14
+        spacing: root.compact ? 8 : 8
 
         // Header: Pip icon + "Junco" + rail toggle (expanded), or centered Pip (compact).
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: root.compact ? 0 : 4
             Layout.topMargin: 2
-            Layout.bottomMargin: root.compact ? 4 : 8
+            Layout.bottomMargin: root.compact ? 6 : 10
             spacing: 4
 
             Item {
@@ -86,15 +86,15 @@ GlassPane {
             }
         }
 
-        // Compose button: compact accent pill (expanded) or circular accent button (compact).
+        // Compose button: calm accent pill (expanded) or rounded accent button (compact).
         Pill {
             Layout.fillWidth: true
-            Layout.bottomMargin: 10
+            Layout.bottomMargin: 14
             visible: !root.compact
             style: "filled"
             icon: "edit"
             text: "Compose"
-            size: 38
+            size: 42
             fontSize: 13
             hint: "Ctrl N"
             tip: "Write an email (Ctrl+N)"
@@ -103,12 +103,12 @@ GlassPane {
 
         IconButton {
             Layout.alignment: Qt.AlignHCenter
-            Layout.bottomMargin: 6
+            Layout.bottomMargin: 8
             visible: root.compact
             icon: "edit"
             tip: "Compose (Ctrl+N)"
-            size: 38
-            cornerRadius: 12
+            size: 40
+            cornerRadius: 13
             filled: true
             fillColor: Theme.pill
             iconColor: Theme.pillInk
@@ -149,9 +149,9 @@ GlassPane {
 
                 // Developer-only taught template tables (COURIER_DEV=1).
                 Label {
-                    Layout.topMargin: 10
-                    Layout.leftMargin: 10
-                    Layout.bottomMargin: 2
+                    Layout.topMargin: 14
+                    Layout.leftMargin: 12
+                    Layout.bottomMargin: 4
                     visible: !root.compact && Inbox.developer && Inbox.templates.length > 0
                     text: "Tables"
                     color: Theme.sheetInkVariant
@@ -250,8 +250,8 @@ GlassPane {
         // Subtle glass divider above account bar.
         Rectangle {
             Layout.fillWidth: true
-            Layout.topMargin: 4
-            Layout.bottomMargin: 6
+            Layout.topMargin: 8
+            Layout.bottomMargin: 8
             implicitHeight: 1
             color: Theme.sheetDivider
         }

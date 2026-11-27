@@ -82,31 +82,31 @@ GlassPane {
 
     Flickable {
         anchors.fill: parent
-        anchors.margins: 14
+        anchors.margins: 16
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        contentHeight: column.implicitHeight + 10
+        contentHeight: column.implicitHeight + 12
 
         ColumnLayout {
             id: column
 
             width: parent.width
-            spacing: 12
+            spacing: 14
 
             // Header: Today focus, or selected day with one-click "Back to Today".
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.topMargin: 2
                 Layout.leftMargin: 2
-                spacing: 8
+                spacing: 10
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: 10
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 2
+                        spacing: 3
 
                         Label {
                             Layout.fillWidth: true
@@ -170,11 +170,11 @@ GlassPane {
                 onMore: button => root.moreMenu(button, root.spotlightEvent)
             }
 
-            // 2. All-day events for the selected day (compact slim strips)
+            // 2. All-day events for the selected day (calm slim strips)
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.allDayEvents.length > 0
-                spacing: 6
+                spacing: 8
 
                 Repeater {
                     model: root.allDayEvents
@@ -185,7 +185,7 @@ GlassPane {
                         required property var modelData
 
                         Layout.fillWidth: true
-                        implicitHeight: 34
+                        implicitHeight: 38
                         radius: Theme.cardRadius
                         color: Theme.glassCard
                         border.width: Theme.glass ? 0 : 1
@@ -193,9 +193,9 @@ GlassPane {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 6
-                            spacing: 8
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 8
+                            spacing: 10
 
                             Rectangle {
                                 width: 7
@@ -235,7 +235,7 @@ GlassPane {
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.laterTimed.length > 0
-                spacing: 8
+                spacing: 10
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -277,7 +277,7 @@ GlassPane {
                 visible: root.isToday
                     ? (root.spotlightEvent === null && root.allDayEvents.length === 0)
                     : (root.events.length === 0)
-                implicitHeight: emptyRow.implicitHeight + 22
+                implicitHeight: emptyRow.implicitHeight + 28
                 radius: Theme.cardRadius
                 color: Theme.glassCard
                 border.width: Theme.glass ? 0 : 1
@@ -289,9 +289,9 @@ GlassPane {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 10
-                    spacing: 10
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 12
+                    spacing: 12
 
                     Icon {
                         name: root.isToday && root.earlierTimed.length > 0 ? "event_available" : "calendar_today"
@@ -324,19 +324,19 @@ GlassPane {
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.isToday && root.earlierTimed.length > 0
-                spacing: 6
+                spacing: 8
 
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: 32
+                    implicitHeight: 36
                     radius: Theme.controlRadius
                     color: earlierArea.containsMouse ? Theme.glassHover : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 6
-                        anchors.rightMargin: 8
-                        spacing: 6
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 10
+                        spacing: 8
 
                         Icon {
                             name: root.showEarlier ? "expand_more" : "chevron_right"
@@ -382,7 +382,7 @@ GlassPane {
             // 6. Today's Actionables (lightweight SQLite checklist)
             RowLayout {
                 Layout.fillWidth: true
-                Layout.topMargin: 4
+                Layout.topMargin: 6
                 Layout.leftMargin: 2
 
                 Label {
@@ -402,7 +402,7 @@ GlassPane {
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: actionablesCol.implicitHeight + 8
+                implicitHeight: actionablesCol.implicitHeight + 12
                 radius: Theme.cardRadius
                 color: Theme.glassCard
                 border.width: Theme.glass ? 0 : 1
@@ -420,16 +420,16 @@ GlassPane {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.topMargin: 4
-                    spacing: 2
+                    anchors.topMargin: 6
+                    spacing: 4
 
                     // Inline "+ Add actionable" input
                     Item {
                         Layout.fillWidth: true
-                        implicitHeight: 38
+                        implicitHeight: 42
 
                         IconButton {
-                            x: 6
+                            x: 8
                             anchors.verticalCenter: parent.verticalCenter
                             icon: "add"
                             tip: "Add actionable"
@@ -444,8 +444,8 @@ GlassPane {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 38
-                            anchors.rightMargin: 12
+                            anchors.leftMargin: 42
+                            anchors.rightMargin: 14
                             renderType: Text.NativeRendering
                             color: Theme.m3onSurface
                             font.family: Theme.sans
@@ -465,8 +465,8 @@ GlassPane {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 10
-                        Layout.rightMargin: 10
+                        Layout.leftMargin: 14
+                        Layout.rightMargin: 14
                         visible: root.actionables.length > 0
                         implicitHeight: 1
                         color: Theme.glassDivider
@@ -482,10 +482,10 @@ GlassPane {
 
                     Label {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 12
-                        Layout.rightMargin: 12
-                        Layout.topMargin: 2
-                        Layout.bottomMargin: 8
+                        Layout.leftMargin: 14
+                        Layout.rightMargin: 14
+                        Layout.topMargin: 4
+                        Layout.bottomMargin: 10
                         visible: root.actionables.length === 0
                         text: "No actionables yet — type above or click Prep on any meeting."
                         wrapMode: Text.Wrap

@@ -15,11 +15,18 @@ Rectangle {
 
     readonly property color baseTone: event.color || Theme.m3primary
 
-    implicitHeight: twoLines ? Math.min(36, Math.max(24, label.implicitHeight + 8)) : 20
-    radius: 6
+    implicitHeight: twoLines ? Math.min(38, Math.max(24, label.implicitHeight + 8)) : 21
+    radius: 7
     color: Theme.eventFill(baseTone, area.containsMouse)
     border.width: Theme.glass ? 0 : 1
     border.color: Theme.alpha(baseTone, 0.68)
+
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
 
     Rectangle {
         x: 3

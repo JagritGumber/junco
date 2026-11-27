@@ -167,54 +167,84 @@ Singleton {
         ? (primaryHue + 160.0) % 360.0
         : (primaryHue + 175.0) % 360.0
     readonly property real complementSat: clamp01(Math.max(primarySat, 0.64), 0.60, 0.80)
+    // Refined dark-glass saturations so dark accents stay sleek and luminous
+    // (never neon lime or muddy plum) while Light glass remains untouched.
+    readonly property real primarySatDark: clamp01(primarySat * 0.88, 0.48, 0.64)
+    readonly property real complementSatDark: clamp01(complementSat * 0.72, 0.42, 0.56)
 
-    // Primary accent (Actions & Focus): vivid mid-tone base + deep badge fill.
+    // Primary accent (Actions & Focus): vivid mid-tone base + cohesive badge fill.
     readonly property color accent: tuneTone(primaryHue, primarySat, 0.34, 1.0)
-    // Badges, today circle and calendar now-line: deep enough for >= 5:1 crisp
-    // white ink across every wallpaper hue.
-    readonly property color accentFill: glass ? tuneTone(primaryHue, Math.min(0.84, primarySat + 0.08), 0.155, 1.0) : m3primary
-    readonly property color accentFillInk: glass ? "#ffffff" : m3onPrimary
+    // Primary accent pill (Compose, Create event, Join, Send, active chip/tab):
+    // Light glass keeps luminous pastel; Dark glass shares one cohesive refined
+    // primary tone across Compose, active tabs, Inbox count pill, and Today.
+    readonly property color pill: glass
+        ? (dark ? alpha(tuneTone(primaryHue, primarySatDark, 0.48, 1.0), 0.94) : alpha(tuneTone(primaryHue, primarySat, 0.56, 1.0), 0.94))
+        : m3primary
+    readonly property color pillInk: glass ? pickInk(pill) : m3onPrimary
+    // Badges, today circle and calendar now-line: in Dark glass, unified with
+    // `pill` (zero hot-magenta vs pastel clash); Light glass stays deep for white ink.
+    readonly property color accentFill: darkGlass
+        ? pill
+        : glass ? tuneTone(primaryHue, Math.min(0.84, primarySat + 0.08), 0.155, 1.0) : m3primary
+    readonly property color accentFillInk: darkGlass ? pillInk : (glass ? "#ffffff" : m3onPrimary)
 
     // Complementary accent (Live & Passive Status Signals): unread dots, Synced
     // dot, Live now badge, Expiring badges, Carry over, Skip starred / matches.
-    readonly property color complement: tuneTone(complementHue, complementSat, dark ? 0.46 : 0.34, 1.0)
+    readonly property color complement: tuneTone(complementHue, dark ? complementSatDark : complementSat, dark ? 0.48 : 0.34, 1.0)
     readonly property color complementDot: glass
-        ? (dark ? tuneTone(complementHue, 0.78, 0.54, 1.0) : tuneTone(complementHue, 0.80, 0.28, 1.0))
+        ? (dark ? tuneTone(complementHue, complementSatDark, 0.48, 1.0) : tuneTone(complementHue, 0.80, 0.28, 1.0))
         : m3tertiary
     readonly property color complementSheetDot: glass && !frostedSheet
-        ? tuneTone(complementHue, 0.78, 0.56, 1.0)
+        ? tuneTone(complementHue, dark ? complementSatDark : 0.78, dark ? 0.50 : 0.56, 1.0)
         : complementDot
 
     // Material 3 accent & semantic roles (luminance-tuned for >= 4.5:1 on glass).
     readonly property color m3primary: lightGlass
         ? tuneTone(primaryHue, Math.min(0.82, primarySat + 0.06), 0.024, 1.0)
-        : darkGlass ? tuneTone(primaryHue, primarySat, 0.82, 1.0)
+        : darkGlass ? tuneTone(primaryHue, primarySatDark, 0.72, 1.0)
         : role("primary", dark ? "#b0c0f4" : "#4e5e8b")
     readonly property color m3onPrimary: glass ? pickInk(m3primary) : role("onPrimary", dark ? "#142650" : "#f9f8ff")
     readonly property color m3primaryContainer: lightGlass
         ? mix(Qt.rgba(1, 1, 1, 1), accent, 0.34, 0.92)
-        : darkGlass ? alpha(accent, 0.24)
+        : darkGlass ? mix(Qt.rgba(1, 1, 1, 1), tuneTone(primaryHue, primarySatDark, 0.44, 1.0), 0.70, 0.28)
         : role("primaryContainer", dark ? "#344470" : "#b0c0f4")
     readonly property color m3onPrimaryContainer: lightGlass
         ? inkNavy
-        : darkGlass ? tuneTone(primaryHue, 0.50, 0.90, 1.0)
+        : darkGlass ? tuneTone(primaryHue, 0.42, 0.86, 1.0)
         : role("onPrimaryContainer", dark ? "#e0e7ff" : "#2a3b66")
 
-    readonly property color m3secondaryContainer: glass ? alpha(m3primary, dark ? 0.20 : 0.18) : role("secondaryContainer", "#2c3350")
+    readonly property color m3secondaryContainer: darkGlass
+        ? Qt.rgba(225 / 255, 233 / 255, 255 / 255, 0.15)
+        : glass ? alpha(m3primary, 0.18) : role("secondaryContainer", "#2c3350")
     readonly property color m3onSecondaryContainer: glass ? m3onSurface : role("onSecondaryContainer", "#f8faff")
 
     readonly property color m3tertiary: lightGlass
         ? tuneTone(complementHue, Math.min(0.84, complementSat + 0.06), 0.024, 1.0)
-        : darkGlass ? tuneTone(complementHue, complementSat, 0.82, 1.0)
+        : darkGlass ? tuneTone(complementHue, complementSatDark, 0.72, 1.0)
         : role("tertiary", dark ? "#f5b097" : "#8c4a35")
     readonly property color m3tertiaryContainer: lightGlass
         ? mix(Qt.rgba(1, 1, 1, 1), complement, 0.32, 0.90)
-        : darkGlass ? alpha(complement, 0.24)
+        : darkGlass ? mix(Qt.rgba(1, 1, 1, 1), tuneTone(complementHue, complementSatDark, 0.44, 1.0), 0.70, 0.26)
         : role("tertiaryContainer", dark ? "#5c3326" : "#ffdbcf")
     readonly property color m3onTertiaryContainer: lightGlass
         ? inkNavy
-        : darkGlass ? tuneTone(complementHue, 0.50, 0.90, 1.0)
+        : darkGlass ? tuneTone(complementHue, 0.40, 0.86, 1.0)
         : role("onTertiaryContainer", dark ? "#ffede7" : "#3a1b12")
+
+    // Account badge / circle discs: Light glass keeps deep m3 accents; Dark glass
+    // uses rich smoked jewel fills with crisp white initials (never stark white discs).
+    function accountTone(index: int): color {
+        const idx = Math.max(0, index) % 4;
+        if (darkGlass) {
+            return [
+                tuneTone(primaryHue, 0.48, 0.15, 1.0),
+                tuneTone(complementHue, 0.44, 0.15, 1.0),
+                Qt.rgba(76 / 255, 92 / 255, 128 / 255, 0.92),
+                tuneTone((primaryHue + 36) % 360, 0.46, 0.15, 1.0)
+            ][idx];
+        }
+        return [m3primary, m3tertiary, m3error, m3success][idx];
+    }
 
     // Semantic error stays red strictly for real errors / destructive actions;
     // passive success/live status harmonizes into the dynamic complement.
@@ -237,8 +267,13 @@ Singleton {
     readonly property color m3surfaceContainerHighest: glass ? Qt.rgba(1, 1, 1, dark ? 0.14 : 0.62) : solidSurfaceHighest
 
     // Floating menus & dialogs: dense neutral frost so overlapping content stays crisp.
-    readonly property color m3popup: glass ? (dark ? Qt.rgba(16 / 255, 17 / 255, 22 / 255, 0.92) : mix(Qt.rgba(1, 1, 1, 1), islandTint, 0.35, 0.96)) : solidSurfaceHigh
-    readonly property color m3popupHigh: glass ? (dark ? Qt.rgba(20 / 255, 22 / 255, 28 / 255, 0.94) : mix(Qt.rgba(1, 1, 1, 1), islandTint, 0.25, 0.98)) : solidSurfaceHighest
+    readonly property color m3popup: glass ? (dark ? Qt.rgba(14 / 255, 16 / 255, 24 / 255, 0.88) : mix(Qt.rgba(1, 1, 1, 1), islandTint, 0.35, 0.96)) : solidSurfaceHigh
+    readonly property color m3popupHigh: glass ? (dark ? Qt.rgba(17 / 255, 20 / 255, 30 / 255, 0.90) : mix(Qt.rgba(1, 1, 1, 1), islandTint, 0.25, 0.98)) : solidSurfaceHighest
+    // Floating Command Palette modal: refined translucent frosted glass (never an
+    // opaque stark-white slab in Light mode; calm matte smoked obsidian in Dark).
+    readonly property color glassPalette: glass
+        ? (dark ? Qt.rgba(14 / 255, 17 / 255, 26 / 255, 0.86) : Qt.rgba(250 / 255, 251 / 255, 255 / 255, 0.84))
+        : solidSurfaceHigh
 
     // Snackbar / inverse surfaces.
     readonly property color m3inverseSurface: role("inverseSurface", dark ? "#f2f5fc" : "#2d3135")
@@ -265,63 +300,60 @@ Singleton {
     readonly property real sheetAlpha: 0.07
     readonly property real cardAlpha: 0.27
     readonly property bool frostedSheet: lightGlass && sheetAlpha >= 0.2
-    readonly property color glassSheet: glass ? (dark ? Qt.rgba(6 / 255, 7 / 255, 10 / 255, 0.64) : Qt.rgba(1, 1, 1, sheetAlpha)) : solidSurface
+    readonly property color glassSheet: glass ? (dark ? Qt.rgba(8 / 255, 10 / 255, 18 / 255, 0.58) : Qt.rgba(1, 1, 1, sheetAlpha)) : solidSurface
 
     // Level 2, raised glass cards (list, reader, calendar main, day panel).
-    readonly property color glassCardPane: glass ? (dark ? Qt.rgba(1, 1, 1, 0.048) : Qt.rgba(1, 1, 1, cardAlpha)) : solidSurfaceLow
+    readonly property color glassCardPane: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.068) : Qt.rgba(1, 1, 1, cardAlpha)) : solidSurfaceLow
     readonly property color glassIsland: glassCardPane
 
     // The sidebar: neutral smoked glass pane on the sheet, inset with matching
     // 16 px corners and 6 px clear-glass gutter.
-    readonly property color glassSidebar: glass ? (dark ? Qt.rgba(0, 0, 0, 0.08) : frostedSheet ? "transparent" : Qt.rgba(0, 0, 0, 0.30)) : solidSurfaceLow
+    readonly property color glassSidebar: glass ? (dark ? Qt.rgba(3 / 255, 5 / 255, 11 / 255, 0.30) : frostedSheet ? "transparent" : Qt.rgba(0, 0, 0, 0.30)) : solidSurfaceLow
 
     // Dense text panes (thread list, calendar grid, day panel): extra frost lift
-    // on light glass; neutral translucent glass on dark glass.
+    // on light glass; luminous translucent smoked glass on dark glass.
     readonly property real listLift: 0.09
-    readonly property color glassList: glass ? (dark ? Qt.rgba(1, 1, 1, 0.042) : Qt.rgba(1, 1, 1, cardAlpha + listLift)) : solidSurfaceLow
+    readonly property color glassList: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.064) : Qt.rgba(1, 1, 1, cardAlpha + listLift)) : solidSurfaceLow
     readonly property color glassPanel: glassCardPane
 
-    // Glass edges (GlassEdge): no outline. Soft white light enters along the
-    // top (and weaker, the left) and fades over glassEdgeFade px into the glass.
-    readonly property color glassEdgeLight: glass ? Qt.rgba(1, 1, 1, dark ? 0.14 : 0.22) : "transparent"
-    readonly property color glassEdgeSideLight: glass ? Qt.rgba(1, 1, 1, dark ? 0.085 : 0.15) : "transparent"
+    // Glass edges (GlassEdge): Light glass only — soft top & left specular light
+    // fades over glassEdgeFade px into milky frost. Disabled on Dark glass so
+    // smoked obsidian panes stay calm and matte-translucent with zero top glow.
+    readonly property color glassEdgeLight: lightGlass ? Qt.rgba(1, 1, 1, 0.22) : "transparent"
+    readonly property color glassEdgeSideLight: lightGlass ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
     readonly property real glassEdgeFade: 12
     // The frost: static 4% grain tile over the glass (assets/glass/grain.png).
     readonly property real grainOpacity: glass ? 0.04 : 0
 
-    // Nested cards, bubbles and controls inside a raised glass card: pure
-    // neutral white steps, never tinted slabs and never outlined.
-    readonly property color glassCard: glass ? (dark ? Qt.rgba(1, 1, 1, 0.055) : Qt.rgba(1, 1, 1, 0.28)) : solidSurfaceContainer
-    readonly property color glassCardHover: glass ? (dark ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.40)) : solidSurfaceHigh
-    readonly property color glassControl: glass ? (dark ? Qt.rgba(1, 1, 1, 0.075) : Qt.rgba(1, 1, 1, 0.30)) : solidSurfaceHigh
-    readonly property color glassControlHover: glass ? (dark ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(1, 1, 1, 0.45)) : alpha(m3onSurface, 0.08)
-    readonly property color glassHover: glass ? (dark ? Qt.rgba(1, 1, 1, 0.065) : Qt.rgba(1, 1, 1, 0.16)) : alpha(m3onSurface, 0.06)
+    // Nested cards, bubbles and controls inside a raised glass card: luminous
+    // neutral frosted steps, never heavy opaque slabs and never outlined.
+    readonly property color glassCard: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.072) : Qt.rgba(1, 1, 1, 0.28)) : solidSurfaceContainer
+    readonly property color glassCardHover: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.125) : Qt.rgba(1, 1, 1, 0.40)) : solidSurfaceHigh
+    readonly property color glassControl: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.095) : Qt.rgba(1, 1, 1, 0.30)) : solidSurfaceHigh
+    readonly property color glassControlHover: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.155) : Qt.rgba(1, 1, 1, 0.45)) : alpha(m3onSurface, 0.08)
+    readonly property color glassHover: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.072) : Qt.rgba(1, 1, 1, 0.16)) : alpha(m3onSurface, 0.06)
 
     // On the smoked sidebar: light ink and clean pill highlights (no left bar).
     readonly property color sheetInk: frostedSheet ? inkNavy : glass ? "#f7f8fc" : m3onSurface
     readonly property color sheetInkVariant: frostedSheet ? inkNavyVariant : glass ? "#d8dced" : m3onSurfaceVariant
     readonly property color sheetAccentInk: frostedSheet ? m3primary : glass ? tuneTone(primaryHue, 0.56, 0.78, 1.0) : role("onSecondaryContainer", dark ? "#f8faff" : "#0b1d28")
-    readonly property color sheetActive: glass ? Qt.rgba(1, 1, 1, dark ? 0.14 : frostedSheet ? 0.38 : 0.22) : role("secondaryContainer", dark ? "#2c3350" : "#d1e5f3")
-    readonly property color sheetHover: glass ? Qt.rgba(1, 1, 1, dark ? 0.08 : 0.11) : glassHover
-    readonly property color sheetControl: glass ? Qt.rgba(1, 1, 1, dark ? 0.10 : 0.14) : glassControl
-    readonly property color sheetControlHover: glass ? Qt.rgba(1, 1, 1, dark ? 0.18 : 0.24) : glassControlHover
-    readonly property color sheetDivider: glass ? Qt.rgba(1, 1, 1, dark ? 0.14 : 0.22) : glassBorderSubtle
+    readonly property color sheetActive: glass ? Qt.rgba(235 / 255, 240 / 255, 255 / 255, dark ? 0.13 : frostedSheet ? 0.38 : 0.22) : role("secondaryContainer", dark ? "#2c3350" : "#d1e5f3")
+    readonly property color sheetHover: glass ? Qt.rgba(235 / 255, 240 / 255, 255 / 255, dark ? 0.075 : 0.11) : glassHover
+    readonly property color sheetControl: glass ? Qt.rgba(235 / 255, 240 / 255, 255 / 255, dark ? 0.105 : 0.14) : glassControl
+    readonly property color sheetControlHover: glass ? Qt.rgba(235 / 255, 240 / 255, 255 / 255, dark ? 0.18 : 0.24) : glassControlHover
+    readonly property color sheetDivider: glass ? Qt.rgba(1, 1, 1, dark ? 0.12 : 0.22) : glassBorderSubtle
     readonly property color sheetRim: "transparent"
     // Status colours that read cleanly on the smoked sidebar.
     readonly property color sheetError: glass && !frostedSheet ? "#ff9eb0" : m3error
     readonly property color sheetSuccess: glass && !frostedSheet ? complementSheetDot : m3success
 
-    // Primary accent pill (Compose, Create event, Join, Send, active chip/tab):
-    // dynamic wallpaper primary tuned to a luminous pastel with high-contrast dark ink.
-    readonly property color pill: glass ? alpha(tuneTone(primaryHue, primarySat, dark ? 0.54 : 0.56, 1.0), dark ? 0.92 : 0.94) : m3primary
-    readonly property color pillInk: glass ? pickInk(pill) : m3onPrimary
-    // Selected row in Mail's thread list: soft inset dynamic primary pill wash
-    // with zero outlines and no vertical left stripe.
+    // Selected row in Mail's thread list: Light keeps soft pastel wash; Dark uses
+    // a luminous translucent primary-tinted smoked glass wash (never muddy plum).
     readonly property color glassSelectedRow: glass
-        ? (dark ? alpha(accent, 0.22) : alpha(mix(Qt.rgba(1, 1, 1, 1), accent, 0.32, 1), 0.74))
+        ? (dark ? mix(Qt.rgba(1, 1, 1, 1), tuneTone(primaryHue, Math.min(0.56, primarySatDark), 0.46, 1.0), 0.62, 0.20) : alpha(mix(Qt.rgba(1, 1, 1, 1), accent, 0.32, 1), 0.74))
         : m3secondaryContainer
     // Active non-row surface (Calendar picked day, toggle button): neutral glass.
-    readonly property color glassActive: glass ? (dark ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(1, 1, 1, 0.44)) : m3secondaryContainer
+    readonly property color glassActive: glass ? (dark ? Qt.rgba(235 / 255, 240 / 255, 255 / 255, 0.14) : Qt.rgba(1, 1, 1, 0.44)) : m3secondaryContainer
     readonly property color glassActiveBorder: "transparent"
     readonly property color selectedMarker: glass ? accent : "transparent"
 
@@ -329,26 +361,27 @@ Singleton {
     // filled shapes; border tokens stay for solid mode only.
     readonly property color glassBorder: glass ? "transparent" : alpha(m3outlineVariant, 0.5)
     readonly property color glassBorderSubtle: glass ? "transparent" : alpha(m3outlineVariant, 0.4)
-    readonly property color glassDivider: glass ? (dark ? Qt.rgba(1, 1, 1, 0.09) : alpha(m3onSurface, 0.08)) : alpha(m3outlineVariant, 0.45)
+    readonly property color glassDivider: glass ? (dark ? Qt.rgba(1, 1, 1, 0.085) : alpha(m3onSurface, 0.08)) : alpha(m3outlineVariant, 0.45)
     // Calendar grid lines: a hairline at very low alpha, never a bright stroke.
-    readonly property color glassGrid: glass ? (dark ? Qt.rgba(1, 1, 1, 0.07) : alpha(m3onSurface, 0.07)) : alpha(m3outlineVariant, 0.45)
+    readonly property color glassGrid: glass ? (dark ? Qt.rgba(1, 1, 1, 0.075) : alpha(m3onSurface, 0.07)) : alpha(m3outlineVariant, 0.45)
     readonly property color glassPopupBorder: glass ? (dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.85)) : alpha(m3outlineVariant, 0.6)
 
-    // Chat bubbles: neutral glass steps (no tinted slabs, no outlines).
-    readonly property color glassBubbleMine: glass ? (dark ? Qt.rgba(1, 1, 1, 0.085) : Qt.rgba(1, 1, 1, 0.34)) : m3primaryContainer
+    // Chat bubbles: luminous layered frosted glass steps (no heavy slabs, no outlines).
+    readonly property color glassBubbleMine: glass
+        ? (dark ? mix(Qt.rgba(1, 1, 1, 1), tuneTone(primaryHue, Math.min(0.52, primarySatDark), 0.52, 1.0), 0.36, 0.14) : Qt.rgba(1, 1, 1, 0.34))
+        : m3primaryContainer
     readonly property color glassBubbleMineBorder: "transparent"
     readonly property color glassBubbleMineInk: glass ? m3onSurface : m3onPrimaryContainer
-    readonly property color glassBubbleOther: glass ? (dark ? Qt.rgba(1, 1, 1, 0.055) : Qt.rgba(1, 1, 1, 0.30)) : solidSurfaceHigh
+    readonly property color glassBubbleOther: glass ? (dark ? Qt.rgba(232 / 255, 238 / 255, 255 / 255, 0.078) : Qt.rgba(1, 1, 1, 0.30)) : solidSurfaceHigh
     readonly property color glassBubbleOtherBorder: "transparent"
 
     // Calendar events on glass: filled, never outlined. On light glass the
     // calendar's colour becomes a pastel wash with navy ink; on dark glass a
-    // rich smoked tint with crisp off-white ink (keeping the calendar colour
-    // subtle on the event block).
+    // luminous smoked jewel tint with crisp off-white ink.
     function eventFill(tone: color, hovered: bool): color {
         if (lightGlass)
             return mix(pureWhite, tone, 0.28, hovered ? 0.94 : 0.84);
-        return Qt.rgba(tone.r * 0.32 + 0.02, tone.g * 0.32 + 0.02, tone.b * 0.32 + 0.03, hovered ? 0.56 : 0.44);
+        return Qt.rgba(tone.r * 0.42 + 0.05, tone.g * 0.42 + 0.05, tone.b * 0.42 + 0.08, hovered ? 0.54 : 0.40);
     }
     readonly property color eventInk: lightGlass ? inkNavy : m3onSurface
 
@@ -367,20 +400,33 @@ Singleton {
     readonly property int paneGap: glass ? 6 : 0
     readonly property int paneRadius: glass ? 22 : 10
     readonly property int cardPaneRadius: glass ? 16 : 0
-    readonly property int cardRadius: 11
-    readonly property int controlRadius: 10
-    readonly property int chipRadius: 9
+    readonly property int cardRadius: 14
+    readonly property int rowRadius: 15
+    readonly property int controlRadius: 12
+    readonly property int chipRadius: 10
 
-    // Typography: Rubik[wght].ttf has OS/2 usWeightClass=300 and a 300..900
-    // wght variable axis. In Qt 6's FreeType matcher, setting font.weight > 400
-    // marks bold=true and over-thickens / synthetically double-bolds glyphs.
-    // Driving wght via font.variableAxes at font.weight: Font.Normal produces a
-    // clean, refined hierarchy without faux-bold bloat.
-    readonly property string sans: "Rubik"
+    // Unified 4px / 8px spacing & rhythm tokens across Mail and Calendar.
+    readonly property int spaceXS: 4
+    readonly property int spaceSM: 8
+    readonly property int spaceMD: 12
+    readonly property int spaceLG: 16
+    readonly property int spaceXL: 20
+    readonly property int space2XL: 24
+
+    // Snappy micro-interaction durations (used ONLY on real user interaction,
+    // never on idle loops or background timers).
+    readonly property int animFast: 120
+    readonly property int animSmooth: 150
+
+    // Typography: Adwaita Sans (Inter Variable) provides full optical weights
+    // (100..900) and tabular numeral features. Driving wght via variableAxes
+    // at font.weight: Font.Normal guarantees crisp, even strokes without Qt 6
+    // synthetic double-bolding.
+    readonly property string sans: "Adwaita Sans"
     readonly property string iconFont: "Material Symbols Rounded"
     readonly property int weightRegular: 400
-    readonly property int weightMedium: 470
-    readonly property int weightHeading: 525
+    readonly property int weightMedium: 500
+    readonly property int weightHeading: 600
 
     property string _lastShellJson: ""
     property string _lastSchemeJson: ""

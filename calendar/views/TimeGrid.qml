@@ -17,8 +17,8 @@ Item {
             list.push(Calendar.addDays(Calendar.spanFirst, i));
         return list;
     }
-    readonly property int hourHeight: 50
-    readonly property int gutter: 54
+    readonly property int hourHeight: 54
+    readonly property int gutter: 56
     readonly property real columnWidth: (width - gutter) / days.length
     readonly property var allDay: days.map(day => Calendar.shownEvents.filter(event => event.allDay && Calendar.touches(event, day)))
     readonly property int allDayRows: Math.min(3, allDay.reduce((most, list) => Math.max(most, list.length), 0))
@@ -40,7 +40,7 @@ Item {
         id: header
 
         width: parent.width
-        height: 56
+        height: 60
 
         Repeater {
             model: root.days
@@ -59,29 +59,38 @@ Item {
 
                 Column {
                     anchors.centerIn: parent
-                    spacing: 2
+                    spacing: 3
 
                     Label {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: Calendar.format(head.modelData, root.days.length > 1 ? "ddd" : "dddd")
+                        text: Calendar.format(head.modelData, root.days.length > 1 ? "ddd" : "dddd").toUpperCase()
                         color: head.today ? Theme.m3primary : Theme.m3onSurfaceVariant
-                        font.pixelSize: 11
-                        weight: Font.Normal
+                        font.pixelSize: 10
+                        font.letterSpacing: 0.45
+                        weight: Font.DemiBold
                     }
 
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 28
-                        height: 28
-                        radius: 14
+                        width: 30
+                        height: 30
+                        radius: 15
                         color: head.today ? Theme.accentFill : head.picked ? Theme.glassActive : (headArea.containsMouse ? Theme.glassHover : "transparent")
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.animFast
+                                easing.type: Easing.OutCubic
+                            }
+                        }
 
                         Label {
                             anchors.centerIn: parent
+                            tabular: true
                             text: Number(head.modelData.slice(8))
                             color: head.today ? Theme.accentFillInk : Theme.m3onSurface
                             font.pixelSize: 14
-                            weight: head.today || head.picked ? Font.Medium : Font.Normal
+                            weight: head.today || head.picked ? Font.DemiBold : Font.Medium
                         }
                     }
                 }
@@ -202,12 +211,15 @@ Item {
 
                     Label {
                         visible: parent.index > 0
-                        width: root.gutter - 10
+                        width: root.gutter - 12
                         y: -6
                         horizontalAlignment: Text.AlignRight
+                        tabular: true
                         text: `${parent.index % 12 === 0 ? 12 : parent.index % 12}${parent.index < 12 ? "am" : "pm"}`
                         color: Theme.m3onSurfaceVariant
-                        font.pixelSize: 10
+                        opacity: 0.82
+                        font.pixelSize: 11
+                        weight: Font.Medium
                     }
 
                     Rectangle {
@@ -266,46 +278,54 @@ Item {
                             x: 3 + modelData.lane * slot
                             y: event.startMinutes / 60 * root.hourHeight + 1
                             width: slot - 2
-                            height: Math.max(24, event.endMinutes - event.startMinutes) / 60 * root.hourHeight - 2
-                            radius: 8
+                            height: Math.max(26, event.endMinutes - event.startMinutes) / 60 * root.hourHeight - 2
+                            radius: 10
                             color: Theme.eventFill(baseTone, blockArea.containsMouse)
                             border.width: Theme.glass ? 0 : 1
                             border.color: Theme.alpha(baseTone, 0.68)
                             clip: true
 
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: Theme.animFast
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
                             Rectangle {
-                                x: 3
+                                x: 4
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
                                 anchors.margins: 4
-                                width: 2.5
-                                radius: 1.25
+                                width: 3
+                                radius: 1.5
                                 color: block.event.color || Theme.m3primary
                             }
 
                             Column {
-                                x: 10
-                                y: 4
-                                width: parent.width - 14
-                                spacing: 1
+                                x: 12
+                                y: 5
+                                width: parent.width - 16
+                                spacing: 2
 
                                 Label {
                                     width: parent.width
                                     text: block.event.title
                                     wrapMode: block.height > 54 ? Text.Wrap : Text.NoWrap
-                                    maximumLineCount: Math.max(1, Math.floor((block.height - 20) / 14))
+                                    maximumLineCount: Math.max(1, Math.floor((block.height - 22) / 15))
                                     elide: Text.ElideRight
-                                    font.pixelSize: 11
+                                    font.pixelSize: 12
                                     weight: Font.Medium
                                 }
 
                                 Label {
                                     width: parent.width
-                                    visible: block.height >= 36
+                                    visible: block.height >= 38
+                                    tabular: true
                                     text: block.event.time
                                     elide: Text.ElideRight
                                     color: Theme.m3onSurfaceVariant
-                                    font.pixelSize: 10
+                                    font.pixelSize: 11
                                 }
                             }
 

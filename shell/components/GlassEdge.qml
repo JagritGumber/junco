@@ -1,15 +1,13 @@
 import QtQuick
 import qs.services
 
-// How a pane of frosted glass catches light at its edge: no outline at all.
+// How a pane of Light frosted glass catches light at its edge: no outline at all.
 // A soft, wide light enters along the top (and, a little weaker, the left)
-// and fades out over `fade` px into the glass, like light entering the
-// glass's thickness. The pane's shape otherwise comes from its fill step and
-// its soft shadow (GlassPane), with an anti-aliased boundary.
+// and fades out over `fade` px into the glass.
 //
-// Two rounded rectangles with a three-stop fade each (an approximation of
-// light falling off inside the glass): static, no shader, no animation.
-// Fill the parent pane and set `radius` to its corner radius.
+// Strictly Light-glass only (!Theme.dark): on Dark smoked obsidian glass a
+// white downward gradient reads as a glossy bevel, so Dark mode relies purely
+// on clean smoked tonal contrast and Hyprland blur instead.
 Item {
     id: root
 
@@ -23,6 +21,7 @@ Item {
     anchors.fill: parent
 
     Rectangle {
+        visible: !Theme.dark
         anchors.fill: parent
         radius: root.radius
         gradient: Gradient {
@@ -42,7 +41,7 @@ Item {
     }
 
     Rectangle {
-        visible: root.side
+        visible: !Theme.dark && root.side
         anchors.fill: parent
         radius: root.radius
         gradient: Gradient {

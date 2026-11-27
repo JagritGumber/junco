@@ -24,17 +24,20 @@ GlassPane {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 14
+        anchors.topMargin: 12
+        anchors.bottomMargin: 8
         spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: 4
-            spacing: 6
+            Layout.preferredHeight: 38
+            Layout.leftMargin: 16
+            Layout.rightMargin: 16
+            spacing: 8
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 0
+                spacing: 2
 
                 Label {
                     Layout.fillWidth: true
@@ -50,7 +53,7 @@ GlassPane {
                     text: Inbox.search.trim() ? `Results for “${Inbox.search.trim()}”` : (Inbox.listing?.subtitle ?? "")
                     elide: Text.ElideRight
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 11
+                    font.pixelSize: 12
                 }
             }
 
@@ -59,7 +62,8 @@ GlassPane {
 
                 icon: "tune"
                 tip: "Filter"
-                size: 28
+                size: 32
+                iconSize: 19
                 filled: Inbox.unreadOnly || Inbox.withFiles
                 fillColor: Theme.glassActive
                 iconColor: Inbox.unreadOnly || Inbox.withFiles ? Theme.m3primary : Theme.m3onSurfaceVariant
@@ -74,7 +78,8 @@ GlassPane {
             IconButton {
                 icon: "search"
                 tip: "Search this folder"
-                size: 28
+                size: 32
+                iconSize: 19
                 filled: root.searchShown
                 fillColor: Theme.glassActive
                 iconColor: root.searchShown ? Theme.m3primary : Theme.m3onSurfaceVariant
@@ -93,18 +98,20 @@ GlassPane {
 
         Rectangle {
             Layout.fillWidth: true
+            Layout.leftMargin: 16
+            Layout.rightMargin: 16
             visible: root.searchShown
-            implicitHeight: 32
+            implicitHeight: 38
             radius: Theme.controlRadius
-            color: Theme.glassControl
-            border.width: 1
-            border.color: searchInput.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glass ? Theme.glassBorder : Theme.glassBorderSubtle
+            color: searchInput.activeFocus ? Theme.glassControlHover : Theme.glassControl
+            border.width: Theme.glass ? 0 : 1
+            border.color: searchInput.activeFocus ? Theme.alpha(Theme.m3primary, 0.72) : Theme.glassBorderSubtle
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 4
-                spacing: 7
+                anchors.leftMargin: 12
+                anchors.rightMargin: 8
+                spacing: 8
 
                 Icon {
                     name: "search"
@@ -170,19 +177,24 @@ GlassPane {
                 id: list
 
                 anchors.fill: parent
+                anchors.leftMargin: root.width >= 340 ? 11 : 8
+                anchors.rightMargin: root.width >= 340 ? 11 : 8
+                spacing: 4
+                topMargin: 2
+                bottomMargin: 6
 
                 footer: Label {
                     width: ListView.view.width
                     visible: Inbox.listing?.more ?? false
-                    height: visible ? 36 : 0
+                    height: visible ? 40 : 0
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     text: "Showing the newest 150. Search to find older mail."
                     color: Theme.m3onSurfaceVariant
-                    font.pixelSize: 11
+                    font.pixelSize: 12
                 }
                 clip: true
-                cacheBuffer: 320
+                cacheBuffer: 360
                 boundsBehavior: Flickable.StopAtBounds
                 model: Inbox.flatRows
                 reuseItems: false
@@ -191,6 +203,7 @@ GlassPane {
                     id: slot
 
                     required property var modelData
+                    required property int index
 
                     width: ListView.view.width
                     height: loader.item ? loader.item.implicitHeight : 0
@@ -206,12 +219,12 @@ GlassPane {
                         id: header
 
                         Item {
-                            implicitHeight: 26
+                            implicitHeight: 30
 
                             Label {
-                                x: 6
+                                x: 14
                                 anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 4
+                                anchors.bottomMargin: 5
                                 text: slot.modelData.name
                                 color: Theme.m3onSurfaceVariant
                                 font.pixelSize: 12
@@ -225,6 +238,9 @@ GlassPane {
 
                         MailRow {
                             row: slot.modelData
+                            showDivider: slot.index + 1 < Inbox.flatRows.length
+                                && Inbox.flatRows[slot.index + 1].type === "row"
+                                && Inbox.flatRows[slot.index + 1].id !== Inbox.selectedRow
                             onClicked: Inbox.toggleRow(slot.modelData)
                         }
                     }

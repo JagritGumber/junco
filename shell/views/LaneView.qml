@@ -76,7 +76,7 @@ Item {
             id: column
 
             width: parent.width
-            spacing: 4
+            spacing: 8
 
             Repeater {
                 model: root.sections
@@ -88,16 +88,16 @@ Item {
                     readonly property bool isFolded: root.folded[modelData.name] === true
 
                     Layout.fillWidth: true
-                    spacing: 5
+                    spacing: 8
 
                     Item {
                         Layout.fillWidth: true
-                        implicitHeight: 28
+                        implicitHeight: 32
 
                         Row {
                             anchors.verticalCenter: parent.verticalCenter
-                            x: 4
-                            spacing: 6
+                            x: 6
+                            spacing: 8
 
                             Icon {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -128,17 +128,19 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.bottomMargin: 6
+                        Layout.bottomMargin: 8
                         visible: !section.isFolded
-                        implicitHeight: list.implicitHeight
+                        implicitHeight: list.implicitHeight + 8
                         radius: Theme.cardRadius
                         color: Theme.glassCard
-                        border.width: 1
+                        border.width: Theme.glass ? 0 : 1
                         border.color: Theme.glassBorderSubtle
 
                         Column {
                             id: list
 
+                            x: 0
+                            y: 4
                             width: parent.width
 
                             Repeater {
@@ -158,16 +160,19 @@ Item {
                                     })[modelData.status] ?? [Theme.glassControl, Theme.m3onSurfaceVariant, "Update"]
 
                                     width: list.width
-                                    height: 50
+                                    height: 64
 
                                     Rectangle {
                                         id: wash
 
                                         anchors.fill: parent
-                                        anchors.margins: 2
-                                        radius: 9
-                                        color: row.current || row.isPicked ? Theme.glassActive : (open.containsMouse ? Theme.glassHover : "transparent")
-                                        border.width: row.current ? 1 : 0
+                                        anchors.leftMargin: 6
+                                        anchors.rightMargin: 6
+                                        anchors.topMargin: 2
+                                        anchors.bottomMargin: 2
+                                        radius: 12
+                                        color: row.current || row.isPicked ? Theme.glassSelectedRow : (open.containsMouse ? Theme.glassHover : "transparent")
+                                        border.width: !Theme.glass && row.current ? 1 : 0
                                         border.color: Theme.glassActiveBorder
                                     }
 
@@ -175,10 +180,12 @@ Item {
                                         anchors.left: parent.left
                                         anchors.right: parent.right
                                         anchors.bottom: parent.bottom
-                                        anchors.leftMargin: 54
+                                        anchors.leftMargin: 66
+                                        anchors.rightMargin: 16
                                         height: 1
-                                        visible: row.index < section.modelData.items.length - 1
+                                        visible: !row.current && !open.containsMouse && row.index < section.modelData.items.length - 1
                                         color: Theme.glassDivider
+                                        opacity: 0.75
                                     }
 
                                     MouseArea {
@@ -192,20 +199,20 @@ Item {
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.leftMargin: 10
-                                        anchors.rightMargin: 10
-                                        spacing: 10
+                                        anchors.leftMargin: 14
+                                        anchors.rightMargin: 14
+                                        spacing: 14
 
                                         Item {
-                                            implicitWidth: 32
-                                            implicitHeight: 32
+                                            implicitWidth: 38
+                                            implicitHeight: 38
 
                                             Avatar {
                                                 anchors.fill: parent
                                                 visible: root.mixedSenders && (row.modelData.avatar ?? "") !== ""
                                                 name: row.modelData.sender
                                                 image: row.modelData.avatar ?? ""
-                                                size: 32
+                                                size: 38
                                             }
 
                                             Rectangle {
