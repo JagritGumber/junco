@@ -36,8 +36,11 @@ Item {
             const all = Inbox.account !== "" ? [{ icon: "all_inbox", label: "Show every account's mail", run: () => Inbox.setAccount("") }] : [];
             return [...all, { icon: "person_add", label: "Add account…", run: () => Inbox.addingAccount = true }];
         }
+        const reauth = Inbox.syncStatus[account]?.state === "signed-out"
+            ? [{ icon: "login", label: "Sign in again", run: () => Inbox.reauthAccount(root.account) }]
+            : [];
         const show = account !== current ? [{ icon: "inbox", label: "Show only its mail", run: () => Inbox.setAccount(root.account) }] : [];
-        return [...Inbox.pictureActions(account), ...show];
+        return [...reauth, ...Inbox.pictureActions(account), ...show];
     }
 
     // A circle says the pointer came or went. Moving straight from one

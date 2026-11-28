@@ -130,11 +130,35 @@ Singleton {
     // a one-line summary for the sidebar's sync pill ("Synced 5 min ago").
     property real syncFinished: 0
     property real syncClock: Date.now()
-    readonly property bool syncing: Object.values(syncStatus).some(entry => entry?.state === "downloading")
+    property bool manualSyncing: false
+    property string reauthInFlight: ""
+    readonly property string syncSignedOutAccount: {
+        const idPattern = /^[a-z0-9][a-z0-9-]{0,31}$/;
+        for (const id in syncStatus) {
+            if (syncStatus[id]?.state === "signed-out" && idPattern.test(id))
+                return id;
+        }
+        return "";
+    }
+    readonly property string syncTroubleMessage: {
+        if (syncSignedOutAccount !== "") {
+            const acct = accounts.find(a => a.id === syncSignedOutAccount);
+            return `Sign in again for ${acct?.email ?? syncSignedOutAccount}`;
+        }
+        for (const id in syncStatus) {
+            const entry = syncStatus[id];
+            if (entry?.state && entry.state !== "ok" && entry.state !== "downloading")
+                return entry.message ? `${id}: ${entry.message}` : `${id}: sync error`;
+        }
+        return "";
+    }
+    readonly property bool syncing: manualSyncing || Object.values(syncStatus).some(entry => entry?.state === "downloading")
     readonly property bool syncTrouble: Object.values(syncStatus).some(entry => entry?.state && entry.state !== "ok" && entry.state !== "downloading")
     readonly property string syncLabel: {
+        if (reauthInFlight !== "")
+            return "Signing in…";
         if (syncTrouble)
-            return "Sync needs a look";
+            return syncSignedOutAccount !== "" ? "Sign in again" : "Sync needs a look";
         if (syncing)
             return "Syncing…";
         if (!syncFinished)
@@ -147,6 +171,14 @@ Singleton {
         if (minutes < 24 * 60)
             return `Synced ${Math.floor(minutes / 60)} h ago`;
         return `Synced ${Math.floor(minutes / (24 * 60))} d ago`;
+    }
+
+    // One-shot fallback clearing manualSyncing if sync.json didn't rewrite.
+    Timer {
+        id: manualSyncTimer
+
+        interval: 12000
+        onTriggered: root.manualSyncing = false
     }
 
     // Keeps "Synced N min ago" current: one cheap tick a minute.
@@ -630,9 +662,53 @@ Singleton {
     }
 
     function syncNow(): void {
+        manualSyncing = true;
+        manualSyncTimer.restart();
         sayPending("Syncing mail…", "sync");
         Quickshell.execDetached(["systemctl", "--user", "start", "--no-block", "courier-sync.service"]);
         refresh();
+    }
+
+    function reauthAccount(name: string): void {
+        const clean = (name || "").trim();
+        if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(clean)) {
+            sayError("Couldn't determine which account to sign in.");
+            return;
+        }
+        if (signingIn) {
+            sayPending("Finish signing in in your browser…", "login");
+            return;
+        }
+        reauthInFlight = clean;
+        const info = accounts.find(a => a.id === clean);
+        sayPending(`Opening Google sign-in for ${info?.email ?? clean}…`, "login");
+        addAccount(clean, (reason, result) => {
+            reauthInFlight = "";
+            if (reason) {
+                sayError(reason);
+                return;
+            }
+            if (syncStatus[clean]?.state === "signed-out") {
+                const next = Object.assign({}, syncStatus);
+                next[clean] = { state: "ok" };
+                syncStatus = next;
+            }
+            say(`Signed in ${result?.email ?? clean} · syncing mail`, null, "check_circle");
+        });
+    }
+
+    function handleSyncPillClick(): void {
+        if (reauthInFlight !== "") {
+            cancelAddAccount();
+            reauthInFlight = "";
+            say("Sign-in cancelled", null, "close");
+            return;
+        }
+        if (syncSignedOutAccount !== "") {
+            reauthAccount(syncSignedOutAccount);
+            return;
+        }
+        syncNow();
     }
 
     // Archives the message(s) now and returns them to Inbox at `untilIso` (YYYY-MM-DDTHH:MM).
@@ -813,6 +889,10 @@ Singleton {
             if (syncStatus[id]?.state === "downloading" && next[id].state === "ok")
                 say(`${accounts.find(a => a.id === id)?.email ?? id} is fully downloaded`, null, "download_done");
         syncStatus = next;
+        if (manualSyncing) {
+            manualSyncing = false;
+            manualSyncTimer.stop();
+        }
     }
 
     // Another picture for an account: the file picker, then the picture

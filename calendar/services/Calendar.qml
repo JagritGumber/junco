@@ -18,7 +18,14 @@ Singleton {
     readonly property string stateDir: `${Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"}/courier`
 
     property var status: ({ state: "never" })
+    property bool syncing: false
+    property bool signingIn: false
+    property string signingInAccount: ""
+    property var _syncJob: null
+    property var _authJob: null
     property bool reminders: true
+
+    signal feedback(string message)
     property string todayDay: dayOf(new Date())
     // Updated on the single 60s clock tick (zero busy-wait polling).
     property double nowMs: Date.now()
@@ -406,9 +413,98 @@ Singleton {
             loadEverything();
     }
 
+    function reauthAccountFor(st: var): string {
+        if (!st)
+            return "";
+        const idPattern = /^[a-z0-9][a-z0-9-]{0,31}$/;
+        const direct = typeof st.account === "string" ? st.account.trim() : "";
+        if (idPattern.test(direct))
+            return direct;
+        const msg = typeof st.message === "string" ? st.message : "";
+        const match = /(?:^|\s)courier-auth\s+add\s+([^\s]+)(?:\s+--calendar-write)?\s*$/.exec(msg);
+        if (!match)
+            return "";
+        let token = match[1];
+        if (token.endsWith("."))
+            token = token.slice(0, -1);
+        return idPattern.test(token) ? token : "";
+    }
+
     function syncNow(): void {
-        status = Object.assign({}, status, { state: status.state === "ok" ? "syncing" : status.state });
-        Quickshell.execDetached(["systemctl", "--user", "start", "--no-block", "courier-calendar.service"]);
+        if (signingIn) {
+            feedback(`Finish signing in to ${signingInAccount} in your browser…`);
+            return;
+        }
+        if (syncing) {
+            feedback("Sync already in progress…");
+            return;
+        }
+        syncing = true;
+        feedback("Syncing calendars…");
+        const job = syncJobComponent.createObject(root, { command: [engine, "sync"] });
+        _syncJob = job;
+        job.finished = (ok, value, errText) => {
+            if (root._syncJob === job)
+                root._syncJob = null;
+            root.syncing = false;
+            if (value && typeof value.state === "string") {
+                root.status = value;
+                if (value.state === "ok") {
+                    root.refresh();
+                    root.feedback("Calendars synced");
+                } else if (value.state === "signed-out") {
+                    const acct = root.reauthAccountFor(value);
+                    root.feedback(acct ? `Sign in again for ${acct}` : (value.message || "Sign in again to sync calendars"));
+                } else {
+                    root.feedback(value.message || "Calendar sync failed.");
+                }
+            } else {
+                root.feedback(errText || "Calendar sync failed.");
+            }
+        };
+        job.running = true;
+    }
+
+    function signInAgain(accountName: string): void {
+        const clean = (accountName || "").trim();
+        if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(clean)) {
+            feedback("Couldn't determine which account to sign in.");
+            return;
+        }
+        if (signingIn) {
+            feedback(`Finish signing in to ${signingInAccount} in your browser…`);
+            return;
+        }
+        signingIn = true;
+        signingInAccount = clean;
+        feedback(`Opening Google sign-in for ${clean}…`);
+        const job = syncJobComponent.createObject(root, { command: [engine, "reauth", clean] });
+        _authJob = job;
+        job.finished = (ok, value, errText) => {
+            if (root._authJob === job)
+                root._authJob = null;
+            root.signingIn = false;
+            root.signingInAccount = "";
+            if (ok && value && !value.error) {
+                if (value.status && typeof value.status.state === "string")
+                    root.status = value.status;
+                root.refresh();
+                if (value.status && value.status.state !== "ok")
+                    root.feedback(value.status.message || "Signed in, calendar sync needs attention.");
+                else
+                    root.feedback(`Signed in ${value.email || clean} · calendars synced`);
+            } else {
+                root.feedback(value?.error || errText || "Sign-in didn't finish.");
+            }
+        };
+        job.running = true;
+    }
+
+    function cancelSignIn(): void {
+        if (_authJob) {
+            _authJob.signal(15);
+            feedback("Sign-in cancelled");
+        }
     }
 
     function openMail(): void {
@@ -505,6 +601,11 @@ Singleton {
         remindersProc.exec(["systemctl", "--user", "is-enabled", "courier-remind.timer"]);
     }
 
+    Component.onDestruction: {
+        if (_authJob)
+            _authJob.signal(15);
+    }
+
     // Single minute tick: keeps countdowns and midnight rollover fresh (zero busy-wait).
     Timer {
         interval: 60 * 1000
@@ -545,6 +646,59 @@ Singleton {
                         job.failed(value?.error ?? "Something went wrong.");
                     job.destroy();
                 }
+            }
+        }
+    }
+
+    Component {
+        id: syncJobComponent
+
+        Process {
+            id: syncJob
+
+            property var finished
+            property bool exited: false
+            property bool outDone: false
+            property int exitCode: -1
+            property bool settled: false
+
+            function maybeFinish(): void {
+                if (settled || !exited || !outDone)
+                    return;
+                settled = true;
+                let value = null;
+                const raw = syncOut.text.trim();
+                if (raw !== "") {
+                    try {
+                        value = JSON.parse(raw);
+                    } catch (e) {
+                        console.warn("Courier: couldn't read calendar job output:", e);
+                    }
+                }
+                const errText = syncErr.text.trim().split("\n").filter(l => l.trim() !== "").pop() || "";
+                const ok = exitCode === 0 && value !== null && value.error === undefined;
+                if (syncJob.finished)
+                    syncJob.finished(ok, value, errText);
+                syncJob.destroy();
+            }
+
+            stdout: StdioCollector {
+                id: syncOut
+
+                onStreamFinished: {
+                    syncJob.outDone = true;
+                    syncJob.maybeFinish();
+                }
+            }
+
+            stderr: StdioCollector {
+                id: syncErr
+            }
+
+            onExited: code => {
+                syncJob.exitCode = code;
+                syncJob.exited = true;
+                syncJob.maybeFinish();
             }
         }
     }

@@ -311,7 +311,7 @@ GlassPane {
                         id: account
 
                         required property var modelData
-                        readonly property string syncState: Calendar.status.state ?? "never"
+                        readonly property string syncState: Calendar.syncing ? "syncing" : (Calendar.status.state ?? "never")
 
                         Layout.fillWidth: true
                         Layout.leftMargin: 4

@@ -24,12 +24,12 @@ Rectangle {
 
     readonly property bool raised: Theme.glass && card
 
-    radius: raised ? Theme.cardPaneRadius : 0
+    radius: raised ? Theme.effectiveCardPaneRadius : 0
     color: fill
     border.width: 0
 
     BorderImage {
-        visible: root.raised
+        visible: root.raised && root.radius > 0
         z: -1
         anchors.fill: parent
         anchors.margins: -12

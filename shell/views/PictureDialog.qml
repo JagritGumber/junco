@@ -108,7 +108,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Theme.paneRadius
+        radius: Theme.effectivePaneRadius
         color: Theme.alpha("#000000", 0.45)
 
         MouseArea {

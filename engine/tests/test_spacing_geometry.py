@@ -15,7 +15,12 @@ Verifies:
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -271,6 +276,337 @@ class SpacingTokensAndBoundsTest(unittest.TestCase):
                 unconditional_border.search(code),
                 f"Unconditional non-zero border.width found in {rel}",
             )
+
+    def test_fullscreen_flush_static_contract(self) -> None:
+        theme = read_qml("shell/services/Theme.qml")
+        self.assertIn("property bool fullScreen: false", theme)
+        self.assertIn("readonly property int effectiveCardInset: fullScreen ? 0 : cardInset", theme)
+        self.assertIn("readonly property int effectivePaneRadius: fullScreen ? 0 : paneRadius", theme)
+        self.assertIn("readonly property int effectiveCardPaneRadius: fullScreen ? 0 : cardPaneRadius", theme)
+
+        glass_pane = read_qml("shell/components/GlassPane.qml")
+        self.assertIn("radius: raised ? Theme.effectiveCardPaneRadius : 0", glass_pane)
+        self.assertIn("visible: root.raised && root.radius > 0", glass_pane)
+
+        mail_shell = read_qml("shell/shell.qml")
+        cal_shell = read_qml("calendar/shell.qml")
+        cal_page = read_qml("calendar/views/CalendarPage.qml")
+
+        for name, src in (("shell/shell.qml", mail_shell), ("calendar/shell.qml", cal_shell)):
+            self.assertIn("import QtQuick.Window", src, f"{name} must import QtQuick.Window")
+            self.assertIn("readonly property bool isFullScreen:", src, f"{name} missing isFullScreen")
+            self.assertIn("Window.FullScreen", src, f"{name} missing Window.FullScreen check")
+            self.assertIn("window.width >= screenWidth && window.height >= screenHeight", src, f"{name} missing full-monitor check")
+            self.assertIn("readonly property int outerRadius: isFullScreen ? 0 : (Theme.glass ? Theme.paneRadius : 0)", src)
+            self.assertIn("readonly property int outerInset: isFullScreen ? 0 : Theme.cardInset", src)
+            self.assertIn("readonly property int paneCornerRadius: isFullScreen ? 0 : Theme.cardPaneRadius", src)
+            self.assertIn('property: "fullScreen"', src)
+            self.assertIn("value: window.isFullScreen", src)
+            self.assertIn("radius: window.outerRadius", src)
+            self.assertIn("radius: outerSheet.radius", src)
+
+        self.assertIn("anchors.margins: window.outerInset", mail_shell)
+        self.assertIn("spacing: Theme.paneGap", mail_shell)
+        self.assertIn("radius: window.paneCornerRadius", mail_shell)
+        self.assertIn("y: window.outerInset", mail_shell)
+
+        self.assertIn("fullScreen: window.isFullScreen", cal_shell)
+        self.assertIn("readonly property int outerInset: fullScreen ? 0 : Theme.cardInset", cal_page)
+        self.assertIn("anchors.margins: root.outerInset", cal_page)
+        self.assertIn("spacing: Theme.paneGap", cal_page)
+        self.assertIn("y: root.outerInset", cal_page)
+
+        # Modal scrims collapse to 0 radius in fullscreen as well.
+        for scrim_file in (
+            "shell/components/CommandPalette.qml",
+            "shell/views/AddAccountDialog.qml",
+            "shell/views/ComposeDialog.qml",
+            "shell/views/PictureDialog.qml",
+            "calendar/views/EventDialog.qml",
+        ):
+            self.assertIn("radius: Theme.effectivePaneRadius", read_qml(scrim_file), f"{scrim_file} scrim not fullscreen-aware")
+
+        # Fullscreen 1920x1080 Mail width math: outerInset=0, internal paneGap=6 stays intact.
+        win_w = 1920
+        outer_inset = 0
+        pane_gap = 6
+        sidebar_w = 216
+        list_w = 412
+        reader_w = win_w - 2 * outer_inset - 2 * pane_gap - sidebar_w - list_w
+        self.assertEqual(sidebar_w + list_w + reader_w + 2 * outer_inset + 2 * pane_gap, win_w)
+        self.assertGreaterEqual(reader_w, 1200)
+
+    def test_fullscreen_flush_runtime_qml_windowed_and_fullscreen(self) -> None:
+        qs_bin = shutil.which("qs") or str(Path.home() / ".local/bin/qs")
+        if not os.path.exists(qs_bin):
+            self.skipTest("qs binary not installed")
+
+        harness_qml = """import QtQuick
+import QtQuick.Window
+import QtQuick.Layouts
+import Quickshell
+import "services"
+import "components"
+
+ShellRoot {
+    FloatingWindow {
+        id: win
+
+        property bool simFullScreenFlag: false
+        property int simVisibility: Window.Windowed
+        property int simScreenWidth: 1920
+        property int simScreenHeight: 1080
+        property int simWinWidth: 1600
+        property int simWinHeight: 900
+
+        readonly property bool isFullScreen: simFullScreenFlag
+            || simVisibility === Window.FullScreen
+            || (simScreenWidth > 0 && simScreenHeight > 0 && simWinWidth >= simScreenWidth && simWinHeight >= simScreenHeight)
+        readonly property int outerRadius: isFullScreen ? 0 : (Theme.glass ? Theme.paneRadius : 0)
+        readonly property int outerInset: isFullScreen ? 0 : Theme.cardInset
+        readonly property int paneCornerRadius: isFullScreen ? 0 : Theme.cardPaneRadius
+
+        Binding {
+            target: Theme
+            property: "fullScreen"
+            value: win.isFullScreen
+        }
+
+        implicitWidth: 800
+        implicitHeight: 600
+
+        Item {
+            id: canvas
+            width: win.simWinWidth
+            height: win.simWinHeight
+
+            Rectangle {
+                id: outerSheet
+                anchors.fill: parent
+                radius: win.outerRadius
+                color: Theme.glassSheet
+
+                GlassEdge {
+                    id: sheetEdge
+                    visible: Theme.glass
+                    radius: outerSheet.radius
+                }
+            }
+
+            RowLayout {
+                id: panesRow
+                anchors.fill: parent
+                anchors.margins: win.outerInset
+                spacing: Theme.paneGap
+
+                GlassPane {
+                    id: sidebarPane
+                    Layout.preferredWidth: 216
+                    Layout.fillHeight: true
+                    card: true
+                    fill: Theme.glassSidebar
+                }
+
+                GlassPane {
+                    id: listPane
+                    Layout.preferredWidth: 412
+                    Layout.fillHeight: true
+                    fill: Theme.glassList
+                }
+
+                GlassPane {
+                    id: readerPane
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    fill: Theme.glassCardPane
+                }
+            }
+
+            SplitHandle {
+                id: splitHandle
+                x: panesRow.x + sidebarPane.x + sidebarPane.width
+                y: win.outerInset
+                width: Math.max(6, Theme.paneGap)
+                height: Math.max(0, canvas.height - 2 * win.outerInset)
+                dragScope: canvas
+                value: 216
+            }
+
+            CommandPalette {
+                id: palette
+                anchors.fill: parent
+                items: [{ id: "a", title: "Compose", subtitle: "New message", group: "Actions", icon: "edit" }]
+            }
+        }
+
+        function snapshot(label) {
+            let shadowVisible = false;
+            for (let i = 0; i < listPane.children.length; i++) {
+                const c = listPane.children[i];
+                if (c.toString().indexOf("BorderImage") !== -1) {
+                    shadowVisible = c.visible;
+                    break;
+                }
+            }
+            return {
+                label: label,
+                dark: Theme.dark,
+                isFullScreen: win.isFullScreen,
+                themeFullScreen: Theme.fullScreen,
+                outerRadius: win.outerRadius,
+                sheetRadius: outerSheet.radius,
+                sheetEdgeRadius: sheetEdge.radius,
+                outerInset: win.outerInset,
+                rowMargin: panesRow.anchors.margins,
+                rowSpacing: panesRow.spacing,
+                paneCornerRadius: win.paneCornerRadius,
+                sidebarRadius: sidebarPane.radius,
+                listRadius: listPane.radius,
+                readerRadius: readerPane.radius,
+                shadowVisible: shadowVisible,
+                splitY: splitHandle.y,
+                splitHeight: splitHandle.height,
+                effectivePaneRadius: Theme.effectivePaneRadius,
+                effectiveCardInset: Theme.effectiveCardInset,
+                effectiveCardPaneRadius: Theme.effectiveCardPaneRadius
+            };
+        }
+
+        Timer {
+            interval: 80
+            running: true
+            onTriggered: {
+                const results = [];
+                // 1. Windowed 1600x900 on 1920x1080
+                results.push(win.snapshot("windowed"));
+
+                // 2. Fullscreen via Window.FullScreen
+                win.simVisibility = Window.FullScreen;
+                results.push(win.snapshot("window_fullscreen"));
+
+                // 3. Fullscreen via FloatingWindow.fullscreen flag
+                win.simVisibility = Window.Windowed;
+                win.simFullScreenFlag = true;
+                results.push(win.snapshot("flag_fullscreen"));
+
+                // 4. Fullscreen via 1920x1080 matching 1920x1080 monitor + CommandPalette open
+                win.simFullScreenFlag = false;
+                win.simWinWidth = 1920;
+                win.simWinHeight = 1080;
+                palette.show();
+                const snap4 = win.snapshot("monitor_fullscreen");
+                snap4.paletteOpen = palette.open;
+                results.push(snap4);
+
+                // 5. Snap back to windowed 1600x900 on 1920x1080
+                palette.close(false);
+                win.simWinWidth = 1600;
+                win.simWinHeight = 900;
+                results.push(win.snapshot("restored_windowed"));
+
+                console.log("FULLSCREEN_PROBE=" + JSON.stringify(results));
+                Qt.quit();
+            }
+        }
+    }
+}
+"""
+
+        for glass_mode in ("dark", "light"):
+            with self.subTest(glass_mode=glass_mode), tempfile.TemporaryDirectory(prefix="junco-fs-") as tmp:
+                tmp_path = Path(tmp)
+                shell_dir = tmp_path / "shell"
+                shell_dir.mkdir()
+                (shell_dir / "shell.qml").write_text(harness_qml, encoding="utf-8")
+                os.symlink(REPO_ROOT / "shell" / "services", shell_dir / "services")
+                os.symlink(REPO_ROOT / "shell" / "components", shell_dir / "components")
+                os.symlink(REPO_ROOT / "assets", tmp_path / "assets")
+                run_dir = tmp_path / "run"
+                run_dir.mkdir(mode=0o700)
+                for sub in ("home", "config", "state", "cache"):
+                    (tmp_path / sub).mkdir()
+
+                env = {
+                    "HOME": str(tmp_path / "home"),
+                    "USER": os.environ.get("USER", "user"),
+                    "LANG": "C.UTF-8",
+                    "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                    "XDG_CONFIG_HOME": str(tmp_path / "config"),
+                    "XDG_STATE_HOME": str(tmp_path / "state"),
+                    "XDG_CACHE_HOME": str(tmp_path / "cache"),
+                    "XDG_RUNTIME_DIR": str(run_dir),
+                    "QT_QPA_PLATFORM": "offscreen",
+                    "QT_QUICK_BACKEND": "software",
+                    "QT_FORCE_STDERR_LOGGING": "1",
+                    "QS_NO_RELOAD_POPUP": "1",
+                    "COURIER_GLASS_MODE": glass_mode,
+                }
+                proc = subprocess.Popen(
+                    [qs_bin, "-p", str(shell_dir)],
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                try:
+                    stdout, stderr = proc.communicate(timeout=15)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    stdout, stderr = proc.communicate()
+                    self.fail(f"Quickshell fullscreen probe timed out ({glass_mode}):\n{stdout}\n{stderr}")
+
+                combined = stdout + "\n" + stderr
+                self.assertEqual(proc.returncode, 0, f"qs exited {proc.returncode}:\n{combined}")
+                for bad in ("WARN scene:", "TypeError", "ReferenceError", "Unable to assign", "ERROR"):
+                    self.assertNotIn(bad, combined, f"QML warning/error ({bad}) in {glass_mode} probe:\n{combined}")
+
+                match = re.search(r"FULLSCREEN_PROBE=(\[.*\])", combined)
+                self.assertIsNotNone(match, f"Missing probe output:\n{combined}")
+                snapshots = {item["label"]: item for item in json.loads(match.group(1))}
+
+                for label in ("windowed", "restored_windowed"):
+                    s = snapshots[label]
+                    self.assertFalse(s["isFullScreen"], f"{label} should not be fullscreen")
+                    self.assertFalse(s["themeFullScreen"])
+                    self.assertEqual(s["outerRadius"], 22)
+                    self.assertEqual(s["sheetRadius"], 22)
+                    self.assertEqual(s["sheetEdgeRadius"], 22)
+                    self.assertEqual(s["outerInset"], 6)
+                    self.assertEqual(s["rowMargin"], 6)
+                    self.assertEqual(s["rowSpacing"], 6)
+                    self.assertEqual(s["paneCornerRadius"], 16)
+                    self.assertEqual(s["sidebarRadius"], 16)
+                    self.assertEqual(s["listRadius"], 16)
+                    self.assertEqual(s["readerRadius"], 16)
+                    self.assertTrue(s["shadowVisible"])
+                    self.assertEqual(s["splitY"], 6)
+                    self.assertEqual(s["splitHeight"], 888)
+                    self.assertEqual(s["effectivePaneRadius"], 22)
+                    self.assertEqual(s["effectiveCardInset"], 6)
+                    self.assertEqual(s["effectiveCardPaneRadius"], 16)
+
+                for label in ("window_fullscreen", "flag_fullscreen", "monitor_fullscreen"):
+                    s = snapshots[label]
+                    self.assertTrue(s["isFullScreen"], f"{label} should be fullscreen")
+                    self.assertTrue(s["themeFullScreen"])
+                    self.assertEqual(s["outerRadius"], 0)
+                    self.assertEqual(s["sheetRadius"], 0)
+                    self.assertEqual(s["sheetEdgeRadius"], 0)
+                    self.assertEqual(s["outerInset"], 0)
+                    self.assertEqual(s["rowMargin"], 0)
+                    self.assertEqual(s["rowSpacing"], 6)
+                    self.assertEqual(s["paneCornerRadius"], 0)
+                    self.assertEqual(s["sidebarRadius"], 0)
+                    self.assertEqual(s["listRadius"], 0)
+                    self.assertEqual(s["readerRadius"], 0)
+                    self.assertFalse(s["shadowVisible"])
+                    self.assertEqual(s["splitY"], 0)
+                    expected_h = 1080 if label == "monitor_fullscreen" else 900
+                    self.assertEqual(s["splitHeight"], expected_h)
+                    self.assertEqual(s["effectivePaneRadius"], 0)
+                    self.assertEqual(s["effectiveCardInset"], 0)
+                    self.assertEqual(s["effectiveCardPaneRadius"], 0)
+                self.assertTrue(snapshots["monitor_fullscreen"]["paletteOpen"])
 
 
 if __name__ == "__main__":

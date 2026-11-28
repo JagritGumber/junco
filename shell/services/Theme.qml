@@ -250,8 +250,24 @@ Singleton {
     // passive success/live status harmonizes into the dynamic complement.
     readonly property color m3error: darkGlass ? "#ff94a8" : role("error", dark ? "#ff8da1" : "#a83836")
     readonly property color m3success: glass ? m3tertiary : role("success", dark ? "#8be0b8" : "#2e7d5b")
-    readonly property color m3errorContainer: glass ? (dark ? Qt.rgba(255 / 255, 110 / 255, 138 / 255, 0.24) : alpha(role("errorContainer", "#ffdad6"), 0.85)) : role("errorContainer", "#5c1b29")
-    readonly property color m3onErrorContainer: glass ? (dark ? "#ffe8ed" : role("onErrorContainer", "#5c1b1a")) : role("onErrorContainer", "#ffe5ea")
+    readonly property color m3errorContainer: glass ? (dark ? Qt.rgba(255 / 255, 110 / 255, 138 / 255, 0.24) : alpha(role("errorContainer", "#ffdad6"), 0.85)) : role("errorContainer", dark ? "#5c1b29" : "#ffdad6")
+    readonly property color m3onErrorContainer: glass ? (dark ? "#ffe8ed" : role("onErrorContainer", "#5c1b1a")) : role("onErrorContainer", dark ? "#ffe5ea" : "#5c1b1a")
+    // Filled primary action pill inside error/re-auth cards (e.g. "Sign in again",
+    // "Turn it on", primary "Try again"): opaque surface with luminance-selected
+    // ink guaranteeing >= 7:1 WCAG AAA contrast in Dark, Light, and Solid modes.
+    readonly property color errorPill: darkGlass
+        ? "#ff9eb0"
+        : lightGlass
+        ? role("onErrorContainer", "#5c1b1a")
+        : m3onErrorContainer
+    readonly property color errorPillInk: srgbLum(errorPill) > 0.19 ? "#2b0811" : "#fff5f7"
+    // Dense frosted error popup fill (floating error Snackbar) so overlapping
+    // content behind the bar never washes out error text in Dark or Light glass.
+    readonly property color m3errorPopup: darkGlass
+        ? Qt.rgba(58 / 255, 22 / 255, 32 / 255, 0.92)
+        : lightGlass
+        ? alpha(role("errorContainer", "#ffdad6"), 0.94)
+        : m3errorContainer
 
     // Solid base colours (used for COURIER_THEME=solid and HTML contrast mapping).
     readonly property color solidSurface: role("surface", dark ? "#121318" : "#f7f9fd")
@@ -394,12 +410,18 @@ Singleton {
 
     // Layout: the window is the sheet (22 px corners, like Hyprland's rule);
     // panes sit 6 px in from its edges and 6 px apart, with 16 px corners
-    // (concentric with the sheet). Screen space first on a 15" 1920x1080.
+    // (concentric with the sheet). In fullscreen, the outer sheet, outer inset,
+    // and pane corners collapse cleanly to 0 for flush edge-to-edge geometry
+    // while keeping internal 6 px gutters between panes.
+    property bool fullScreen: false
     readonly property int windowMargin: 0
     readonly property int cardInset: glass ? 6 : 0
     readonly property int paneGap: glass ? 6 : 0
     readonly property int paneRadius: glass ? 22 : 10
     readonly property int cardPaneRadius: glass ? 16 : 0
+    readonly property int effectiveCardInset: fullScreen ? 0 : cardInset
+    readonly property int effectivePaneRadius: fullScreen ? 0 : paneRadius
+    readonly property int effectiveCardPaneRadius: fullScreen ? 0 : cardPaneRadius
     readonly property int cardRadius: 14
     readonly property int rowRadius: 15
     readonly property int controlRadius: 12

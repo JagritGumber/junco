@@ -4,6 +4,7 @@
 //@ pragma AppId courier-calendar
 
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -35,6 +36,25 @@ ShellRoot {
     FloatingWindow {
         id: window
 
+        // Fullscreen flush geometry: collapse outer sheet rounding, outer
+        // perimeter inset, and pane corner radii to 0 whenever the window is
+        // fullscreen (true Window.FullScreen / FloatingWindow.fullscreen or
+        // sized to fill the entire monitor).
+        readonly property int screenWidth: window.screen ? window.screen.width : Screen.width
+        readonly property int screenHeight: window.screen ? window.screen.height : Screen.height
+        readonly property bool isFullScreen: window.fullscreen
+            || glassCanvas.Window.visibility === Window.FullScreen
+            || (screenWidth > 0 && screenHeight > 0 && window.width >= screenWidth && window.height >= screenHeight)
+        readonly property int outerRadius: isFullScreen ? 0 : (Theme.glass ? Theme.paneRadius : 0)
+        readonly property int outerInset: isFullScreen ? 0 : Theme.cardInset
+        readonly property int paneCornerRadius: isFullScreen ? 0 : Theme.cardPaneRadius
+
+        Binding {
+            target: Theme
+            property: "fullScreen"
+            value: window.isFullScreen
+        }
+
         // Preview builds of this branch say so in the title (Mail does too).
         // Drop before merging.
         title: "Junco Calendar · glass preview"
@@ -49,7 +69,7 @@ ShellRoot {
 
         readonly property Region sheetRegion: Region {
             item: glassCanvas
-            radius: Theme.paneRadius
+            radius: window.outerRadius
         }
 
         onVisibleChanged: if (!visible)
@@ -62,13 +82,15 @@ ShellRoot {
 
             // The sheet: the window's one outer edge, no rim line.
             Rectangle {
+                id: outerSheet
+
                 anchors.fill: parent
-                radius: Theme.glass ? Theme.paneRadius : 0
+                radius: window.outerRadius
                 color: Theme.glassSheet
 
                 GlassEdge {
                     visible: Theme.glass
-                    radius: Theme.paneRadius
+                    radius: outerSheet.radius
                 }
             }
 
@@ -86,6 +108,7 @@ ShellRoot {
                 id: calendarPage
 
                 anchors.fill: parent
+                fullScreen: window.isFullScreen
             }
         }
 

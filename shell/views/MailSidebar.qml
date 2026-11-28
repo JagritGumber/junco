@@ -203,16 +203,28 @@ GlassPane {
 
             Rectangle {
                 id: syncPill
+                objectName: "mailSyncPill"
 
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 visible: Inbox.syncLabel !== ""
                 width: syncRow.implicitWidth + 18
-                height: 22
-                radius: 11
-                color: Theme.sheetControl
+                height: 24
+                radius: 12
+                color: syncPillArea.pressed
+                    ? Theme.sheetControlHover
+                    : syncPillArea.containsMouse
+                    ? Theme.sheetControlHover
+                    : Theme.sheetControl
                 border.width: Theme.glass ? 0 : 1
                 border.color: Theme.sheetRim
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: Theme.animFast
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
                 Row {
                     id: syncRow
@@ -221,18 +233,49 @@ GlassPane {
                     spacing: 6
 
                     Rectangle {
+                        objectName: "mailSyncPillDot"
                         anchors.verticalCenter: parent.verticalCenter
                         width: 7
                         height: 7
                         radius: 3.5
-                        color: Inbox.syncTrouble ? Theme.m3error : Inbox.syncing ? Theme.accent : Theme.complementSheetDot
+                        color: Inbox.reauthInFlight !== ""
+                            ? Theme.accent
+                            : Inbox.syncTrouble
+                            ? Theme.sheetError
+                            : Inbox.syncing
+                            ? Theme.accent
+                            : Theme.complementSheetDot
                     }
 
                     Label {
+                        objectName: "mailSyncPillLabel"
                         anchors.verticalCenter: parent.verticalCenter
                         text: Inbox.syncLabel
                         color: Theme.sheetInk
                         font.pixelSize: 11
+                        weight: Inbox.syncTrouble ? Font.Medium : Font.Normal
+                    }
+                }
+
+                MouseArea {
+                    id: syncPillArea
+                    objectName: "mailSyncPillArea"
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Inbox.handleSyncPillClick()
+                }
+
+                Loader {
+                    active: syncPillArea.containsMouse
+                    sourceComponent: Tooltip {
+                        parent: syncPill
+                        text: Inbox.reauthInFlight !== ""
+                            ? "Waiting for sign-in in browser · click to cancel"
+                            : Inbox.syncTroubleMessage !== ""
+                            ? `${Inbox.syncTroubleMessage} · click to fix`
+                            : "Click to sync mail now"
                     }
                 }
             }

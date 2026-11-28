@@ -514,9 +514,139 @@ def agenda() -> dict:
 
 def read_status() -> dict:
     try:
-        return json.loads(status_path().read_text())
+        data = json.loads(status_path().read_text())
     except (FileNotFoundError, ValueError):
         return {"state": "never"}
+    if not isinstance(data, dict):
+        return {"state": "never"}
+    account = signed_out_account(data)
+    if account and data.get("account") != account:
+        return dict(data, account=account)
+    return data
+
+
+ACCOUNT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
+REAUTH_CMD_RE = re.compile(r"(?:^|\s)courier-auth\s+add\s+([^\s]+)(?:\s+--calendar-write)?\s*\Z")
+
+
+def valid_account_id(account: object) -> str:
+    """Return a validated Courier account id matching courier_auth.ACCOUNT_ID, or ''."""
+    if not isinstance(account, str):
+        return ""
+    value = account.strip()
+    return value if ACCOUNT_ID_RE.fullmatch(value) else ""
+
+
+def parse_reauth_account(message: object) -> str:
+    """Safely extract a validated account id from a re-auth error message."""
+    if not isinstance(message, str) or not message:
+        return ""
+    match = REAUTH_CMD_RE.search(message)
+    if not match:
+        return ""
+    token = match.group(1)
+    if token.endswith("."):
+        token = token[:-1]
+    return valid_account_id(token)
+
+
+def signed_out_account(status: dict | None) -> str:
+    """Return the validated account id requiring re-authentication, or ''."""
+    if not isinstance(status, dict):
+        return ""
+    direct = valid_account_id(status.get("account", ""))
+    if direct:
+        return direct
+    return parse_reauth_account(status.get("message", ""))
+
+
+def _auth_command() -> str:
+    import shutil
+
+    found = shutil.which("courier-auth")
+    if found:
+        return found
+    local = Path.home() / ".local/bin/courier-auth"
+    if local.exists():
+        return str(local)
+    return str(sync.AUTH)
+
+
+def _write_sync_status(status: dict) -> dict:
+    out = dict(status)
+    out["checked"] = int(time.time())
+    sync.write_private(status_path(), json.dumps(out) + "\n")
+    return out
+
+
+def run_sync_status() -> dict:
+    try:
+        status = sync_calendars()
+    except sync.SignedOut as expired:
+        raw_account = str(expired.args[0]) if expired.args else ""
+        account = valid_account_id(raw_account)
+        status = {
+            "state": "signed-out",
+            "account": account,
+            "message": f"Sign in again: courier-auth add {raw_account}",
+        }
+    except (CalendarError, sync.SyncError) as error:
+        status = {"state": "error", "message": str(error), "action": getattr(error, "action", "")}
+        account = parse_reauth_account(status["message"])
+        if account:
+            status["account"] = account
+    return _write_sync_status(status)
+
+
+def reauth_account(account: str, *, run_sync: bool = True) -> dict:
+    """Re-authenticate an account via courier-auth add (browser OAuth flow),
+    then optionally run a fresh calendar sync."""
+    import ctypes
+    import signal
+    import subprocess
+
+    clean = valid_account_id(account)
+    if not clean:
+        raise EventError("Invalid account name.")
+
+    existing = next((a for a in sync.load_accounts() if a.get("id") == clean), None)
+    email = str(existing.get("email", "")).strip() if isinstance(existing, dict) else ""
+    cmd = [_auth_command(), "add", clean]
+    if email and "@" in email and not email.startswith("-") and not any(ch.isspace() for ch in email):
+        cmd.extend(["--email", email])
+
+    def die_with_parent() -> None:
+        # PR_SET_PDEATHSIG = 1: stop browser sign-in if parent exits or cancels.
+        ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM)
+
+    auth = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        preexec_fn=die_with_parent,
+    )
+
+    def cancel(signum, frame) -> None:
+        auth.terminate()
+        raise EventError("Sign-in cancelled.")
+
+    previous_handler = signal.signal(signal.SIGTERM, cancel)
+    try:
+        out, err = auth.communicate()
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
+
+    if auth.returncode != 0:
+        detail = (err or out).strip()
+        raise EventError(detail.splitlines()[-1] if detail else "Sign-in didn't finish.")
+
+    updated = next((a for a in sync.load_accounts() if a.get("id") == clean), None)
+    resolved_email = str(updated.get("email", email)).strip() if isinstance(updated, dict) else email
+    result: dict = {"ok": True, "account": clean, "email": resolved_email}
+    if run_sync:
+        result["status"] = run_sync_status()
+    return result
 
 
 # Reminders ------------------------------------------------------------------------
@@ -1095,6 +1225,9 @@ def main(argv: list[str] | None = None) -> int:
     editor.add_argument("json")
     commands.add_parser("delete", help="delete an event on this PC").add_argument("id")
     commands.add_parser("add-calendar", help="a new calendar on this PC").add_argument("name")
+    reauth_cmd = commands.add_parser("reauth", help="sign a Google account in again and sync calendars")
+    reauth_cmd.add_argument("account")
+    reauth_cmd.add_argument("--no-sync", action="store_true", help="skip syncing calendars after sign-in")
 
     next_cmd = commands.add_parser("next", help="next meeting and today's actionables feed")
     next_cmd.add_argument("--json", action="store_true", help="output JSON (default)")
@@ -1117,14 +1250,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "sync":
-        try:
-            status = sync_calendars()
-        except sync.SignedOut as expired:
-            status = {"state": "signed-out", "message": f"Sign in again: courier-auth add {expired.args[0]}"}
-        except (CalendarError, sync.SyncError) as error:
-            status = {"state": "error", "message": str(error), "action": getattr(error, "action", "")}
-        status["checked"] = int(time.time())
-        sync.write_private(status_path(), json.dumps(status) + "\n")
+        status = run_sync_status()
         print(json.dumps(status))
         return 0 if status["state"] == "ok" else 1
     if args.command == "remind":
@@ -1152,6 +1278,8 @@ def main(argv: list[str] | None = None) -> int:
             result = delete_event(args.id)
         elif args.command == "add-calendar":
             result = add_calendar(args.name)
+        elif args.command == "reauth":
+            result = reauth_account(args.account, run_sync=not args.no_sync)
         elif args.command == "next":
             result = write_next_meeting_feed() if args.write else build_next_meeting_feed()
         elif args.command == "actionables":

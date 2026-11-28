@@ -231,7 +231,7 @@ GlassPane {
                             implicitWidth: flagLabel.implicitWidth + 36
                             implicitHeight: 28
                             radius: 14
-                            color: Theme.alpha(Theme.m3error, 0.14)
+                            color: Theme.m3errorContainer
 
                             Row {
                                 anchors.centerIn: parent
@@ -241,7 +241,7 @@ GlassPane {
                                     anchors.verticalCenter: parent.verticalCenter
                                     name: "warning"
                                     size: 16
-                                    color: Theme.m3error
+                                    color: Theme.m3onErrorContainer
                                 }
 
                                 Label {
@@ -249,7 +249,7 @@ GlassPane {
 
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: "Needs re-teaching"
-                                    color: Theme.m3error
+                                    color: Theme.m3onErrorContainer
                                     font.pixelSize: 12
                                     weight: Font.Medium
                                 }

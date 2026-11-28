@@ -1743,15 +1743,30 @@ def add_account(name: str) -> dict:
     """Signs a Google account in (the browser opens), then sets sync and push
     up for it and starts its first sync."""
     import ctypes
+    import shutil
     import signal
+
+    clean = name.strip() if isinstance(name, str) else ""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,31}", clean):
+        raise MailError("Use a short name in lowercase letters, like work or college.")
+
+    auth_bin = shutil.which("courier-auth")
+    if not auth_bin:
+        local_auth = Path.home() / ".local/bin/courier-auth"
+        auth_bin = str(local_auth) if local_auth.exists() else str(sync.AUTH)
+
+    existing = next((a for a in sync.load_accounts() if a.get("id") == clean), None)
+    email = str(existing.get("email", "")).strip() if isinstance(existing, dict) else ""
+    cmd = [auth_bin, "add", clean]
+    if email and "@" in email and not email.startswith("-") and not any(ch.isspace() for ch in email):
+        cmd.extend(["--email", email])
 
     def die_with_parent() -> None:
         # If this process goes (Cancel, or Courier closing), the sign-in goes
         # too, instead of waiting on in the background. PR_SET_PDEATHSIG = 1.
         ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM)
 
-    auth = subprocess.Popen([str(Path.home() / ".local/bin/courier-auth"), "add", name],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=die_with_parent)
+    auth = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=die_with_parent)
 
     def cancel(signum, frame) -> None:
         auth.terminate()
@@ -1762,10 +1777,12 @@ def add_account(name: str) -> dict:
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
     if auth.returncode != 0:
         raise MailError((err or out).strip().splitlines()[-1] if (err or out).strip() else "Sign-in didn't finish.")
-    account = next((a for a in sync.load_accounts() if a["id"] == name), None)
+    account = next((a for a in sync.load_accounts() if a["id"] == clean), None)
     if account is None:
         raise MailError("Sign-in finished but the account wasn't saved.")
-    subprocess.run([str(Path.home() / ".local/bin/courier-sync"), "--configure"], capture_output=True)
+    sync_bin = shutil.which("courier-sync") or str(Path.home() / ".local/bin/courier-sync")
+    if Path(sync_bin).exists():
+        subprocess.run([sync_bin, "--configure"], capture_output=True)
     subprocess.run(["systemctl", "--user", "restart", "courier-push.service"], capture_output=True)
     start_sync()
     return {"id": account["id"], "email": account["email"]}

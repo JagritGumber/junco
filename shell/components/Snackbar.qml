@@ -57,10 +57,11 @@ Item {
 
     Rectangle {
         id: bar
+        objectName: "snackbarBar"
 
         anchors.fill: parent
         radius: 12
-        color: root.shown?.error ? Theme.m3errorContainer : Theme.m3popupHigh
+        color: root.shown?.error ? Theme.m3errorPopup : Theme.m3popupHigh
         border.width: 1
         border.color: root.shown?.error ? Theme.alpha(Theme.m3error, 0.5) : Theme.glassPopupBorder
 
@@ -91,6 +92,7 @@ Item {
             }
 
             Text {
+                objectName: "snackbarLabel"
                 Layout.fillWidth: true
                 renderType: Text.NativeRendering
                 textFormat: Text.PlainText
@@ -116,7 +118,7 @@ Item {
                     anchors.centerIn: parent
                     renderType: Text.NativeRendering
                     text: "Undo"
-                    color: Theme.m3primary
+                    color: root.shown?.error ? Theme.m3onErrorContainer : Theme.m3primary
                     font.family: Theme.sans
                     font.pixelSize: 13
                     font.weight: Font.Normal

@@ -13,16 +13,18 @@ Item {
     property bool searching: false
     property var deleted: null
     property string toastText: ""
+    property bool fullScreen: Theme.fullScreen
     // 0 = auto (responsive), 1 = forced open, -1 = forced closed
     property int sidebarPref: 0
     property int dayPref: 0
 
+    readonly property int outerInset: fullScreen ? 0 : Theme.cardInset
     readonly property bool sidebarShown: sidebarPref === 0 ? root.width >= 1120 : sidebarPref > 0
     readonly property bool dayShown: dayPref === 0 ? root.width >= 1260 : dayPref > 0
     readonly property int minCenterWidth: 420
-    readonly property int maxSidebarWidth: Math.max(180, Math.min(360, Math.floor(root.width - (dayShown ? Calendar.dayPanelWidth + Theme.paneGap : 0) - 2 * Theme.cardInset - Theme.paneGap - minCenterWidth)))
+    readonly property int maxSidebarWidth: Math.max(180, Math.min(360, Math.floor(root.width - (dayShown ? Calendar.dayPanelWidth + Theme.paneGap : 0) - 2 * outerInset - Theme.paneGap - minCenterWidth)))
     readonly property int effectiveSidebarWidth: Math.max(180, Math.min(maxSidebarWidth, Calendar.sidebarWidth))
-    readonly property int maxDayPanelWidth: Math.max(220, Math.min(440, Math.floor(root.width - (sidebarShown ? effectiveSidebarWidth + Theme.paneGap : 0) - 2 * Theme.cardInset - Theme.paneGap - minCenterWidth)))
+    readonly property int maxDayPanelWidth: Math.max(220, Math.min(440, Math.floor(root.width - (sidebarShown ? effectiveSidebarWidth + Theme.paneGap : 0) - 2 * outerInset - Theme.paneGap - minCenterWidth)))
     readonly property int effectiveDayPanelWidth: Math.max(220, Math.min(maxDayPanelWidth, Calendar.dayPanelWidth))
 
     function toggleSidebar(): void {
@@ -127,13 +129,14 @@ Item {
     }
 
     // All panes (smoked sidebar, main calendar grid, Today & Actionables) share
-    // the same outer inset (6 px) and clear-glass gutter (6 px), with 16 px
-    // corners concentric with the 22 px outer sheet.
+    // the same outer inset (6 px windowed, 0 px fullscreen) and clear-glass
+    // gutter (6 px), with 16 px corners concentric with the 22 px outer sheet
+    // when windowed, or flush edge-to-edge in fullscreen.
     RowLayout {
         id: panesRow
 
         anchors.fill: parent
-        anchors.margins: Theme.cardInset
+        anchors.margins: root.outerInset
         spacing: Theme.paneGap
 
         CalendarSidebar {
@@ -497,9 +500,9 @@ Item {
     SplitHandle {
         visible: root.sidebarShown
         x: panesRow.x + sidebar.x + sidebar.width - (Theme.paneGap > 0 ? 0 : 3)
-        y: Theme.cardInset
+        y: root.outerInset
         width: Math.max(6, Theme.paneGap)
-        height: Math.max(0, root.height - 2 * Theme.cardInset)
+        height: Math.max(0, root.height - 2 * root.outerInset)
         dragScope: root
         value: root.effectiveSidebarWidth
         direction: 1
@@ -516,9 +519,9 @@ Item {
     SplitHandle {
         visible: root.dayShown
         x: panesRow.x + dayPanel.x - (Theme.paneGap > 0 ? Theme.paneGap : 3)
-        y: Theme.cardInset
+        y: root.outerInset
         width: Math.max(6, Theme.paneGap)
-        height: Math.max(0, root.height - 2 * Theme.cardInset)
+        height: Math.max(0, root.height - 2 * root.outerInset)
         dragScope: root
         value: root.effectiveDayPanelWidth
         direction: -1
@@ -613,6 +616,15 @@ Item {
 
         interval: 3400
         onTriggered: root.toastText = ""
+    }
+
+    Connections {
+        target: Calendar
+
+        function onFeedback(message: string): void {
+            if (message !== "")
+                root.showToast(message);
+        }
     }
 
     Loader {

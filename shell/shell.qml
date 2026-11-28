@@ -4,6 +4,7 @@
 //@ pragma AppId courier
 
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
@@ -34,6 +35,19 @@ ShellRoot {
     FloatingWindow {
         id: window
 
+        // Fullscreen flush geometry: collapse outer sheet rounding, outer
+        // perimeter inset, and pane corner radii to 0 whenever the window is
+        // fullscreen (true Window.FullScreen / FloatingWindow.fullscreen or
+        // sized to fill the entire monitor).
+        readonly property int screenWidth: window.screen ? window.screen.width : Screen.width
+        readonly property int screenHeight: window.screen ? window.screen.height : Screen.height
+        readonly property bool isFullScreen: window.fullscreen
+            || glassCanvas.Window.visibility === Window.FullScreen
+            || (screenWidth > 0 && screenHeight > 0 && window.width >= screenWidth && window.height >= screenHeight)
+        readonly property int outerRadius: isFullScreen ? 0 : (Theme.glass ? Theme.paneRadius : 0)
+        readonly property int outerInset: isFullScreen ? 0 : Theme.cardInset
+        readonly property int paneCornerRadius: isFullScreen ? 0 : Theme.cardPaneRadius
+
         // Manual toggle (Ctrl+\ or sidebar button) plus automatic compact icon
         // rail below 1200 px so half-screen tiles (~950x1040) keep a wide chat/reader.
         property bool userCollapsedSidebar: false
@@ -43,8 +57,14 @@ ShellRoot {
         readonly property int defaultListWidth: width >= 1500 ? 412 : width >= 1150 ? 344 : 308
         readonly property int maxSidebarWidth: Math.max(160, Math.min(300, Math.floor(width * 0.26)))
         readonly property int sidebarWidth: compactSidebar ? 56 : Math.max(160, Math.min(maxSidebarWidth, savedSidebarWidth))
-        readonly property int maxListWidth: Math.max(260, Math.min(520, width - sidebarWidth - 2 * Theme.cardInset - 2 * Theme.paneGap - 360))
+        readonly property int maxListWidth: Math.max(260, Math.min(520, width - sidebarWidth - 2 * outerInset - 2 * Theme.paneGap - 360))
         readonly property int listWidth: Math.max(260, Math.min(maxListWidth, savedListWidth > 0 ? savedListWidth : defaultListWidth))
+
+        Binding {
+            target: Theme
+            property: "fullScreen"
+            value: window.isFullScreen
+        }
 
         function saveLayout(): void {
             layoutFile.setText(JSON.stringify({
@@ -90,41 +110,41 @@ ShellRoot {
 
         readonly property Region sheetRegion: Region {
             item: glassCanvas
-            radius: Theme.paneRadius
+            radius: window.outerRadius
         }
 
         readonly property Region cardRegion: Region {
             Region {
                 item: sidebar.visible ? sidebar : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: conversationList.visible ? conversationList : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: mailListLoader.visible ? mailListLoader.item : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: conversationView.visible ? conversationView : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: templateTableLoader.visible ? templateTableLoader.item : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: mailReaderLoader.visible ? mailReaderLoader.item : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: teachPanelLoader.visible ? teachPanelLoader.item : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
             Region {
                 item: autoExpirySettingsLoader.visible ? autoExpirySettingsLoader.item : null
-                radius: Theme.cardPaneRadius
+                radius: window.paneCornerRadius
             }
         }
 
@@ -138,14 +158,16 @@ ShellRoot {
 
             // The sheet: the window's one outer edge.
             Rectangle {
+                id: outerSheet
+
                 anchors.fill: parent
-                radius: Theme.glass ? Theme.paneRadius : 0
+                radius: window.outerRadius
                 color: Theme.glassSheet
 
                 GlassEdge {
                     visible: Theme.glass
                     z: 1
-                    radius: Theme.paneRadius
+                    radius: outerSheet.radius
                 }
             }
 
@@ -162,13 +184,14 @@ ShellRoot {
             }
 
             // All panes (smoked sidebar + raised glass cards) share the same
-            // outer inset (6 px) and clear-glass gutter (6 px) so every rounded
-            // corner sits concentrically inside the 22 px outer sheet.
+            // outer inset (6 px windowed, 0 px fullscreen) and clear-glass
+            // gutter (6 px) so every rounded corner sits concentrically inside
+            // the 22 px outer sheet when windowed, or flush edge-to-edge in fullscreen.
             RowLayout {
                 id: panesRow
 
                 anchors.fill: parent
-                anchors.margins: Theme.cardInset
+                anchors.margins: window.outerInset
                 spacing: Theme.paneGap
 
                 MailSidebar {
@@ -265,9 +288,9 @@ ShellRoot {
             SplitHandle {
                 visible: !window.compactSidebar
                 x: panesRow.x + sidebar.x + sidebar.width - (Theme.paneGap > 0 ? 0 : 3)
-                y: Theme.cardInset
+                y: window.outerInset
                 width: Math.max(6, Theme.paneGap)
-                height: Math.max(0, glassCanvas.height - 2 * Theme.cardInset)
+                height: Math.max(0, glassCanvas.height - 2 * window.outerInset)
                 dragScope: glassCanvas
                 value: window.sidebarWidth
                 direction: 1
@@ -286,9 +309,9 @@ ShellRoot {
 
                 visible: activeList !== null && (conversationView.visible || mailReaderLoader.visible)
                 x: panesRow.x + (activeList ? activeList.x + activeList.width : 0) - (Theme.paneGap > 0 ? 0 : 3)
-                y: Theme.cardInset
+                y: window.outerInset
                 width: Math.max(6, Theme.paneGap)
-                height: Math.max(0, glassCanvas.height - 2 * Theme.cardInset)
+                height: Math.max(0, glassCanvas.height - 2 * window.outerInset)
                 dragScope: glassCanvas
                 value: window.listWidth
                 direction: 1
@@ -347,7 +370,7 @@ ShellRoot {
         Snackbar {
             anchors.left: parent.left
             anchors.bottom: parent.bottom
-            anchors.leftMargin: Theme.cardInset + window.sidebarWidth + Theme.paneGap + 14
+            anchors.leftMargin: window.outerInset + window.sidebarWidth + Theme.paneGap + 14
             anchors.bottomMargin: 16
             z: 100
         }

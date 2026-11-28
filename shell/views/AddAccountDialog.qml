@@ -65,7 +65,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Theme.paneRadius
+        radius: Theme.effectivePaneRadius
         color: Theme.alpha("#000000", 0.45)
 
         // A click outside closes it, except mid sign-in: coming back from the

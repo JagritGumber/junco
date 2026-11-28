@@ -179,7 +179,7 @@ Item {
             // Scrim: gentle translucent backdrop; click outside dismisses and restores focus.
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.paneRadius
+                radius: Theme.effectivePaneRadius
                 color: Theme.dark ? Theme.alpha("#000000", 0.34) : Theme.alpha("#0e1328", 0.18)
 
                 MouseArea {
